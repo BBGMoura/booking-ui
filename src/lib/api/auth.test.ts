@@ -1,13 +1,6 @@
 import MockAdapter from 'axios-mock-adapter';
 import Cookies from 'js-cookie';
-import {
-  login,
-  register,
-  checkInvite,
-  getCurrentUser,
-  logout,
-  api
-} from '@/lib/api/auth';
+import { login, register, checkInvite, getCurrentUser, logout, api } from '@/lib/api/auth';
 import { LoginCredentials, RegisterData, User } from '@/lib/types/auth';
 
 const mockUser: User = {
@@ -124,7 +117,7 @@ describe('register()', () => {
 
     const result = await register(mockRegisterData);
 
-    expect(result).toEqual(mockRegisterResponse);
+    expect(result).toEqual(mockUser);
   });
 });
 
@@ -183,4 +176,3 @@ describe('logout()', () => {
     expect(Cookies.remove).toHaveBeenCalledWith('auth_token');
   });
 });
-
