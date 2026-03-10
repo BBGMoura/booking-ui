@@ -5,7 +5,7 @@ import {
   login as loginApi,
   logout as logoutApi,
   register as registerApi,
-  getCurrentUser,
+  fetchCurrentUser,
 } from '@/lib/api/auth';
 import type { User, LoginCredentials, RegisterData } from '@/lib/types/auth';
 
@@ -52,10 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function checkExistingToken() {
       try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch {
-        setUser(null);
+        await fetchUser();
       } finally {
         setIsInitialising(false);
       }
@@ -99,6 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function fetchUser(): Promise<void> {
+    try {
+      const currentUser = await fetchCurrentUser();
+      setUser(currentUser);
+    } catch {
+      setError(null);
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -117,6 +123,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Hook to access global authentication state and actions.
+ * Must be used inside a component wrapped by AuthProvider.
+ *
+ * @example
+ * const { user, isAuthenticated, isLoading, login, logout } = useAuth();
+ *
+ * @throws Error if used outside of AuthProvider
+ */
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 

@@ -6,14 +6,14 @@ import type {
   RegisterResponse,
   RegisterData,
   LoginCredentials,
-  CheckInviteResponse
+  CheckInviteResponse,
 } from '@/lib/types/auth';
 
 const TOKEN_KEY = 'auth_token';
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-})
+});
 
 api.interceptors.request.use((config) => {
   const token = Cookies.get(TOKEN_KEY);
@@ -40,7 +40,7 @@ export async function login(credentials: LoginCredentials): Promise<User> {
 
   Cookies.set(TOKEN_KEY, data.token, { expires: 1 });
 
-  return getCurrentUser();
+  return fetchCurrentUser();
 }
 
 export async function register(registerData: RegisterData): Promise<User> {
@@ -60,13 +60,13 @@ export async function register(registerData: RegisterData): Promise<User> {
 }
 
 export async function checkInvite(email: string): Promise<CheckInviteResponse> {
-  const { data } = await api.get<CheckInviteResponse>("/auth/check-invite", {
+  const { data } = await api.get<CheckInviteResponse>('/auth/check-invite', {
     params: { email },
   });
   return data;
 }
 
-export async function getCurrentUser(): Promise<User> {
+export async function fetchCurrentUser(): Promise<User> {
   const { data } = await api.get<User>('/user');
   return data;
 }
@@ -74,5 +74,3 @@ export async function getCurrentUser(): Promise<User> {
 export function logout(): void {
   Cookies.remove(TOKEN_KEY);
 }
-
-

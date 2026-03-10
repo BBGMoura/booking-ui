@@ -1,6 +1,6 @@
 import MockAdapter from 'axios-mock-adapter';
 import Cookies from 'js-cookie';
-import { login, register, checkInvite, getCurrentUser, logout, api } from '@/lib/api/auth';
+import { login, register, checkInvite, fetchCurrentUser, logout, api } from '@/lib/api/auth';
 import { LoginCredentials, RegisterData, User } from '@/lib/types/auth';
 
 const mockUser: User = {
@@ -58,121 +58,143 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-describe('login()', () => {
-  it('calls the correct endpoint with credentials', async () => {
-    mock.onPost('/auth/login').reply(200, { token: mockToken });
-    mock.onGet('/user').reply(200, mockUser);
+describe('auth API', () => {
+  describe('request interceptor', () => {
+    it('attaches Authorization header when token exists in cookie', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue(mockToken);
+      mock.onGet('/user').reply(200, mockUser);
 
-    await login(mockLoginCredentials);
+      await fetchCurrentUser();
 
-    expect(mock.history.post[0].url).toBe('/auth/login');
-    expect(JSON.parse(mock.history.post[0].data)).toEqual(mockLoginCredentials);
+      expect(mock.history.get[0].headers?.Authorization).toBe(`Bearer ${mockToken}`);
+    });
+
+    it('does not attach Authorization header when no token exists', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue(undefined);
+      mock.onGet('/user').reply(200, mockUser);
+
+      await fetchCurrentUser();
+
+      expect(mock.history.get[0].headers?.Authorization).toBeUndefined();
+    });
   });
 
-  it('stores the token in a cookie after login', async () => {
-    mock.onPost('/auth/login').reply(200, { token: mockToken });
-    mock.onGet('/user').reply(200, mockUser);
+  describe('login()', () => {
+    it('calls the correct endpoint with credentials', async () => {
+      mock.onPost('/auth/login').reply(200, { token: mockToken });
+      mock.onGet('/user').reply(200, mockUser);
 
-    await login(mockLoginCredentials);
+      await login(mockLoginCredentials);
 
-    expect(Cookies.set).toHaveBeenCalledWith('auth_token', mockToken, { expires: 1 });
+      expect(mock.history.post[0].url).toBe('/auth/login');
+      expect(JSON.parse(mock.history.post[0].data)).toEqual(mockLoginCredentials);
+    });
+
+    it('stores the token in a cookie after login', async () => {
+      mock.onPost('/auth/login').reply(200, { token: mockToken });
+      mock.onGet('/user').reply(200, mockUser);
+
+      await login(mockLoginCredentials);
+
+      expect(Cookies.set).toHaveBeenCalledWith('auth_token', mockToken, { expires: 1 });
+    });
+
+    it('returns the user object', async () => {
+      mock.onPost('/auth/login').reply(200, { token: mockToken });
+      mock.onGet('/user').reply(200, mockUser);
+
+      const result = await login(mockLoginCredentials);
+
+      expect(result).toEqual(mockUser);
+    });
+
+    it('throws an error if the backend returns an error', async () => {
+      mock.onPost('/auth/login').reply(401);
+
+      await expect(login(mockLoginCredentials)).rejects.toThrow();
+    });
   });
 
-  it('returns the user object', async () => {
-    mock.onPost('/auth/login').reply(200, { token: mockToken });
-    mock.onGet('/user').reply(200, mockUser);
+  describe('register()', () => {
+    it('calls the correct endpoint with registration data', async () => {
+      mock.onPost('/auth/register').reply(201, mockRegisterResponse);
 
-    const result = await login(mockLoginCredentials);
+      await register(mockRegisterData);
 
-    expect(result).toEqual(mockUser);
+      expect(mock.history.post[0].url).toBe('/auth/register');
+      expect(JSON.parse(mock.history.post[0].data)).toEqual(mockRegisterData);
+    });
+
+    it('stores the token in a cookie after registration', async () => {
+      mock.onPost('/auth/register').reply(201, mockRegisterResponse);
+
+      await register(mockRegisterData);
+
+      expect(Cookies.set).toHaveBeenCalledWith('auth_token', mockToken, { expires: 1 });
+    });
+
+    it('returns the user object after registration', async () => {
+      mock.onPost('/auth/register').reply(201, mockRegisterResponse);
+
+      const result = await register(mockRegisterData);
+
+      expect(result).toEqual(mockUser);
+    });
   });
 
-  it('throws an error if the backend returns an error', async () => {
-    mock.onPost('/auth/login').reply(401);
+  describe('checkInvite()', () => {
+    it('calls the correct endpoint with email as a query param', async () => {
+      mock.onGet('/auth/check-invite').reply(200, { email: 'jane@example.com', invited: true });
 
-    await expect(login(mockLoginCredentials)).rejects.toThrow();
-  });
-});
+      await checkInvite('jane@example.com');
 
-describe('register()', () => {
-  it('calls the correct endpoint with registration data', async () => {
-    mock.onPost('/auth/register').reply(201, mockRegisterResponse);
+      expect(mock.history.get[0].url).toBe('/auth/check-invite');
+      expect(mock.history.get[0].params).toEqual({ email: 'jane@example.com' });
+    });
 
-    await register(mockRegisterData);
+    it('returns the full check invite response', async () => {
+      const mockResponse = { email: 'jane@example.com', invited: true };
+      mock.onGet('/auth/check-invite').reply(200, mockResponse);
 
-    expect(mock.history.post[0].url).toBe('/auth/register');
-    expect(JSON.parse(mock.history.post[0].data)).toEqual(mockRegisterData);
-  });
+      const result = await checkInvite('jane@example.com');
 
-  it('stores the token in a cookie after registration', async () => {
-    mock.onPost('/auth/register').reply(201, mockRegisterResponse);
+      expect(result).toEqual(mockResponse);
+    });
 
-    await register(mockRegisterData);
+    it('returns invited false for uninvited email', async () => {
+      mock.onGet('/auth/check-invite').reply(200, { email: 'unknown@example.com', invited: false });
 
-    expect(Cookies.set).toHaveBeenCalledWith('auth_token', mockToken, { expires: 1 });
-  });
+      const result = await checkInvite('unknown@example.com');
 
-  it('returns the full register response', async () => {
-    mock.onPost('/auth/register').reply(201, mockRegisterResponse);
-
-    const result = await register(mockRegisterData);
-
-    expect(result).toEqual(mockUser);
-  });
-});
-
-describe('checkInvite()', () => {
-  it('calls the correct endpoint with email as a query param', async () => {
-    mock.onGet('/auth/check-invite').reply(200, { email: 'jane@example.com', invited: true });
-
-    await checkInvite('jane@example.com');
-
-    expect(mock.history.get[0].url).toBe('/auth/check-invite');
-    expect(mock.history.get[0].params).toEqual({ email: 'jane@example.com' });
+      expect(result.invited).toBe(false);
+    });
   });
 
-  it('returns the full check invite response', async () => {
-    const mockResponse = { email: 'jane@example.com', invited: true };
-    mock.onGet('/auth/check-invite').reply(200, mockResponse);
+  describe('fetchCurrentUser()', () => {
+    it('calls the correct endpoint', async () => {
+      mock.onGet('/user').reply(200, mockUser);
 
-    const result = await checkInvite('jane@example.com');
+      await fetchCurrentUser();
 
-    expect(result).toEqual(mockResponse);
+      expect(mock.history.get[0].url).toBe('/user');
+    });
+
+    it('returns the user object', async () => {
+      mock.onGet('/user').reply(200, mockUser);
+
+      const result = await fetchCurrentUser();
+
+      expect(result).toEqual(mockUser);
+    });
   });
 
-  it('returns invited false for uninvited email', async () => {
-    mock.onGet('/auth/check-invite').reply(200, { email: 'unknown@example.com', invited: false });
+  describe('logout()', () => {
+    it('removes the token cookie', () => {
+      Cookies.set('auth_token', mockToken);
 
-    const result = await checkInvite('unknown@example.com');
+      logout();
 
-    expect(result.invited).toBe(false);
-  });
-});
-
-describe('getCurrentUser()', () => {
-  it('calls the correct endpoint', async () => {
-    mock.onGet('/user').reply(200, mockUser);
-
-    await getCurrentUser();
-
-    expect(mock.history.get[0].url).toBe('/user');
-  });
-
-  it('returns the user object', async () => {
-    mock.onGet('/user').reply(200, mockUser);
-
-    const result = await getCurrentUser();
-
-    expect(result).toEqual(mockUser);
-  });
-});
-
-describe('logout()', () => {
-  it('removes the token cookie', () => {
-    Cookies.set('auth_token', mockToken);
-
-    logout();
-
-    expect(Cookies.remove).toHaveBeenCalledWith('auth_token');
+      expect(Cookies.remove).toHaveBeenCalledWith('auth_token');
+    });
   });
 });
