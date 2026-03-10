@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act, waitFor, render, screen } from '@testing-library/react';
 import { AuthProvider, useAuth } from './AuthContext';
 import * as authApi from '@/lib/api/auth';
 import type { User } from '@/lib/types/auth';
@@ -8,8 +8,8 @@ jest.mock('@/lib/api/auth');
 const mockLogin = authApi.login as jest.MockedFunction<typeof authApi.login>;
 const mockLogout = authApi.logout as jest.MockedFunction<typeof authApi.logout>;
 const mockRegister = authApi.register as jest.MockedFunction<typeof authApi.register>;
-const mockGetCurrentUser = authApi.getCurrentUser as jest.MockedFunction<
-  typeof authApi.getCurrentUser
+const mockFetchCurrentUser = authApi.fetchCurrentUser as jest.MockedFunction<
+  typeof authApi.fetchCurrentUser
 >;
 
 const mockUser: User = {
@@ -42,7 +42,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGetCurrentUser.mockRejectedValue(new Error('No token'));
+  mockFetchCurrentUser.mockRejectedValue(new Error('No token'));
 });
 
 describe('AuthContext', () => {
@@ -57,7 +57,7 @@ describe('AuthContext', () => {
     });
 
     it('restores user from existing token on mount', async () => {
-      mockGetCurrentUser.mockResolvedValue(mockUser);
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -68,7 +68,7 @@ describe('AuthContext', () => {
     });
 
     it('clears user if existing token is invalid', async () => {
-      mockGetCurrentUser.mockRejectedValue(new Error('Unauthorised'));
+      mockFetchCurrentUser.mockRejectedValue(new Error('Unauthorised'));
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -258,5 +258,15 @@ describe('AuthContext', () => {
         'useAuth must be used within an AuthProvider'
       );
     });
+  });
+
+  it('renders children once initialisation is complete', async () => {
+    render(
+      <AuthProvider>
+        <div>test child</div>
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(screen.getByText('test child')).toBeInTheDocument());
   });
 });

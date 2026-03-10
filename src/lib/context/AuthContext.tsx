@@ -5,7 +5,7 @@ import {
   login as loginApi,
   logout as logoutApi,
   register as registerApi,
-  getCurrentUser,
+  fetchCurrentUser,
 } from '@/lib/api/auth';
 import type { User, LoginCredentials, RegisterData } from '@/lib/types/auth';
 
@@ -52,10 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function checkExistingToken() {
       try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch {
-        setUser(null);
+        await fetchUser();
       } finally {
         setIsInitialising(false);
       }
@@ -96,6 +93,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function fetchUser(): Promise<void> {
+    try {
+      const currentUser = await fetchCurrentUser();
+      setUser(currentUser);
+    } catch {
+      setError(null);
     }
   }
 
