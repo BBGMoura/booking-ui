@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor, render, screen } from '@testing-library/react';
 import { AuthProvider, useAuth } from './AuthContext';
 import * as authApi from '@/lib/api/auth';
-import type { User } from '@/lib/types/auth';
+import { User, USER_ROLES } from '@/lib/types/auth';
 
 jest.mock('@/lib/api/auth');
 
@@ -258,15 +258,44 @@ describe('AuthContext', () => {
         'useAuth must be used within an AuthProvider'
       );
     });
+
+    it('renders children once initialisation is complete', async () => {
+      render(
+        <AuthProvider>
+          <div>test child</div>
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect(screen.getByText('test child')).toBeInTheDocument());
+    });
   });
 
-  it('renders children once initialisation is complete', async () => {
-    render(
-      <AuthProvider>
-        <div>test child</div>
-      </AuthProvider>
-    );
+  describe('hasRole()', () => {
+    it('returns true when user has the specified role', async () => {
+      mockFetchCurrentUser.mockResolvedValue(mockUser); // mockUser has ROLE_USER
 
-    await waitFor(() => expect(screen.getByText('test child')).toBeInTheDocument());
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.isInitialising).toBe(false));
+
+      expect(result.current.hasRole(USER_ROLES.USER)).toBe(true);
+    });
+
+    it('returns false when user does not have the specified role', async () => {
+      mockFetchCurrentUser.mockResolvedValue(mockUser); // mockUser has ROLE_USER not ROLE_ADMIN
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.isInitialising).toBe(false));
+
+      expect(result.current.hasRole(USER_ROLES.ADMIN)).toBe(false);
+    });
+
+    it('returns false when no user is logged in', async () => {
+      // mockFetchCurrentUser already defaults to rejected in beforeEach — no user
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.isInitialising).toBe(false));
+
+      expect(result.current.hasRole(USER_ROLES.ADMIN)).toBe(false);
+    });
   });
 });

@@ -7,7 +7,7 @@ import {
   register as registerApi,
   fetchCurrentUser,
 } from '@/lib/api/auth';
-import type { User, LoginCredentials, RegisterData } from '@/lib/types/auth';
+import type { User, LoginCredentials, RegisterData, UserRole } from '@/lib/types/auth';
 
 /**
  * AuthContext value provided to the entire app.
@@ -24,6 +24,7 @@ import type { User, LoginCredentials, RegisterData } from '@/lib/types/auth';
  */
 interface AuthContextType {
   user: User | null;
+  hasRole: (role: UserRole) => boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
   isInitialising: boolean;
@@ -105,10 +106,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  function hasRole(role: UserRole): boolean {
+    if (!user) return false;
+    return user.role === role;
+  }
+
   return (
     <AuthContext.Provider
       value={{
         user,
+        hasRole,
         isAuthenticated: !!user,
         isLoading,
         isInitialising,
@@ -130,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  * @example
  * const { user, isAuthenticated, isLoading, login, logout } = useAuth();
  *
- * @throws Error if used outside of AuthProvider
+ * @throws Error if used outside AuthProvider
  */
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
