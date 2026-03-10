@@ -123,6 +123,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Hook to access global authentication state and actions.
+ * Must be used inside a component wrapped by AuthProvider.
+ *
+ * @example
+ * const { user, isAuthenticated, isLoading, login, logout } = useAuth();
+ *
+ * @throws Error if used outside of AuthProvider
+ */
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 
