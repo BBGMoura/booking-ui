@@ -8,6 +8,7 @@ import {
   fetchCurrentUser,
 } from '@/lib/api/auth';
 import type { User, LoginCredentials, RegisterData, UserRole } from '@/lib/types/auth';
+import { parseApiError } from '@/lib/utils/errorUtils';
 
 /**
  * AuthContext value provided to the entire app.
@@ -35,6 +36,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+export { AuthContext };
 
 /**
  * Wraps the entire app and manages global authentication state.
@@ -68,9 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       const loggedInUser = await loginApi(credentials);
       setUser(loggedInUser);
-    } catch {
-      // TODO [BMS-6]: Replace with actual backend error message
-      setError('Invalid email or password. Please try again.');
+    } catch (exception) {
+      setError(parseApiError(exception));
+      throw exception;
     } finally {
       setIsLoading(false);
     }
