@@ -2,8 +2,12 @@ import { renderHook, act, waitFor, render, screen } from '@testing-library/react
 import { AuthProvider, useAuth } from './AuthContext';
 import * as authApi from '@/lib/api/auth';
 import { User, USER_ROLES } from '@/lib/types/auth';
+import { parseApiError } from '@/lib/utils/errorUtils';
 
 jest.mock('@/lib/api/auth');
+jest.mock('@/lib/utils/errorUtils', () => ({
+  parseApiError: jest.fn().mockReturnValue('mocked error message'),
+}));
 
 const mockLogin = authApi.login as jest.MockedFunction<typeof authApi.login>;
 const mockLogout = authApi.logout as jest.MockedFunction<typeof authApi.logout>;
@@ -35,6 +39,8 @@ const mockRegisterData = {
   password: 'Password1!',
 };
 
+const mockParseApiError = parseApiError as jest.MockedFunction<typeof parseApiError>;
+
 // Helper to render useAuth() inside AuthProvider
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <AuthProvider>{children}</AuthProvider>
@@ -43,6 +49,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 beforeEach(() => {
   jest.clearAllMocks();
   mockFetchCurrentUser.mockRejectedValue(new Error('No token'));
+  mockParseApiError.mockReturnValue('mocked error message');
 });
 
 describe('AuthContext', () => {
@@ -95,17 +102,23 @@ describe('AuthContext', () => {
     });
 
     it('sets error state on failed login', async () => {
-      mockLogin.mockRejectedValue(new Error('Invalid credentials'));
+      const loginError = new Error('Invalid credentials');
+      mockLogin.mockRejectedValue(loginError);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
 
       await act(async () => {
-        await result.current.login(mockLoginCredentials);
+        try {
+          await result.current.login(mockLoginCredentials);
+        } catch {
+          // login re-throws so we catch it here
+        }
       });
 
       expect(result.current.user).toBeNull();
-      expect(result.current.error).toBe('Invalid email or password. Please try again.');
+      expect(mockParseApiError).toHaveBeenCalledWith(loginError);
+      expect(result.current.error).toBe('mocked error message');
     });
 
     it('sets isLoading to true during login then false after', async () => {
@@ -134,7 +147,11 @@ describe('AuthContext', () => {
 
       // First login fails
       await act(async () => {
-        await result.current.login(mockLoginCredentials);
+        try {
+          await result.current.login(mockLoginCredentials);
+        } catch {
+          // login re-throws so we catch it here
+        }
       });
 
       expect(result.current.error).not.toBeNull();
@@ -156,7 +173,11 @@ describe('AuthContext', () => {
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
 
       await act(async () => {
-        await result.current.login(mockLoginCredentials);
+        try {
+          await result.current.login(mockLoginCredentials);
+        } catch {
+          // login re-throws so we catch it here
+        }
       });
 
       expect(result.current.isAuthenticated).toBe(true);
@@ -176,7 +197,11 @@ describe('AuthContext', () => {
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
 
       await act(async () => {
-        await result.current.login(mockLoginCredentials);
+        try {
+          await result.current.login(mockLoginCredentials);
+        } catch {
+          // login re-throws so we catch it here
+        }
       });
 
       expect(result.current.error).not.toBeNull();
