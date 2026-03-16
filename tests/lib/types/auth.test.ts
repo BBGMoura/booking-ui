@@ -1,4 +1,4 @@
-import { isValidRole, getAllRoles, USER_ROLES } from './auth';
+import { isValidRole, getAllRoles, USER_ROLES } from '@/lib/types/auth';
 
 describe('Auth Type Helpers', () => {
   describe('isValidRole', () => {
@@ -55,4 +55,4 @@ describe('Auth Type Helpers', () => {
       expect(USER_ROLES.USER).toBe('ROLE_USER');
     });
   });
-})
+});
