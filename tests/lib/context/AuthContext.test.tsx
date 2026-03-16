@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor, render, screen } from '@testing-library/react';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider, useAuth } from '@/lib/context/AuthContext';
 import * as authApi from '@/lib/api/auth';
 import { User, USER_ROLES } from '@/lib/types/auth';
 import { parseApiError } from '@/lib/utils/errorUtils';
