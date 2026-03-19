@@ -1,12 +1,14 @@
 import { renderHook, act, waitFor, render, screen } from '@testing-library/react';
 import { AuthProvider, useAuth } from '@/lib/context/AuthContext';
 import * as authApi from '@/lib/api/auth';
+import Cookies from 'js-cookie';
 import { User, USER_ROLES } from '@/lib/types/auth';
-import { parseApiError } from '@/lib/utils/errorUtils';
 
 jest.mock('@/lib/api/auth');
-jest.mock('@/lib/utils/errorUtils', () => ({
-  parseApiError: jest.fn().mockReturnValue('mocked error message'),
+jest.mock('js-cookie', () => ({
+  get: jest.fn(),
+  set: jest.fn(),
+  remove: jest.fn(),
 }));
 
 const mockLogin = authApi.login as jest.MockedFunction<typeof authApi.login>;
@@ -39,17 +41,15 @@ const mockRegisterData = {
   password: 'Password1!',
 };
 
-const mockParseApiError = parseApiError as jest.MockedFunction<typeof parseApiError>;
-
-// Helper to render useAuth() inside AuthProvider
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <AuthProvider>{children}</AuthProvider>
 );
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Default — no cookie, no user
+  (Cookies.get as jest.Mock).mockReturnValue(undefined);
   mockFetchCurrentUser.mockRejectedValue(new Error('No token'));
-  mockParseApiError.mockReturnValue('mocked error message');
 });
 
 describe('AuthContext', () => {
@@ -64,6 +64,7 @@ describe('AuthContext', () => {
     });
 
     it('restores user from existing token on mount', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue('fake-token');
       mockFetchCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -75,6 +76,7 @@ describe('AuthContext', () => {
     });
 
     it('clears user if existing token is invalid', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue('expired-token');
       mockFetchCurrentUser.mockRejectedValue(new Error('Unauthorised'));
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -84,11 +86,22 @@ describe('AuthContext', () => {
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
+
+    it('skips fetchCurrentUser when no cookie exists', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue(undefined);
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => expect(result.current.isInitialising).toBe(false));
+
+      expect(mockFetchCurrentUser).not.toHaveBeenCalled();
+    });
   });
 
   describe('login()', () => {
     it('updates user state on successful login', async () => {
-      mockLogin.mockResolvedValue(mockUser);
+      mockLogin.mockResolvedValue(undefined);
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
@@ -101,30 +114,24 @@ describe('AuthContext', () => {
       expect(result.current.isAuthenticated).toBe(true);
     });
 
-    it('sets error state on failed login', async () => {
-      const loginError = new Error('Invalid credentials');
-      mockLogin.mockRejectedValue(loginError);
+    it('re-throws on failed login', async () => {
+      mockLogin.mockRejectedValue(new Error('Invalid credentials'));
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
 
-      await act(async () => {
-        try {
+      await expect(
+        act(async () => {
           await result.current.login(mockLoginCredentials);
-        } catch {
-          // login re-throws so we catch it here
-        }
-      });
-
-      expect(result.current.user).toBeNull();
-      expect(mockParseApiError).toHaveBeenCalledWith(loginError);
-      expect(result.current.error).toBe('mocked error message');
+        })
+      ).rejects.toThrow();
     });
 
     it('sets isLoading to true during login then false after', async () => {
       mockLogin.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(mockUser), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve(undefined), 100))
       );
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
@@ -138,46 +145,34 @@ describe('AuthContext', () => {
       await waitFor(() => expect(result.current.isLoading).toBe(false));
     });
 
-    it('clears previous error on new login attempt', async () => {
-      mockLogin.mockRejectedValueOnce(new Error('Invalid credentials'));
-      mockLogin.mockResolvedValueOnce(mockUser);
+    it('sets isLoading to false after failed login', async () => {
+      mockLogin.mockRejectedValue(new Error('Invalid credentials'));
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
 
-      // First login fails
       await act(async () => {
         try {
           await result.current.login(mockLoginCredentials);
         } catch {
-          // login re-throws so we catch it here
+          // expected re-throw
         }
       });
 
-      expect(result.current.error).not.toBeNull();
-
-      // Second login succeeds - error should be cleared
-      await act(async () => {
-        await result.current.login(mockLoginCredentials);
-      });
-
-      expect(result.current.error).toBeNull();
+      expect(result.current.isLoading).toBe(false);
     });
   });
 
   describe('logout()', () => {
     it('clears user state on logout', async () => {
-      mockLogin.mockResolvedValue(mockUser);
+      mockLogin.mockResolvedValue(undefined);
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
 
       await act(async () => {
-        try {
-          await result.current.login(mockLoginCredentials);
-        } catch {
-          // login re-throws so we catch it here
-        }
+        await result.current.login(mockLoginCredentials);
       });
 
       expect(result.current.isAuthenticated).toBe(true);
@@ -188,29 +183,6 @@ describe('AuthContext', () => {
 
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
-    });
-
-    it('clears error state on logout', async () => {
-      mockLogin.mockRejectedValue(new Error('Invalid credentials'));
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-      await waitFor(() => expect(result.current.isInitialising).toBe(false));
-
-      await act(async () => {
-        try {
-          await result.current.login(mockLoginCredentials);
-        } catch {
-          // login re-throws so we catch it here
-        }
-      });
-
-      expect(result.current.error).not.toBeNull();
-
-      act(() => {
-        result.current.logout();
-      });
-
-      expect(result.current.error).toBeNull();
     });
 
     it('calls the logout API function', async () => {
@@ -240,21 +212,17 @@ describe('AuthContext', () => {
       expect(result.current.isAuthenticated).toBe(true);
     });
 
-    it('sets error state on failed registration', async () => {
-      mockRegister.mockRejectedValue(new Error('Email already exists'));
+    it('re-throws on failed registration', async () => {
+      mockRegister.mockRejectedValue(new Error('Registration failed'));
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
 
-      await act(async () => {
-        try {
+      await expect(
+        act(async () => {
           await result.current.register(mockRegisterData);
-        } catch {
-          // register re-throws so we catch it here
-        }
-      });
-
-      expect(result.current.error).toBe('Registration failed. Please try again.');
+        })
+      ).rejects.toThrow();
     });
 
     it('sets isLoading to true during registration then false after', async () => {
@@ -272,6 +240,23 @@ describe('AuthContext', () => {
       expect(result.current.isLoading).toBe(true);
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
+    });
+
+    it('sets isLoading to false after failed registration', async () => {
+      mockRegister.mockRejectedValue(new Error('Registration failed'));
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.isInitialising).toBe(false));
+
+      await act(async () => {
+        try {
+          await result.current.register(mockRegisterData);
+        } catch {
+          // expected re-throw
+        }
+      });
+
+      expect(result.current.isLoading).toBe(false);
     });
   });
 
@@ -297,7 +282,8 @@ describe('AuthContext', () => {
 
   describe('hasRole()', () => {
     it('returns true when user has the specified role', async () => {
-      mockFetchCurrentUser.mockResolvedValue(mockUser); // mockUser has ROLE_USER
+      (Cookies.get as jest.Mock).mockReturnValue('fake-token');
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
@@ -306,7 +292,8 @@ describe('AuthContext', () => {
     });
 
     it('returns false when user does not have the specified role', async () => {
-      mockFetchCurrentUser.mockResolvedValue(mockUser); // mockUser has ROLE_USER not ROLE_ADMIN
+      (Cookies.get as jest.Mock).mockReturnValue('fake-token');
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
@@ -315,8 +302,6 @@ describe('AuthContext', () => {
     });
 
     it('returns false when no user is logged in', async () => {
-      // mockFetchCurrentUser already defaults to rejected in beforeEach — no user
-
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isInitialising).toBe(false));
 

@@ -9,7 +9,7 @@ import type {
   CheckInviteResponse,
 } from '@/lib/types/auth';
 
-const TOKEN_KEY = 'auth_token';
+export const TOKEN_KEY = 'auth_token';
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -27,20 +27,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && Cookies.get(TOKEN_KEY)) {
       Cookies.remove(TOKEN_KEY);
+      // TODO [BMS-14]: handle expired token by middleware
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-export async function login(credentials: LoginCredentials): Promise<User> {
+export async function login(credentials: LoginCredentials): Promise<void> {
   const { data } = await api.post<AuthResponse>('/auth/login', credentials);
-
   Cookies.set(TOKEN_KEY, data.token, { expires: 1 });
-
-  return fetchCurrentUser();
 }
 
 export async function register(registerData: RegisterData): Promise<User> {
@@ -48,15 +46,8 @@ export async function register(registerData: RegisterData): Promise<User> {
 
   Cookies.set(TOKEN_KEY, data.token, { expires: 1 });
 
-  return {
-    userId: data.userId,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    email: data.email,
-    phoneNumber: data.phoneNumber,
-    enabled: data.enabled,
-    role: data.role,
-  };
+  const { token, userInfoId, ...user } = data;
+  return user as User;
 }
 
 export async function checkInvite(email: string): Promise<CheckInviteResponse> {

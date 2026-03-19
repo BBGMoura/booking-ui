@@ -14,9 +14,13 @@ import { Spinner } from '@/components/ui/spinner';
 import { AlertCircleIcon, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { isFieldValidationError, parseApiError, setFieldErrors } from '@/lib/utils/errorUtils';
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address'),
   password: z
     .string()
     .min(1, 'Password is required')
@@ -33,7 +37,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
  *
  */
 export default function LoginForm() {
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -46,15 +50,21 @@ export default function LoginForm() {
     },
   });
 
+  function handleLoginError(exception: unknown) {
+    if (isFieldValidationError(exception)) {
+      setFieldErrors(exception.response!.data, form.setError, ['email', 'password']);
+    } else {
+      form.setError('root', { message: parseApiError(exception) });
+    }
+    form.resetField('password');
+  }
+
   async function onSubmit(values: LoginFormValues) {
-    // only called when zod validation passes
     try {
       await login(values);
       router.push('/dashboard');
-    } catch {
-      // error state is set in AuthContext via parseApiError
-      // clear password for security on failed attempt -> dunno if i wanna do this it could be annoying ui
-      form.resetField('password');
+    } catch (exception) {
+      handleLoginError(exception);
     }
   }
 
@@ -79,11 +89,11 @@ export default function LoginForm() {
           noValidate
         >
           {/*  API/Server error shown above form after failed login */}
-          {error && (
+          {form.formState.errors.root && (
             <Alert variant="destructive">
               <AlertCircleIcon />
               <AlertTitle>Login Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
             </Alert>
           )}
 
@@ -154,10 +164,10 @@ export default function LoginForm() {
             {isLoading ? (
               <>
                 <Spinner />
-                Logging in...
+                Signing in...
               </>
             ) : (
-              'Login'
+              'Sign in'
             )}
           </Button>
 

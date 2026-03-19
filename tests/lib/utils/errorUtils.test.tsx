@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios';
-import { parseApiError } from '@/lib/utils/errorUtils';
+import { parseApiError, isFieldValidationError, setFieldErrors } from '@/lib/utils/errorUtils';
+import { UseFormSetError } from 'react-hook-form';
 
 function mockAxiosError(status: number, data: unknown): AxiosError {
   return {
@@ -61,35 +62,112 @@ describe('parseApiError()', () => {
   });
 
   describe('client errors', () => {
-    it('returns joined error messages for array of validation errors', () => {
-      const data = [
-        { error: 'must not be blank', message: 'lastName', status: 400, timestamp: '' },
-        {
-          error: 'Invalid phone number format',
-          message: 'phoneNumber',
-          status: 400,
-          timestamp: '',
-        },
-      ];
-
-      expect(parseApiError(mockAxiosError(400, data))).toBe(
-        'must not be blank, Invalid phone number format'
-      );
-    });
-
     it('returns single error message for single error object', () => {
       const data = {
         error: 'Invalid username or password.',
         message: 'Bad credentials',
         status: 403,
-        timestamp: '',
       };
-
       expect(parseApiError(mockAxiosError(403, data))).toBe('Invalid username or password.');
     });
 
     it('returns unexpected error when single error object has no error field', () => {
       expect(parseApiError(mockAxiosError(400, {}))).toBe(UNEXPECTED_ERROR);
     });
+  });
+});
+
+describe('isFieldValidationError()', () => {
+  it('returns true for axios error with array response data', () => {
+    const error = mockAxiosError(400, [{ error: 'must not be blank', message: 'email' }]);
+    expect(isFieldValidationError(error)).toBe(true);
+  });
+
+  it('returns false for axios error with object response data', () => {
+    const error = mockAxiosError(403, { error: 'Invalid credentials' });
+    expect(isFieldValidationError(error)).toBe(false);
+  });
+
+  it('returns false for network error with no response', () => {
+    expect(isFieldValidationError(mockNetworkError())).toBe(false);
+  });
+
+  it('returns false for a plain JS error', () => {
+    expect(isFieldValidationError(new Error('something'))).toBe(false);
+  });
+
+  it('returns false for null', () => {
+    expect(isFieldValidationError(null)).toBe(false);
+  });
+});
+
+describe('setFieldErrors()', () => {
+  it('calls setError for each field that exists in validFields', () => {
+    const setError = jest.fn() as unknown as UseFormSetError<{ email: string; password: string }>;
+
+    setFieldErrors([{ error: 'must not be blank', message: 'email' }], setError, [
+      'email',
+      'password',
+    ]);
+
+    expect(setError).toHaveBeenCalledWith('email', {
+      type: 'server',
+      message: 'must not be blank',
+    });
+  });
+
+  it('calls setError with root for fields not in validFields', () => {
+    const setError = jest.fn() as unknown as UseFormSetError<{ email: string }>;
+
+    setFieldErrors([{ error: 'something went wrong', message: 'unknownField' }], setError, [
+      'email',
+    ]);
+
+    expect(setError).toHaveBeenCalledWith('root', { message: 'something went wrong' });
+  });
+
+  it('handles multiple errors across multiple fields', () => {
+    const setError = jest.fn() as unknown as UseFormSetError<{
+      email: string;
+      password: string;
+    }>;
+
+    setFieldErrors(
+      [
+        { error: 'must not be blank', message: 'email' },
+        { error: 'must not be blank', message: 'password' },
+      ],
+      setError,
+      ['email', 'password']
+    );
+
+    expect(setError).toHaveBeenCalledTimes(2);
+    expect(setError).toHaveBeenCalledWith('email', {
+      type: 'server',
+      message: 'must not be blank',
+    });
+    expect(setError).toHaveBeenCalledWith('password', {
+      type: 'server',
+      message: 'must not be blank',
+    });
+  });
+
+  it('maps known fields correctly and falls back to root for unknown fields', () => {
+    const setError = jest.fn() as unknown as UseFormSetError<{ email: string }>;
+
+    setFieldErrors(
+      [
+        { error: 'must not be blank', message: 'email' },
+        { error: 'unexpected error', message: 'unknownField' },
+      ],
+      setError,
+      ['email']
+    );
+
+    expect(setError).toHaveBeenCalledWith('email', {
+      type: 'server',
+      message: 'must not be blank',
+    });
+    expect(setError).toHaveBeenCalledWith('root', { message: 'unexpected error' });
   });
 });

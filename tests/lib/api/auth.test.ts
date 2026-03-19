@@ -82,7 +82,6 @@ describe('auth API', () => {
   describe('login()', () => {
     it('calls the correct endpoint with credentials', async () => {
       mock.onPost('/auth/login').reply(200, { token: mockToken });
-      mock.onGet('/user').reply(200, mockUser);
 
       await login(mockLoginCredentials);
 
@@ -92,26 +91,27 @@ describe('auth API', () => {
 
     it('stores the token in a cookie after login', async () => {
       mock.onPost('/auth/login').reply(200, { token: mockToken });
-      mock.onGet('/user').reply(200, mockUser);
 
       await login(mockLoginCredentials);
 
       expect(Cookies.set).toHaveBeenCalledWith('auth_token', mockToken, { expires: 1 });
     });
 
-    it('returns the user object', async () => {
+    it('returns void on successful login', async () => {
       mock.onPost('/auth/login').reply(200, { token: mockToken });
-      mock.onGet('/user').reply(200, mockUser);
 
       const result = await login(mockLoginCredentials);
 
-      expect(result).toEqual(mockUser);
+      expect(result).toBeUndefined();
     });
 
     it('throws an error if the backend returns an error', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mock.onPost('/auth/login').reply(401);
 
       await expect(login(mockLoginCredentials)).rejects.toThrow();
+
+      consoleSpy.mockRestore();
     });
   });
 

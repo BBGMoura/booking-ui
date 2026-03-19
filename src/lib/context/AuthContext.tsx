@@ -1,14 +1,15 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   login as loginApi,
   logout as logoutApi,
   register as registerApi,
   fetchCurrentUser,
+  TOKEN_KEY,
 } from '@/lib/api/auth';
 import type { User, LoginCredentials, RegisterData, UserRole } from '@/lib/types/auth';
-import { parseApiError } from '@/lib/utils/errorUtils';
+import Cookies from 'js-cookie';
 
 /**
  * AuthContext value provided to the entire app.
@@ -18,7 +19,6 @@ import { parseApiError } from '@/lib/utils/errorUtils';
  * @property isAuthenticated - Quick boolean to check if a user is logged in
  * @property isLoading - True during login/register API calls - use this for button loading states
  * @property isInitialising - True only on first app load while checking for an existing token
- * @property error - Error message from the last failed auth action, null if no error
  * @property login - Logs in a user with email and password, updates global auth state
  * @property logout - Clears the token cookie and resets auth state
  * @property register - Registers a new user and updates global auth state
@@ -29,7 +29,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isInitialising: boolean;
-  error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
   register: (user: RegisterData) => Promise<void>;
@@ -47,32 +46,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialising, setIsInitialising] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // On first app load, attempts to fetch the current user using the stored cookie token.
-  // If the token is missing, expired, or invalid, the user is set to null (not logged in).
-  // Sets isInitialising to false when complete, which unblocks the app from rendering.
   useEffect(() => {
-    async function checkExistingToken() {
-      try {
-        await fetchUser();
-      } finally {
-        setIsInitialising(false);
+    async function initialise() {
+      if (Cookies.get(TOKEN_KEY)) {
+        try {
+          const currentUser = await fetchCurrentUser();
+          setUser(currentUser);
+        } catch {
+          // token expired or invalid — user stays null
+        }
       }
+      setIsInitialising(false);
     }
 
-    checkExistingToken().catch();
+    void initialise();
   }, []);
 
   async function login(credentials: LoginCredentials): Promise<void> {
+    setIsLoading(true);
     try {
-      setError(null);
-      setIsLoading(true);
-      const loggedInUser = await loginApi(credentials);
-      setUser(loggedInUser);
-    } catch (exception) {
-      setError(parseApiError(exception));
-      throw exception;
+      await loginApi(credentials);
+      const currentUser = await fetchCurrentUser();
+      setUser(currentUser);
     } finally {
       setIsLoading(false);
     }
@@ -81,30 +77,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   function logout() {
     logoutApi();
     setUser(null);
-    setError(null);
   }
 
   async function register(data: RegisterData): Promise<void> {
+    setIsLoading(true);
     try {
-      setError(null);
-      setIsLoading(true);
-      const user = await registerApi(data);
-      setUser(user);
-    } catch (error) {
-      // TODO [BMS-7]: Replace with actual backend error message
-      setError('Registration failed. Please try again.');
-      throw error;
+      const registeredUser = await registerApi(data);
+      setUser(registeredUser);
     } finally {
       setIsLoading(false);
-    }
-  }
-
-  async function fetchUser(): Promise<void> {
-    try {
-      const currentUser = await fetchCurrentUser();
-      setUser(currentUser);
-    } catch {
-      setError(null);
     }
   }
 
@@ -121,7 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         isInitialising,
-        error,
         login,
         logout,
         register,

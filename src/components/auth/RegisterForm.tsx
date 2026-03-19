@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Stepper from '@/components/ui/Stepper';
 import RegisterEmailForm from '@/components/auth/RegisterEmailForm';
+import RegisterDetailsForm from '@/components/auth/RegisterDetailsForm';
 
 // The two step labels shown in the stepper
 // Defined outside the component so it's not recreated on every render
@@ -44,12 +45,7 @@ export default function RegisterForm() {
 
         {currentStep === 1 && <RegisterEmailForm onSuccess={handleEmailSuccess} />}
 
-        {currentStep === 2 && (
-          <div className="text-muted-foreground text-center text-sm">
-            {/* BMS-8: RegisterDetailsForm goes here */}
-            Step 2 coming in BMS-8 — email: {invitedEmail}
-          </div>
-        )}
+        {currentStep === 2 && <RegisterDetailsForm email={invitedEmail} />}
       </CardContent>
     </Card>
   );

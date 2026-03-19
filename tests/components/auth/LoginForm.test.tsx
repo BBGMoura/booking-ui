@@ -15,7 +15,6 @@ function mockUseAuth(overrides: Partial<ReturnType<typeof useAuth>> = {}) {
   (useAuth as jest.Mock).mockReturnValue({
     login: jest.fn(),
     isLoading: false,
-    error: null,
     ...overrides,
   });
 }
@@ -37,28 +36,28 @@ describe('LoginForm', () => {
       expect(screen.getByLabelText('Password')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
     });
-  });
 
-  it('renders forgot password link', () => {
-    render(<LoginForm />);
+    it('renders forgot password link', () => {
+      render(<LoginForm />);
 
-    expect(screen.getByText('Forgot password?')).toBeInTheDocument();
-  });
+      expect(screen.getByText('Forgot password?')).toBeInTheDocument();
+    });
 
-  it('renders register link', () => {
-    render(<LoginForm />);
+    it('renders register link', () => {
+      render(<LoginForm />);
 
-    expect(screen.getByRole('link', { name: 'Register' })).toBeInTheDocument();
-  });
+      expect(screen.getByRole('link', { name: 'Register' })).toBeInTheDocument();
+    });
 
-  it('does not show error alert when there is no error', () => {
-    render(<LoginForm />);
+    it('does not show error alert on initial render', () => {
+      render(<LoginForm />);
 
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
   });
 
   describe('validation', () => {
-    it('show required errors for both fields when submitting empty form', async () => {
+    it('shows required errors for both fields when submitting empty form', async () => {
       render(<LoginForm />);
 
       await userEvent.click(screen.getByRole('button', { name: 'Login' }));
@@ -71,12 +70,12 @@ describe('LoginForm', () => {
       render(<LoginForm />);
 
       await userEvent.type(screen.getByLabelText('Email'), 'notanemail');
-      await userEvent.tab(); // trigger onTouched validation
+      await userEvent.tab();
 
       expect(await screen.findByText('Please enter a valid email address')).toBeInTheDocument();
     });
 
-    it('show password too short error when password is under 8 characters', async () => {
+    it('shows password too short error when password is under 8 characters', async () => {
       render(<LoginForm />);
 
       await userEvent.type(screen.getByLabelText('Password'), 'short');
@@ -163,12 +162,17 @@ describe('LoginForm', () => {
   });
 
   describe('error display', () => {
-    it('shows server error alert when error is set in AuthContext', () => {
-      mockUseAuth({ error: 'Invalid username or password.' });
+    it('shows error alert after failed login', async () => {
+      const mockLogin = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
+      mockUseAuth({ login: mockLogin });
 
       render(<LoginForm />);
 
-      expect(screen.getByRole('alert')).toHaveTextContent('Invalid username or password.');
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument();
     });
   });
 

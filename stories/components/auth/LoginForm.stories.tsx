@@ -7,7 +7,6 @@ function mockAuthContext(
   overrides: {
     login?: () => Promise<void>;
     isLoading?: boolean;
-    error?: string | null;
   } = {}
 ) {
   return {
@@ -19,7 +18,6 @@ function mockAuthContext(
     isAuthenticated: false,
     isLoading: overrides.isLoading ?? false,
     isInitialising: false,
-    error: overrides.error ?? null,
   };
 }
 
@@ -40,7 +38,6 @@ const meta: Meta<typeof LoginForm> = {
 };
 
 export default meta;
-
 type Story = StoryObj<typeof LoginForm>;
 
 /** Default empty state — what a user sees when they first land on the login page */
@@ -65,15 +62,33 @@ export const Loading: Story = {
   ],
 };
 
-/** Server error — shown after a failed login attempt e.g. wrong credentials */
+/** Server error — shown after wrong credentials */
 export const ServerError: Story = {
   decorators: [
     (Story) => (
-      <AuthContext.Provider value={mockAuthContext({ error: 'Invalid username or password.' })}>
+      <AuthContext.Provider
+        value={mockAuthContext({
+          login: async () => {
+            throw {
+              isAxiosError: true,
+              response: { status: 403, data: { error: 'Invalid username or password.' } },
+            };
+          },
+        })}
+      >
         <Story />
       </AuthContext.Provider>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.type(canvas.getByLabelText('Email'), 'jane@example.com');
+    await userEvent.type(canvas.getByLabelText('Password'), 'Password1!');
+    await userEvent.click(canvas.getByRole('button', { name: 'Login' }));
+
+    await expect(canvas.findByRole('alert')).resolves.toBeInTheDocument();
+  },
 };
 
 /** Network error — shown when the backend cannot be reached */
@@ -82,14 +97,24 @@ export const NetworkError: Story = {
     (Story) => (
       <AuthContext.Provider
         value={mockAuthContext({
-          error:
-            'Unable to connect. Please try again or contact an administrator if the problem persists.',
+          login: async () => {
+            throw { isAxiosError: true, response: undefined };
+          },
         })}
       >
         <Story />
       </AuthContext.Provider>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.type(canvas.getByLabelText('Email'), 'jane@example.com');
+    await userEvent.type(canvas.getByLabelText('Password'), 'Password1!');
+    await userEvent.click(canvas.getByRole('button', { name: 'Login' }));
+
+    await expect(canvas.findByRole('alert')).resolves.toBeInTheDocument();
+  },
 };
 
 /** Validation errors — shown when user submits with empty or invalid fields */
