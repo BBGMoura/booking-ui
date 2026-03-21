@@ -34,7 +34,7 @@ describe('LoginForm', () => {
 
       expect(screen.getByLabelText('Email')).toBeInTheDocument();
       expect(screen.getByLabelText('Password')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
     });
 
     it('renders forgot password link', () => {
@@ -60,7 +60,7 @@ describe('LoginForm', () => {
     it('shows required errors for both fields when submitting empty form', async () => {
       render(<LoginForm />);
 
-      await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
       expect(await screen.findByText('Email is required')).toBeInTheDocument();
       expect(await screen.findByText('Password is required')).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe('LoginForm', () => {
 
       render(<LoginForm />);
 
-      await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
       expect(mockLogin).not.toHaveBeenCalled();
     });
@@ -105,7 +105,7 @@ describe('LoginForm', () => {
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.type(screen.getByLabelText('Password'), validPassword);
-      await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalledWith({
@@ -123,7 +123,7 @@ describe('LoginForm', () => {
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.type(screen.getByLabelText('Password'), validPassword);
-      await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/dashboard');
@@ -138,7 +138,7 @@ describe('LoginForm', () => {
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.type(screen.getByLabelText('Password'), validPassword);
-      await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
       await waitFor(() => {
         expect(mockPush).not.toHaveBeenCalled();
@@ -153,7 +153,7 @@ describe('LoginForm', () => {
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.type(screen.getByLabelText('Password'), validPassword);
-      await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
       await waitFor(() => {
         expect(screen.getByLabelText('Password')).toHaveValue('');
@@ -170,7 +170,7 @@ describe('LoginForm', () => {
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.type(screen.getByLabelText('Password'), validPassword);
-      await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
       expect(await screen.findByRole('alert')).toBeInTheDocument();
     });
@@ -182,7 +182,7 @@ describe('LoginForm', () => {
 
       render(<LoginForm />);
 
-      expect(screen.getByText('Logging in...')).toBeInTheDocument();
+      expect(screen.getByText('Signing in...')).toBeInTheDocument();
     });
 
     it('disables submit button when isLoading is true', () => {
@@ -190,7 +190,7 @@ describe('LoginForm', () => {
 
       render(<LoginForm />);
 
-      expect(screen.getByRole('button', { name: /logging in/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /signing in/i })).toBeDisabled();
     });
 
     it('disables email and password fields when isLoading is true', () => {

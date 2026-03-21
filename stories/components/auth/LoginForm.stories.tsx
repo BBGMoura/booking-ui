@@ -85,7 +85,7 @@ export const ServerError: Story = {
 
     await userEvent.type(canvas.getByLabelText('Email'), 'jane@example.com');
     await userEvent.type(canvas.getByLabelText('Password'), 'Password1!');
-    await userEvent.click(canvas.getByRole('button', { name: 'Login' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Sign in' }));
 
     await expect(canvas.findByRole('alert')).resolves.toBeInTheDocument();
   },
@@ -111,7 +111,7 @@ export const NetworkError: Story = {
 
     await userEvent.type(canvas.getByLabelText('Email'), 'jane@example.com');
     await userEvent.type(canvas.getByLabelText('Password'), 'Password1!');
-    await userEvent.click(canvas.getByRole('button', { name: 'Login' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Sign in' }));
 
     await expect(canvas.findByRole('alert')).resolves.toBeInTheDocument();
   },
@@ -129,7 +129,7 @@ export const ValidationErrors: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await userEvent.click(canvas.getByRole('button', { name: 'Login' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Sign in' }));
 
     await expect(canvas.getByText('Email is required')).toBeInTheDocument();
     await expect(canvas.getByText('Password is required')).toBeInTheDocument();
