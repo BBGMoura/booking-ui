@@ -10,6 +10,7 @@ import type {
 } from '@/lib/types/auth';
 
 export const TOKEN_KEY = 'auth_token';
+export const SESSION_EXPIRED_KEY = 'session_expired';
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -29,7 +30,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && Cookies.get(TOKEN_KEY)) {
       Cookies.remove(TOKEN_KEY);
-      // proxy.ts redirects to /login
+      sessionStorage.setItem(SESSION_EXPIRED_KEY, 'true');
     }
     return Promise.reject(error);
   }
