@@ -229,7 +229,12 @@ export const StepTwoLoading: Story = {
   ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await advanceToStepTwo(canvas);
+    mocked(checkInvite).mockResolvedValue({ email: 'jane@example.com', invited: true });
+    await userEvent.type(canvas.getByLabelText('Email'), 'jane@example.com');
+    await userEvent.click(canvas.getByRole('button', { name: 'Continue' }));
+    await expect(
+      canvas.findByRole('button', { name: /Creating account/ })
+    ).resolves.toBeInTheDocument();
   },
 };
 
