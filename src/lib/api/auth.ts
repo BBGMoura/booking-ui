@@ -29,8 +29,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && Cookies.get(TOKEN_KEY)) {
       Cookies.remove(TOKEN_KEY);
-      // TODO [BMS-14]: handle expired token by middleware
-      window.location.href = '/login';
+      // proxy.ts redirects to /login
     }
     return Promise.reject(error);
   }
