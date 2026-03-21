@@ -62,6 +62,10 @@ export async function fetchCurrentUser(): Promise<User> {
   return data;
 }
 
+export async function resetPassword(email: string): Promise<void> {
+  await api.patch('/password/reset', { email });
+}
+
 export function logout(): void {
   Cookies.remove(TOKEN_KEY);
 }
