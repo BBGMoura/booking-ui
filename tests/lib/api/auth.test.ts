@@ -1,6 +1,14 @@
 import MockAdapter from 'axios-mock-adapter';
 import Cookies from 'js-cookie';
-import { login, register, checkInvite, fetchCurrentUser, logout, api } from '@/lib/api/auth';
+import {
+  login,
+  register,
+  checkInvite,
+  fetchCurrentUser,
+  logout,
+  api,
+  SESSION_EXPIRED_KEY,
+} from '@/lib/api/auth';
 import { LoginCredentials, RegisterData, User } from '@/lib/types/auth';
 
 const mockUser: User = {
@@ -50,11 +58,11 @@ jest.mock('js-cookie', () => ({
 
 beforeEach(() => {
   mock = new MockAdapter(api);
+  sessionStorage.clear();
 });
 
 afterEach(() => {
   mock.reset();
-  Cookies.remove('auth_token');
   jest.clearAllMocks();
 });
 
@@ -76,6 +84,44 @@ describe('auth API', () => {
       await fetchCurrentUser();
 
       expect(mock.history.get[0].headers?.Authorization).toBeUndefined();
+    });
+  });
+
+  describe('response interceptor', () => {
+    it('sets session_expired flag in sessionStorage on 401 when cookie exists', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue(mockToken);
+      mock.onGet('/user').reply(401);
+
+      await fetchCurrentUser().catch(() => {});
+
+      expect(sessionStorage.getItem(SESSION_EXPIRED_KEY)).toBe('true');
+    });
+
+    it('removes the token cookie on 401 when cookie exists', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue(mockToken);
+      mock.onGet('/user').reply(401);
+
+      await fetchCurrentUser().catch(() => {});
+
+      expect(Cookies.remove).toHaveBeenCalledWith('auth_token');
+    });
+
+    it('does not set session_expired flag on 401 when no cookie exists', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue(undefined);
+      mock.onGet('/user').reply(401);
+
+      await fetchCurrentUser().catch(() => {});
+
+      expect(sessionStorage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+    });
+
+    it('does not set session_expired flag on other error codes', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue(mockToken);
+      mock.onGet('/user').reply(500);
+
+      await fetchCurrentUser().catch(() => {});
+
+      expect(sessionStorage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
     });
   });
 
@@ -190,8 +236,6 @@ describe('auth API', () => {
 
   describe('logout()', () => {
     it('removes the token cookie', () => {
-      Cookies.set('auth_token', mockToken);
-
       logout();
 
       expect(Cookies.remove).toHaveBeenCalledWith('auth_token');

@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ import { AlertCircleIcon, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { isFieldValidationError, parseApiError, setFieldErrors } from '@/lib/utils/errorUtils';
+import { toast } from 'sonner';
+import { SESSION_EXPIRED_KEY } from '@/lib/api/auth';
 
 const loginSchema = z.object({
   email: z
@@ -49,6 +51,16 @@ export default function LoginForm() {
       password: '',
     },
   });
+
+  // Show session expired toast if the user was redirected here due to an expired token.
+  useEffect(() => {
+    if (sessionStorage.getItem(SESSION_EXPIRED_KEY)) {
+      sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+      toast.warning('Session expired', {
+        description: 'Please sign in again to continue.',
+      });
+    }
+  }, []);
 
   function handleLoginError(exception: unknown) {
     if (isFieldValidationError(exception)) {

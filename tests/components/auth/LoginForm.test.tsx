@@ -2,6 +2,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import LoginForm from '@/components/auth/LoginForm';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { SESSION_EXPIRED_KEY } from '@/lib/api/auth';
 
 const mockPush = jest.fn();
 
@@ -10,6 +11,14 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/lib/context/AuthContext');
+
+jest.mock('sonner', () => ({
+  toast: {
+    warning: jest.fn(),
+  },
+}));
+
+import { toast } from 'sonner';
 
 function mockUseAuth(overrides: Partial<ReturnType<typeof useAuth>> = {}) {
   (useAuth as jest.Mock).mockReturnValue({
@@ -25,6 +34,7 @@ const validPassword = 'Password1!';
 beforeEach(() => {
   mockUseAuth();
   jest.clearAllMocks();
+  sessionStorage.clear();
 });
 
 describe('LoginForm', () => {
@@ -53,6 +63,36 @@ describe('LoginForm', () => {
       render(<LoginForm />);
 
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('session expired toast', () => {
+    it('shows session expired toast when session_expired flag is set', async () => {
+      sessionStorage.setItem(SESSION_EXPIRED_KEY, 'true');
+
+      render(<LoginForm />);
+
+      await waitFor(() => {
+        expect(toast.warning).toHaveBeenCalledWith('Session expired', {
+          description: 'Please sign in again to continue.',
+        });
+      });
+    });
+
+    it('clears the session_expired flag after showing the toast', async () => {
+      sessionStorage.setItem(SESSION_EXPIRED_KEY, 'true');
+
+      render(<LoginForm />);
+
+      await waitFor(() => {
+        expect(sessionStorage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+      });
+    });
+
+    it('does not show toast when session_expired flag is not set', () => {
+      render(<LoginForm />);
+
+      expect(toast.warning).not.toHaveBeenCalled();
     });
   });
 
