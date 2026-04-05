@@ -21,7 +21,7 @@ jest.mock('@/components/ui/sidebar', () => ({
     children: React.ReactNode;
     isActive?: boolean;
     asChild?: boolean;
-  }) => <li data-active={isActive}>{children}</li>,
+  }) => <div data-active={isActive}>{children}</div>,
   SidebarMenuItem: ({ children }: { children: React.ReactNode }) => <li>{children}</li>,
 }));
 

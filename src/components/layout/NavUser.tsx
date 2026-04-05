@@ -14,12 +14,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/lib/context/AuthContext';
+import { getInitials } from '@/lib/utils/userUtils';
 
 export function NavUser() {
   const router = useRouter();
   const { user, logout } = useAuth();
-
-  const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '??';
+  const initials = getInitials(user);
 
   function handleLogout() {
     logout();
