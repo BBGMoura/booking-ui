@@ -6,10 +6,10 @@ import {
   checkInvite,
   fetchCurrentUser,
   logout,
-  api,
   SESSION_EXPIRED_KEY,
 } from '@/lib/api/auth';
 import { LoginCredentials, RegisterData, User } from '@/lib/types/auth';
+import api from '@/lib/api/axiosInstance';
 
 const mockUser: User = {
   userId: 1,

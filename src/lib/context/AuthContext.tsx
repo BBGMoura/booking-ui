@@ -25,6 +25,7 @@ import Cookies from 'js-cookie';
  */
 interface AuthContextType {
   user: User | null;
+  fetchUser: () => Promise<void>;
   hasRole: (role: UserRole) => boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -94,10 +95,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return user.role === role;
   }
 
+  async function fetchUser(): Promise<void> {
+    const currentUser = await fetchCurrentUser();
+    setUser(currentUser);
+  }
+
   return (
     <AuthContext.Provider
       value={{
         user,
+        fetchUser,
         hasRole,
         isAuthenticated: !!user,
         isLoading,

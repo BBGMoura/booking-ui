@@ -308,4 +308,37 @@ describe('AuthContext', () => {
       expect(result.current.hasRole(USER_ROLES.ADMIN)).toBe(false);
     });
   });
+
+  describe('fetchUser()', () => {
+    it('fetches and updates user in context', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue('fake-token');
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.isInitialising).toBe(false));
+
+      const updatedUser = { ...mockUser, firstName: 'Updated' };
+      mockFetchCurrentUser.mockResolvedValue(updatedUser);
+
+      await act(async () => {
+        await result.current.fetchUser();
+      });
+
+      expect(result.current.user?.firstName).toBe('Updated');
+    });
+
+    it('updates isAuthenticated after fetchUser', async () => {
+      (Cookies.get as jest.Mock).mockReturnValue('fake-token');
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.isInitialising).toBe(false));
+
+      await act(async () => {
+        await result.current.fetchUser();
+      });
+
+      expect(result.current.isAuthenticated).toBe(true);
+    });
+  });
 });

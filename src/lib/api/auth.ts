@@ -1,4 +1,3 @@
-import axios from 'axios';
 import Cookies from 'js-cookie';
 import type {
   User,
@@ -8,13 +7,10 @@ import type {
   LoginCredentials,
   CheckInviteResponse,
 } from '@/lib/types/auth';
+import api from '@/lib/api/axiosInstance';
 
 export const TOKEN_KEY = 'auth_token';
 export const SESSION_EXPIRED_KEY = 'session_expired';
-
-export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-});
 
 api.interceptors.request.use((config) => {
   const token = Cookies.get(TOKEN_KEY);
