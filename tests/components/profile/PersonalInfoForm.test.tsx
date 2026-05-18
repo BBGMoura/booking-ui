@@ -13,7 +13,7 @@ const mockUpdateUserInfo = userApi.updateUserInfo as jest.MockedFunction<
 >;
 
 const mockUser = {
-  userId: 1,
+  uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
@@ -148,7 +148,7 @@ describe('PersonalInfoForm', () => {
     it('calls updateUserInfo with correct values on submit', async () => {
       mockUpdateUserInfo.mockResolvedValue({
         id: 1,
-        userId: 1,
+        uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         firstName: 'Jane',
         lastName: 'Doe',
         phoneNumber: '07123456789',
@@ -169,7 +169,7 @@ describe('PersonalInfoForm', () => {
     it('calls fetchUser after successful save', async () => {
       mockUpdateUserInfo.mockResolvedValue({
         id: 1,
-        userId: 1,
+        uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         firstName: 'Jane',
         lastName: 'Doe',
         phoneNumber: '07123456789',
@@ -184,7 +184,7 @@ describe('PersonalInfoForm', () => {
     it('returns to view mode after successful save', async () => {
       mockUpdateUserInfo.mockResolvedValue({
         id: 1,
-        userId: 1,
+        uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         firstName: 'Jane',
         lastName: 'Doe',
         phoneNumber: '07123456789',

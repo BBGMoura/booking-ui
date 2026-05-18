@@ -62,29 +62,45 @@ describe('parseApiError()', () => {
   });
 
   describe('client errors', () => {
-    it('returns single error message for single error object', () => {
+    it('returns the human-readable message field from the error response', () => {
       const data = {
-        error: 'Invalid username or password.',
-        message: 'Bad credentials',
         status: 403,
+        error: 'INVALID_CREDENTIALS',
+        message: 'Invalid username or password.',
+        details: [],
       };
       expect(parseApiError(mockAxiosError(403, data))).toBe('Invalid username or password.');
     });
 
-    it('returns unexpected error when single error object has no error field', () => {
+    it('returns unexpected error when response has no message field', () => {
       expect(parseApiError(mockAxiosError(400, {}))).toBe(UNEXPECTED_ERROR);
     });
   });
 });
 
 describe('isFieldValidationError()', () => {
-  it('returns true for axios error with array response data', () => {
-    const error = mockAxiosError(400, [{ error: 'must not be blank', message: 'email' }]);
-    expect(isFieldValidationError(error)).toBe(true);
+  it('returns true for axios error with non-empty details array', () => {
+    const data = {
+      status: 400,
+      error: 'VALIDATION_ERROR',
+      message: 'Validation failed',
+      details: [{ field: 'email', message: 'must not be blank' }],
+    };
+    expect(isFieldValidationError(mockAxiosError(400, data))).toBe(true);
   });
 
-  it('returns false for axios error with object response data', () => {
-    const error = mockAxiosError(403, { error: 'Invalid credentials' });
+  it('returns false for axios error with empty details array', () => {
+    const data = {
+      status: 400,
+      error: 'VALIDATION_ERROR',
+      message: 'Validation failed',
+      details: [],
+    };
+    expect(isFieldValidationError(mockAxiosError(400, data))).toBe(false);
+  });
+
+  it('returns false for axios error with no details field', () => {
+    const error = mockAxiosError(403, { status: 403, error: 'INVALID_CREDENTIALS', message: 'Invalid credentials' });
     expect(isFieldValidationError(error)).toBe(false);
   });
 
@@ -105,7 +121,7 @@ describe('setFieldErrors()', () => {
   it('calls setError for each field that exists in validFields', () => {
     const setError = jest.fn() as unknown as UseFormSetError<{ email: string; password: string }>;
 
-    setFieldErrors([{ error: 'must not be blank', message: 'email' }], setError, [
+    setFieldErrors([{ field: 'email', message: 'must not be blank' }], setError, [
       'email',
       'password',
     ]);
@@ -119,7 +135,7 @@ describe('setFieldErrors()', () => {
   it('calls setError with root for fields not in validFields', () => {
     const setError = jest.fn() as unknown as UseFormSetError<{ email: string }>;
 
-    setFieldErrors([{ error: 'something went wrong', message: 'unknownField' }], setError, [
+    setFieldErrors([{ field: 'unknownField', message: 'something went wrong' }], setError, [
       'email',
     ]);
 
@@ -134,8 +150,8 @@ describe('setFieldErrors()', () => {
 
     setFieldErrors(
       [
-        { error: 'must not be blank', message: 'email' },
-        { error: 'must not be blank', message: 'password' },
+        { field: 'email', message: 'must not be blank' },
+        { field: 'password', message: 'must not be blank' },
       ],
       setError,
       ['email', 'password']
@@ -157,8 +173,8 @@ describe('setFieldErrors()', () => {
 
     setFieldErrors(
       [
-        { error: 'must not be blank', message: 'email' },
-        { error: 'unexpected error', message: 'unknownField' },
+        { field: 'email', message: 'must not be blank' },
+        { field: 'unknownField', message: 'unexpected error' },
       ],
       setError,
       ['email']

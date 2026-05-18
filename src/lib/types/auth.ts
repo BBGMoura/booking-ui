@@ -32,7 +32,7 @@ export function getAllRoles(): UserRole[] {
  * Matches backend UserProfile
  */
 export interface User {
-  userId: number;
+  uid: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -93,12 +93,11 @@ export interface AuthResponse {
  */
 export interface RegisterResponse {
   token: string;
-  userId: number;
+  uid: string;
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber: string;
-  userInfoId: number;
   role: UserRole;
   enabled: boolean;
 }

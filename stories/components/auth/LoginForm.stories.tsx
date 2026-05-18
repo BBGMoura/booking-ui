@@ -13,6 +13,7 @@ function mockAuthContext(
     login: overrides.login ?? (() => Promise.resolve()),
     logout: () => {},
     register: () => Promise.resolve(),
+    fetchUser: async () => {},
     hasRole: () => false,
     user: null,
     isAuthenticated: false,
@@ -71,7 +72,15 @@ export const ServerError: Story = {
           login: async () => {
             throw {
               isAxiosError: true,
-              response: { status: 403, data: { error: 'Invalid username or password.' } },
+              response: {
+                status: 403,
+                data: {
+                  status: 403,
+                  error: 'INVALID_CREDENTIALS',
+                  message: 'Invalid username or password.',
+                  details: [],
+                },
+              },
             };
           },
         })}
@@ -88,6 +97,48 @@ export const ServerError: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Sign in' }));
 
     await expect(canvas.findByRole('alert')).resolves.toBeInTheDocument();
+  },
+};
+
+/**
+ * Backend returns a validation error for a field the form doesn't know about (e.g. "username").
+ * setFieldErrors falls back to a root alert rather than attaching it to a specific input.
+ */
+export const UnknownFieldValidationError: Story = {
+  decorators: [
+    (Story) => (
+      <AuthContext.Provider
+        value={mockAuthContext({
+          login: async () => {
+            throw {
+              isAxiosError: true,
+              response: {
+                status: 400,
+                data: {
+                  status: 400,
+                  error: 'VALIDATION_ERROR',
+                  message: 'Validation failed',
+                  details: [{ field: 'username', message: 'must not be blank' }],
+                },
+              },
+            };
+          },
+        })}
+      >
+        <Story />
+      </AuthContext.Provider>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.type(canvas.getByLabelText('Email'), 'jane@example.com');
+    await userEvent.type(canvas.getByLabelText('Password'), 'Password1!');
+    await userEvent.click(canvas.getByRole('button', { name: 'Sign in' }));
+
+    const alert = await canvas.findByRole('alert');
+    await expect(alert).toBeInTheDocument();
+    await expect(alert).toHaveTextContent('must not be blank');
   },
 };
 

@@ -78,7 +78,7 @@ export default function RegisterDetailsForm({ email }: RegisterDetailsFormProps)
 
   function handleRegisterError(exception: unknown) {
     if (isFieldValidationError(exception)) {
-      setFieldErrors(exception.response!.data, form.setError, [
+      setFieldErrors(exception.response!.data.details, form.setError, [
         'firstName',
         'lastName',
         'phoneNumber',

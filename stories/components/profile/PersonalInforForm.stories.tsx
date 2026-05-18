@@ -5,7 +5,7 @@ import { USER_ROLES } from '@/lib/types/auth';
 import { userEvent, within, expect } from 'storybook/test';
 
 const mockUser = {
-  userId: 1,
+  uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
