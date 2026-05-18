@@ -64,7 +64,7 @@ export default function LoginForm() {
 
   function handleLoginError(exception: unknown) {
     if (isFieldValidationError(exception)) {
-      setFieldErrors(exception.response!.data, form.setError, ['email', 'password']);
+      setFieldErrors(exception.response!.data.details, form.setError, ['email', 'password']);
     } else {
       form.setError('root', { message: parseApiError(exception) });
     }

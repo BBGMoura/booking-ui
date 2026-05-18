@@ -113,7 +113,7 @@ describe('ForgotPasswordForm', () => {
     it('shows error alert after failed API call', async () => {
       renderForm(jest.fn().mockRejectedValue({
         isAxiosError: true,
-        response: { status: 404, data: { error: 'No account found.' } },
+        response: { status: 404, data: { status: 404, error: 'ACCOUNT_NOT_FOUND', message: 'No account found.', details: [] } },
       }));
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
@@ -125,7 +125,7 @@ describe('ForgotPasswordForm', () => {
     it('shows error message from API response', async () => {
       renderForm(jest.fn().mockRejectedValue({
         isAxiosError: true,
-        response: { status: 404, data: { error: 'No account found.' } },
+        response: { status: 404, data: { status: 404, error: 'ACCOUNT_NOT_FOUND', message: 'No account found.', details: [] } },
       }));
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);

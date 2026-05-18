@@ -11,7 +11,7 @@ export interface UpdateCredentialsRequest {
 
 export interface UserInfoResponse {
   id: number;
-  userId: number;
+  uid: string;
   firstName: string;
   lastName: string;
   phoneNumber: string;
