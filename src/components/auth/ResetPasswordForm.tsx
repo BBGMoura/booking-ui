@@ -48,8 +48,6 @@ interface ResetPasswordFormProps {
 }
 
 /**
- * ResetPasswordForm — completes the token-based password reset flow (BOO-11).
- *
  * Renders one of three states:
  * - No token (or an invalid/expired one, discovered on submit) → a dead-end card
  *   pointing back to /forgot-password
@@ -129,7 +127,7 @@ export default function ResetPasswordForm({
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="flex flex-col items-center pt-8 text-center">
-        {/* TODO Update with logo in future ticket */}
+        {/* TODO: replace with real logo */}
         <img
           src="https://alignui.com/images/logo/aurora.svg"
           alt="Logo"
