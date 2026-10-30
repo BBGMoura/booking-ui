@@ -110,7 +110,11 @@ describe('ForgotPasswordForm', () => {
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.click(screen.getByRole('button', { name: 'Send reset email' }));
 
-      expect(await screen.findByText(/if an account exists for that email/i)).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          /if an account exists for that email, you will receive a reset link shortly/i
+        )
+      ).toBeInTheDocument();
     });
 
     it('shows back to sign in link in success state', async () => {

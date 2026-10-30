@@ -71,7 +71,7 @@ export default function ForgotPasswordForm({
         </CardHeader>
         <CardContent>
           <p className="text-center text-sm text-gray-500">
-            If an account exists for that email, you will receive a new password shortly.
+            If an account exists for that email, you will receive a reset link shortly.
           </p>
         </CardContent>
         <CardFooter className="border-t">
