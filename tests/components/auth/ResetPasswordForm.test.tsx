@@ -46,6 +46,15 @@ describe('ResetPasswordForm', () => {
       expect(screen.getByRole('button', { name: 'Reset password' })).toBeInTheDocument();
     });
 
+    it('renders a back to sign in link', () => {
+      renderForm();
+
+      expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
+        'href',
+        '/login'
+      );
+    });
+
     it('does not show error alert on initial render', () => {
       renderForm();
 

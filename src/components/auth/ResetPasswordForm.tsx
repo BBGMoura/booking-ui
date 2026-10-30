@@ -225,6 +225,11 @@ export default function ResetPasswordForm({
           </Button>
         </form>
       </CardContent>
+      <CardFooter className="border-t">
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/login">Back to sign in</Link>
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
