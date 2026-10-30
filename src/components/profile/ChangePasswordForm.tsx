@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import PasswordRequirements from '@/components/auth/PasswordRequirements';
+import { PASSWORD_COMPLEXITY_REGEX } from '@/lib/utils/passwordUtils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const changePasswordSchema = z
@@ -21,7 +22,7 @@ const changePasswordSchema = z
       .string()
       .min(1, 'Password is required')
       .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$£%^&+=?'~:;/.,*(){}]).{8,16}$/,
+        PASSWORD_COMPLEXITY_REGEX,
         'Password must be 8-16 characters with 1 uppercase, 1 lowercase, 1 number and 1 special character'
       ),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
