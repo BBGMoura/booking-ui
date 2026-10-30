@@ -35,6 +35,14 @@ describe('ResetPasswordForm', () => {
         '/forgot-password'
       );
     });
+
+    it('shows the form once a token appears via a prop update', () => {
+      const { rerender } = render(<ResetPasswordForm token={null} />);
+
+      rerender(<ResetPasswordForm token={validToken} />);
+
+      expect(screen.getByLabelText('New password')).toBeInTheDocument();
+    });
   });
 
   describe('rendering', () => {
@@ -84,6 +92,19 @@ describe('ResetPasswordForm', () => {
       await userEvent.type(screen.getByLabelText('New password'), 'weak');
 
       expect(screen.getByText('One uppercase letter')).toBeInTheDocument();
+    });
+
+    it('shows the complexity error text even once the password is non-empty', async () => {
+      renderForm();
+
+      await userEvent.type(screen.getByLabelText('New password'), 'weak');
+      await userEvent.tab();
+
+      expect(
+        await screen.findByText(
+          'Password must be 8-16 characters and contain uppercase, lowercase, number and special character'
+        )
+      ).toBeInTheDocument();
     });
 
     it('shows password required error when password is empty and field is touched', async () => {
@@ -202,6 +223,23 @@ describe('ResetPasswordForm', () => {
       await fillAndSubmit();
 
       expect(await screen.findByRole('alert')).toBeInTheDocument();
+    });
+
+    it('routes a backend field-validation error onto the newPassword field', async () => {
+      renderForm(
+        validToken,
+        jest.fn().mockRejectedValue({
+          isAxiosError: true,
+          response: {
+            status: 400,
+            data: [{ error: 'Password is too weak', message: 'newPassword' }],
+          },
+        })
+      );
+
+      await fillAndSubmit();
+
+      expect(await screen.findByText('Password is too weak')).toBeInTheDocument();
     });
   });
 

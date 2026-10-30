@@ -19,9 +19,15 @@ import { Spinner } from '@/components/ui/spinner';
 import { AlertCircleIcon, Eye, EyeOff, KeyRoundIcon, CheckCircle2Icon } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { isForbiddenError, parseApiError } from '@/lib/utils/errorUtils';
+import {
+  isFieldValidationError,
+  isForbiddenError,
+  parseApiError,
+  setFieldErrors,
+} from '@/lib/utils/errorUtils';
 import { confirmPasswordReset } from '@/lib/api/auth';
 import PasswordRequirements from '@/components/auth/PasswordRequirements';
+import { PASSWORD_COMPLEXITY_REGEX } from '@/lib/utils/passwordUtils';
 
 const resetPasswordSchema = z
   .object({
@@ -29,7 +35,7 @@ const resetPasswordSchema = z
       .string()
       .min(1, 'Password is required')
       .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$£%^&+=?'~:;/.,*(){}]).{8,16}$/,
+        PASSWORD_COMPLEXITY_REGEX,
         'Password must be 8-16 characters and contain uppercase, lowercase, number and special character'
       ),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
@@ -58,7 +64,7 @@ export default function ResetPasswordForm({
   token,
   onConfirmPasswordReset = confirmPasswordReset,
 }: ResetPasswordFormProps) {
-  const [linkInvalid, setLinkInvalid] = useState(!token);
+  const [tokenRejected, setTokenRejected] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -71,6 +77,7 @@ export default function ResetPasswordForm({
   });
 
   const newPassword = form.watch('newPassword');
+  const linkInvalid = !token || tokenRejected;
 
   async function onSubmit(values: ResetPasswordFormValues) {
     if (!token) return;
@@ -81,7 +88,9 @@ export default function ResetPasswordForm({
       setSubmitted(true);
     } catch (exception) {
       if (isForbiddenError(exception)) {
-        setLinkInvalid(true);
+        setTokenRejected(true);
+      } else if (isFieldValidationError(exception)) {
+        setFieldErrors(exception.response!.data, form.setError, ['newPassword']);
       } else {
         form.setError('root', { message: parseApiError(exception) });
       }
@@ -174,7 +183,7 @@ export default function ResetPasswordForm({
                   </button>
                 </div>
                 <PasswordRequirements password={newPassword} />
-                {fieldState.invalid && !newPassword && <FieldError errors={[fieldState.error]} />}
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
           />
