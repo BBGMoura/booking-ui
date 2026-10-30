@@ -8,7 +8,7 @@ const mockUser = {
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
-  userId: 1,
+  uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   phoneNumber: '07700000000',
   enabled: true,
   role: USER_ROLES.USER,

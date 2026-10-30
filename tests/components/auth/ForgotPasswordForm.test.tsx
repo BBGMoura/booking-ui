@@ -27,6 +27,12 @@ describe('ForgotPasswordForm', () => {
       expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeInTheDocument();
     });
 
+    it('describes the link-based reset flow, not a new password', () => {
+      renderForm();
+
+      expect(screen.getByText(/we.ll send you a link to reset your password/i)).toBeInTheDocument();
+    });
+
     it('does not show error alert on initial render', () => {
       renderForm();
 
@@ -89,13 +95,26 @@ describe('ForgotPasswordForm', () => {
       expect(await screen.findByText('Check your inbox')).toBeInTheDocument();
     });
 
+    it('describes the success state as a link, not a new password', async () => {
+      renderForm(jest.fn().mockResolvedValue(undefined));
+
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.click(screen.getByRole('button', { name: 'Send reset email' }));
+
+      expect(await screen.findByText(/we.ve sent a password reset link/i)).toBeInTheDocument();
+    });
+
     it('shows security wording in success state', async () => {
       renderForm(jest.fn().mockResolvedValue(undefined));
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.click(screen.getByRole('button', { name: 'Send reset email' }));
 
-      expect(await screen.findByText(/if an account exists for that email/i)).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          /if an account exists for that email, you will receive a reset link shortly/i
+        )
+      ).toBeInTheDocument();
     });
 
     it('shows back to sign in link in success state', async () => {
@@ -111,10 +130,12 @@ describe('ForgotPasswordForm', () => {
 
   describe('error display', () => {
     it('shows error alert after failed API call', async () => {
-      renderForm(jest.fn().mockRejectedValue({
-        isAxiosError: true,
-        response: { status: 404, data: { error: 'No account found.' } },
-      }));
+      renderForm(
+        jest.fn().mockRejectedValue({
+          isAxiosError: true,
+          response: { status: 404, data: { error: 'No account found.' } },
+        })
+      );
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.click(screen.getByRole('button', { name: 'Send reset email' }));
@@ -123,10 +144,12 @@ describe('ForgotPasswordForm', () => {
     });
 
     it('shows error message from API response', async () => {
-      renderForm(jest.fn().mockRejectedValue({
-        isAxiosError: true,
-        response: { status: 404, data: { error: 'No account found.' } },
-      }));
+      renderForm(
+        jest.fn().mockRejectedValue({
+          isAxiosError: true,
+          response: { status: 404, data: { error: 'No account found.' } },
+        })
+      );
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.click(screen.getByRole('button', { name: 'Send reset email' }));
@@ -135,10 +158,12 @@ describe('ForgotPasswordForm', () => {
     });
 
     it('does not show success state after failed API call', async () => {
-      renderForm(jest.fn().mockRejectedValue({
-        isAxiosError: true,
-        response: { status: 500, data: {} },
-      }));
+      renderForm(
+        jest.fn().mockRejectedValue({
+          isAxiosError: true,
+          response: { status: 500, data: {} },
+        })
+      );
 
       await userEvent.type(screen.getByLabelText('Email'), validEmail);
       await userEvent.click(screen.getByRole('button', { name: 'Send reset email' }));

@@ -1,5 +1,6 @@
 import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PASSWORD_SPECIAL_CHAR_REGEX } from '@/lib/utils/passwordUtils';
 
 /**
  * Represents a single password requirement with a label and a test function.
@@ -14,7 +15,7 @@ const requirements: Requirement[] = [
   { label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
   { label: 'One lowercase letter', test: (p) => /[a-z]/.test(p) },
   { label: 'One number', test: (p) => /\d/.test(p) },
-  { label: 'One special character', test: (p) => /[!@#$£%^&+=?'~:;/.,*(){}]/.test(p) },
+  { label: 'One special character', test: (p) => PASSWORD_SPECIAL_CHAR_REGEX.test(p) },
 ];
 
 interface RequirementItemProps {

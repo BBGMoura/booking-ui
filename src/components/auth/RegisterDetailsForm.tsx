@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import PasswordRequirements from '@/components/auth/PasswordRequirements';
+import { PASSWORD_COMPLEXITY_REGEX } from '@/lib/utils/passwordUtils';
 
 const registerSchema = z
   .object({
@@ -35,7 +36,7 @@ const registerSchema = z
       .string()
       .min(1, 'Password is required')
       .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$£%^&+=?'~:;/.,*(){}]).{8,16}$/,
+        PASSWORD_COMPLEXITY_REGEX,
         'Password must be 8-16 characters and contain uppercase, lowercase, number and special character'
       ),
     confirmPassword: z.string().min(1, 'Please confirm your password'),

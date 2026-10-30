@@ -4,7 +4,14 @@ import { z } from 'zod';
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -28,7 +35,9 @@ interface ForgotPasswordFormProps {
   onResetPassword?: (email: string) => Promise<void>;
 }
 
-export default function ForgotPasswordForm({ onResetPassword = resetPassword }: ForgotPasswordFormProps) {
+export default function ForgotPasswordForm({
+  onResetPassword = resetPassword,
+}: ForgotPasswordFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -57,12 +66,12 @@ export default function ForgotPasswordForm({ onResetPassword = resetPassword }: 
           <MailCheckIcon className="mb-4 h-14 w-14 text-green-500" />
           <CardTitle>Check your inbox</CardTitle>
           <CardDescription>
-            We&apos;ve sent a new password to your email address.
+            We&apos;ve sent a password reset link to your email address.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-center text-sm text-gray-500">
-            If an account exists for that email, you will receive a new password shortly.
+            If an account exists for that email, you will receive a reset link shortly.
           </p>
         </CardContent>
         <CardFooter className="border-t">
@@ -85,7 +94,7 @@ export default function ForgotPasswordForm({ onResetPassword = resetPassword }: 
         />
         <CardTitle>Forgot your password?</CardTitle>
         <CardDescription>
-          Enter your email and we&apos;ll send you a new password.
+          Enter your email and we&apos;ll send you a link to reset your password.
         </CardDescription>
       </CardHeader>
 
@@ -130,7 +139,6 @@ export default function ForgotPasswordForm({ onResetPassword = resetPassword }: 
               'Send reset email'
             )}
           </Button>
-
         </form>
       </CardContent>
       <CardFooter className="border-t">

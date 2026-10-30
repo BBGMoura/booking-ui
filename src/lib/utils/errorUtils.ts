@@ -44,6 +44,16 @@ export function isFieldValidationError(
 }
 
 /**
+ * Checks if the exception is a 403 Forbidden response.
+ *
+ * Used where a specific error (e.g. an invalid/expired token) needs its own
+ * UI state rather than the generic root-error alert.
+ */
+export function isForbiddenError(exception: unknown): exception is AxiosError {
+  return isAxiosError(exception) && exception.response?.status === 403;
+}
+
+/**
  * Maps backend field validation errors onto react-hook-form fields.
  *
  * For each error in the array:

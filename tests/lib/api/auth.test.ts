@@ -5,6 +5,8 @@ import {
   register,
   checkInvite,
   fetchCurrentUser,
+  resetPassword,
+  confirmPasswordReset,
   logout,
   SESSION_EXPIRED_KEY,
 } from '@/lib/api/auth';
@@ -12,7 +14,7 @@ import { LoginCredentials, RegisterData, User } from '@/lib/types/auth';
 import api from '@/lib/api/axiosInstance';
 
 const mockUser: User = {
-  userId: 1,
+  uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
@@ -25,12 +27,11 @@ const mockToken = 'fake.jwt.token';
 
 const mockRegisterResponse = {
   token: mockToken,
-  userId: 1,
+  uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
   phoneNumber: '07123456789',
-  userInfoId: 10,
   role: 'ROLE_USER',
   enabled: true,
 };
@@ -70,7 +71,7 @@ describe('auth API', () => {
   describe('request interceptor', () => {
     it('attaches Authorization header when token exists in cookie', async () => {
       (Cookies.get as jest.Mock).mockReturnValue(mockToken);
-      mock.onGet('/user').reply(200, mockUser);
+      mock.onGet('/users/me').reply(200, mockUser);
 
       await fetchCurrentUser();
 
@@ -79,7 +80,7 @@ describe('auth API', () => {
 
     it('does not attach Authorization header when no token exists', async () => {
       (Cookies.get as jest.Mock).mockReturnValue(undefined);
-      mock.onGet('/user').reply(200, mockUser);
+      mock.onGet('/users/me').reply(200, mockUser);
 
       await fetchCurrentUser();
 
@@ -90,7 +91,7 @@ describe('auth API', () => {
   describe('response interceptor', () => {
     it('sets session_expired flag in sessionStorage on 401 when cookie exists', async () => {
       (Cookies.get as jest.Mock).mockReturnValue(mockToken);
-      mock.onGet('/user').reply(401);
+      mock.onGet('/users/me').reply(401);
 
       await fetchCurrentUser().catch(() => {});
 
@@ -99,7 +100,7 @@ describe('auth API', () => {
 
     it('removes the token cookie on 401 when cookie exists', async () => {
       (Cookies.get as jest.Mock).mockReturnValue(mockToken);
-      mock.onGet('/user').reply(401);
+      mock.onGet('/users/me').reply(401);
 
       await fetchCurrentUser().catch(() => {});
 
@@ -108,7 +109,7 @@ describe('auth API', () => {
 
     it('does not set session_expired flag on 401 when no cookie exists', async () => {
       (Cookies.get as jest.Mock).mockReturnValue(undefined);
-      mock.onGet('/user').reply(401);
+      mock.onGet('/users/me').reply(401);
 
       await fetchCurrentUser().catch(() => {});
 
@@ -117,7 +118,7 @@ describe('auth API', () => {
 
     it('does not set session_expired flag on other error codes', async () => {
       (Cookies.get as jest.Mock).mockReturnValue(mockToken);
-      mock.onGet('/user').reply(500);
+      mock.onGet('/users/me').reply(500);
 
       await fetchCurrentUser().catch(() => {});
 
@@ -190,17 +191,17 @@ describe('auth API', () => {
 
   describe('checkInvite()', () => {
     it('calls the correct endpoint with email as a query param', async () => {
-      mock.onGet('/auth/check-invite').reply(200, { email: 'jane@example.com', invited: true });
+      mock.onGet('/auth/invitations').reply(200, { email: 'jane@example.com', invited: true });
 
       await checkInvite('jane@example.com');
 
-      expect(mock.history.get[0].url).toBe('/auth/check-invite');
+      expect(mock.history.get[0].url).toBe('/auth/invitations');
       expect(mock.history.get[0].params).toEqual({ email: 'jane@example.com' });
     });
 
     it('returns the full check invite response', async () => {
       const mockResponse = { email: 'jane@example.com', invited: true };
-      mock.onGet('/auth/check-invite').reply(200, mockResponse);
+      mock.onGet('/auth/invitations').reply(200, mockResponse);
 
       const result = await checkInvite('jane@example.com');
 
@@ -208,7 +209,7 @@ describe('auth API', () => {
     });
 
     it('returns invited false for uninvited email', async () => {
-      mock.onGet('/auth/check-invite').reply(200, { email: 'unknown@example.com', invited: false });
+      mock.onGet('/auth/invitations').reply(200, { email: 'unknown@example.com', invited: false });
 
       const result = await checkInvite('unknown@example.com');
 
@@ -218,19 +219,71 @@ describe('auth API', () => {
 
   describe('fetchCurrentUser()', () => {
     it('calls the correct endpoint', async () => {
-      mock.onGet('/user').reply(200, mockUser);
+      mock.onGet('/users/me').reply(200, mockUser);
 
       await fetchCurrentUser();
 
-      expect(mock.history.get[0].url).toBe('/user');
+      expect(mock.history.get[0].url).toBe('/users/me');
     });
 
     it('returns the user object', async () => {
-      mock.onGet('/user').reply(200, mockUser);
+      mock.onGet('/users/me').reply(200, mockUser);
 
       const result = await fetchCurrentUser();
 
       expect(result).toEqual(mockUser);
+    });
+  });
+
+  describe('resetPassword()', () => {
+    it('calls the correct endpoint with the email', async () => {
+      mock.onPost('/auth/password-reset').reply(200);
+
+      await resetPassword('jane@example.com');
+
+      expect(mock.history.post[0].url).toBe('/auth/password-reset');
+      expect(JSON.parse(mock.history.post[0].data)).toEqual({ email: 'jane@example.com' });
+    });
+
+    it('returns void on success', async () => {
+      mock.onPost('/auth/password-reset').reply(200);
+
+      const result = await resetPassword('jane@example.com');
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('confirmPasswordReset()', () => {
+    it('calls PUT on the correct endpoint with the token and new password', async () => {
+      mock.onPut('/auth/password-reset').reply(200);
+
+      await confirmPasswordReset('reset-token', 'NewPassword1!');
+
+      expect(mock.history.put[0].url).toBe('/auth/password-reset');
+      expect(JSON.parse(mock.history.put[0].data)).toEqual({
+        token: 'reset-token',
+        newPassword: 'NewPassword1!',
+      });
+    });
+
+    it('returns void on success', async () => {
+      mock.onPut('/auth/password-reset').reply(200);
+
+      const result = await confirmPasswordReset('reset-token', 'NewPassword1!');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('throws when the token is invalid or expired', async () => {
+      mock.onPut('/auth/password-reset').reply(403, {
+        status: 403,
+        error: 'INVALID_TOKEN',
+        message: 'Reset token already used or invalid',
+        details: [],
+      });
+
+      await expect(confirmPasswordReset('bad-token', 'NewPassword1!')).rejects.toThrow();
     });
   });
 

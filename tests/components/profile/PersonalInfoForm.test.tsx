@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { useAuth } from '@/lib/context/AuthContext';
 import { PersonalInfoForm } from '@/components/profile/PersonalInfoForm';
 import * as userApi from '@/lib/api/user';
+import { User } from '@/lib/types/auth';
 
 jest.mock('@/lib/context/AuthContext');
 jest.mock('@/lib/api/user');
@@ -12,8 +13,8 @@ const mockUpdateUserInfo = userApi.updateUserInfo as jest.MockedFunction<
   typeof userApi.updateUserInfo
 >;
 
-const mockUser = {
-  userId: 1,
+const mockUser: User = {
+  uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
@@ -146,13 +147,7 @@ describe('PersonalInfoForm', () => {
     }
 
     it('calls updateUserInfo with correct values on submit', async () => {
-      mockUpdateUserInfo.mockResolvedValue({
-        id: 1,
-        userId: 1,
-        firstName: 'Jane',
-        lastName: 'Doe',
-        phoneNumber: '07123456789',
-      });
+      mockUpdateUserInfo.mockResolvedValue(mockUser);
       await enterEditMode();
 
       await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
@@ -167,13 +162,7 @@ describe('PersonalInfoForm', () => {
     });
 
     it('calls fetchUser after successful save', async () => {
-      mockUpdateUserInfo.mockResolvedValue({
-        id: 1,
-        userId: 1,
-        firstName: 'Jane',
-        lastName: 'Doe',
-        phoneNumber: '07123456789',
-      });
+      mockUpdateUserInfo.mockResolvedValue(mockUser);
       await enterEditMode();
 
       await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
@@ -182,13 +171,7 @@ describe('PersonalInfoForm', () => {
     });
 
     it('returns to view mode after successful save', async () => {
-      mockUpdateUserInfo.mockResolvedValue({
-        id: 1,
-        userId: 1,
-        firstName: 'Jane',
-        lastName: 'Doe',
-        phoneNumber: '07123456789',
-      });
+      mockUpdateUserInfo.mockResolvedValue(mockUser);
       await enterEditMode();
 
       await userEvent.click(screen.getByRole('button', { name: /save changes/i }));

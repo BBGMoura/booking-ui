@@ -1,5 +1,10 @@
 import { AxiosError } from 'axios';
-import { parseApiError, isFieldValidationError, setFieldErrors } from '@/lib/utils/errorUtils';
+import {
+  parseApiError,
+  isFieldValidationError,
+  isForbiddenError,
+  setFieldErrors,
+} from '@/lib/utils/errorUtils';
 import { UseFormSetError } from 'react-hook-form';
 
 function mockAxiosError(status: number, data: unknown): AxiosError {
@@ -98,6 +103,24 @@ describe('isFieldValidationError()', () => {
 
   it('returns false for null', () => {
     expect(isFieldValidationError(null)).toBe(false);
+  });
+});
+
+describe('isForbiddenError()', () => {
+  it('returns true for a 403 axios error', () => {
+    expect(isForbiddenError(mockAxiosError(403, {}))).toBe(true);
+  });
+
+  it('returns false for a 400 axios error', () => {
+    expect(isForbiddenError(mockAxiosError(400, {}))).toBe(false);
+  });
+
+  it('returns false for a network error with no response', () => {
+    expect(isForbiddenError(mockNetworkError())).toBe(false);
+  });
+
+  it('returns false for a plain JS error', () => {
+    expect(isForbiddenError(new Error('something'))).toBe(false);
   });
 });
 
