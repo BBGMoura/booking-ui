@@ -42,24 +42,24 @@ export async function register(registerData: RegisterData): Promise<User> {
 
   Cookies.set(TOKEN_KEY, data.token, { expires: 1 });
 
-  const { token, userInfoId, ...user } = data;
+  const { token, ...user } = data;
   return user as User;
 }
 
 export async function checkInvite(email: string): Promise<CheckInviteResponse> {
-  const { data } = await api.get<CheckInviteResponse>('/auth/check-invite', {
+  const { data } = await api.get<CheckInviteResponse>('/auth/invitations', {
     params: { email },
   });
   return data;
 }
 
 export async function fetchCurrentUser(): Promise<User> {
-  const { data } = await api.get<User>('/user');
+  const { data } = await api.get<User>('/users/me');
   return data;
 }
 
 export async function resetPassword(email: string): Promise<void> {
-  await api.patch('/password/reset', { email });
+  await api.post('/auth/password-reset', { email });
 }
 
 export function logout(): void {
