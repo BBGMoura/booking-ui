@@ -23,4 +23,22 @@ describe('getInitials', () => {
   it('returns ?? when user is null', () => {
     expect(getInitials(null)).toBe('??');
   });
+
+  it('falls back to ? for a missing first name', () => {
+    expect(getInitials({ ...mockUser, firstName: null as unknown as string })).toBe('?D');
+  });
+
+  it('falls back to ? for a missing last name', () => {
+    expect(getInitials({ ...mockUser, lastName: null as unknown as string })).toBe('J?');
+  });
+
+  it('does not throw when both names are missing', () => {
+    expect(
+      getInitials({
+        ...mockUser,
+        firstName: null as unknown as string,
+        lastName: null as unknown as string,
+      })
+    ).toBe('??');
+  });
 });
