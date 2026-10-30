@@ -6,6 +6,7 @@ import {
   checkInvite,
   fetchCurrentUser,
   resetPassword,
+  confirmPasswordReset,
   logout,
   SESSION_EXPIRED_KEY,
 } from '@/lib/api/auth';
@@ -250,6 +251,39 @@ describe('auth API', () => {
       const result = await resetPassword('jane@example.com');
 
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('confirmPasswordReset()', () => {
+    it('calls PUT on the correct endpoint with the token and new password', async () => {
+      mock.onPut('/auth/password-reset').reply(200);
+
+      await confirmPasswordReset('reset-token', 'NewPassword1!');
+
+      expect(mock.history.put[0].url).toBe('/auth/password-reset');
+      expect(JSON.parse(mock.history.put[0].data)).toEqual({
+        token: 'reset-token',
+        newPassword: 'NewPassword1!',
+      });
+    });
+
+    it('returns void on success', async () => {
+      mock.onPut('/auth/password-reset').reply(200);
+
+      const result = await confirmPasswordReset('reset-token', 'NewPassword1!');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('throws when the token is invalid or expired', async () => {
+      mock.onPut('/auth/password-reset').reply(403, {
+        status: 403,
+        error: 'INVALID_TOKEN',
+        message: 'Reset token already used or invalid',
+        details: [],
+      });
+
+      await expect(confirmPasswordReset('bad-token', 'NewPassword1!')).rejects.toThrow();
     });
   });
 
