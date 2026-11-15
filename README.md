@@ -30,20 +30,34 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start dev server with Turbopack |
-| `npm run build` | Build for production |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format code with Prettier |
-| `npm test` | Run Jest unit tests |
-| `npm run storybook` | Start Storybook on port 6006 |
+| Command                | Description                             |
+| ---------------------- | --------------------------------------- |
+| `npm run dev`          | Start dev server with Turbopack         |
+| `npm run build`        | Build for production                    |
+| `npm run start`        | Start production server                 |
+| `npm run lint`         | Run ESLint                              |
+| `npm run format`       | Format code with Prettier               |
+| `npm run format:check` | Check formatting without changing files |
+| `npm test`             | Run Jest unit tests                     |
+| `npx playwright test`  | Run Playwright e2e tests                |
+| `npm run storybook`    | Start Storybook on port 6006            |
 
 ## Environment Variables
 
-Copy `.env.local` and fill in the required values:
+Copy `.env.dev` to `.env.local` and adjust the values if needed:
 
 ```bash
 cp .env.dev .env.local
 ```
+
+| Variable              | Description                                                                       |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL` | Base URL of the backend API (no trailing slash). The app appends `/api/v1` to it. |
+
+By default this points at the hosted backend. To use a backend running locally, set it to the local address in `.env.local` (Spring Boot defaults to port 8080):
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+Restart the dev server after changing `.env.local`. The backend must allow `http://localhost:3000` as a CORS origin.
