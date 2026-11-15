@@ -12,6 +12,7 @@ function mockAuthContext(
   return {
     login: overrides.login ?? (() => Promise.resolve()),
     logout: () => {},
+    fetchUser: async () => {},
     register: () => Promise.resolve(),
     hasRole: () => false,
     user: null,

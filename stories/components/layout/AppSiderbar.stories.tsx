@@ -19,6 +19,7 @@ function mockAuthContext(isAdmin = false) {
     user: mockUser,
     login: () => Promise.resolve(),
     logout: () => {},
+    fetchUser: async () => {},
     register: () => Promise.resolve(),
     hasRole: (_role: string) => isAdmin,
     isAuthenticated: true,
