@@ -232,7 +232,12 @@ describe('ResetPasswordForm', () => {
           isAxiosError: true,
           response: {
             status: 400,
-            data: [{ error: 'Password is too weak', message: 'newPassword' }],
+            data: {
+              status: 400,
+              error: 'VALIDATION_ERROR',
+              message: 'Validation failed',
+              details: [{ field: 'newPassword', message: 'Password is too weak' }],
+            },
           },
         })
       );

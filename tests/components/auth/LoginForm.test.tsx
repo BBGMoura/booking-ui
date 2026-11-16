@@ -170,6 +170,55 @@ describe('LoginForm', () => {
       });
     });
 
+    it('shows the backend message rather than the error code', async () => {
+      const mockLogin = jest.fn().mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          status: 401,
+          data: {
+            status: 401,
+            error: 'AUTHENTICATION_ERROR',
+            message: 'Invalid email or password.',
+            details: [],
+          },
+        },
+      });
+      mockUseAuth({ login: mockLogin });
+
+      render(<LoginForm />);
+
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+      expect(await screen.findByText('Invalid email or password.')).toBeInTheDocument();
+      expect(screen.queryByText('AUTHENTICATION_ERROR')).not.toBeInTheDocument();
+    });
+
+    it('routes backend field details onto the matching field', async () => {
+      const mockLogin = jest.fn().mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          status: 400,
+          data: {
+            status: 400,
+            error: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: [{ field: 'email', message: 'email must be a valid address' }],
+          },
+        },
+      });
+      mockUseAuth({ login: mockLogin });
+
+      render(<LoginForm />);
+
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+      expect(await screen.findByText('email must be a valid address')).toBeInTheDocument();
+    });
+
     it('does not redirect to /dashboard on failed login', async () => {
       const mockLogin = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
       mockUseAuth({ login: mockLogin });
