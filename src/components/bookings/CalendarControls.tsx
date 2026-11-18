@@ -4,13 +4,7 @@ import { Separator } from '@/components/ui/separator';
 import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ROOMS, type Room } from '@/lib/types/booking';
-
-const ROOM_LABELS: Record<Room, string> = {
-  ASTAIRE: 'Astaire',
-  BUSSELL: 'Bussell',
-  ALEX_MOORE: 'Alex Moore',
-  FOSSE: 'Fosse',
-};
+import { ROOM_LABELS } from '@/lib/utils/calendarEvents';
 
 interface CalendarControlsProps {
   room: Room | null;

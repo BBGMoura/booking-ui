@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { BusinessHoursInput } from '@fullcalendar/react';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
+import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
@@ -31,6 +32,19 @@ export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, setShowMine } = useCalendarView();
   const [scrollTime] = useState(() => initialScrollTime(new Date(), GRID_START_MINUTES));
   const fixedHeight = useFixedHeightLayout();
+  const [range, setRange] = useState<DateRange | null>(null);
+  const { events, error } = useCalendarEvents(room, showMine, range);
+  const handleDatesSet = useCallback(
+    (info: { start: Date; end: Date }) =>
+      setRange((current) =>
+        current &&
+        current.start.getTime() === info.start.getTime() &&
+        current.end.getTime() === info.end.getTime()
+          ? current
+          : { start: info.start, end: info.end }
+      ),
+    []
+  );
 
   return (
     // When the layout is locked to the viewport, the page takes the remaining
@@ -45,11 +59,18 @@ export default function BookingsPage() {
         onRoomSelect={selectRoom}
         onShowMineChange={setShowMine}
       />
+      {error && (
+        <p role="alert" className="text-destructive text-sm">
+          {error}
+        </p>
+      )}
       <div className="bg-card min-h-0 flex-1 overflow-hidden rounded-2xl border shadow-sm">
         <BookingsCalendar
           availableViews={AVAILABLE_VIEWS}
           height={fixedHeight ? '100%' : 'auto'}
           nowIndicator
+          events={events}
+          datesSet={handleDatesSet}
           firstDay={1}
           allDaySlot={false}
           slotMinTime={toTime(GRID_START_MINUTES)}
