@@ -76,6 +76,26 @@ describe('buildCalendarEvents', () => {
     expect(props(unnamed[0]).detail).toBe('No name');
   });
 
+  it("colours other people's shareable bookings apart, but not my own", () => {
+    const schedule = [
+      booking('mine-shared', 'ASTAIRE', { shareable: true }),
+      booking('shared', 'ASTAIRE', { shareable: true }),
+      booking('booked', 'ASTAIRE'),
+    ];
+    const events = buildCalendarEvents(
+      'ASTAIRE',
+      false,
+      schedule,
+      [booking('mine-shared', 'ASTAIRE')],
+      teacher
+    );
+    expect(events.map((e) => e.color)).toEqual([
+      'var(--chart-1)',
+      'var(--chart-4)',
+      'var(--chart-2)',
+    ]);
+  });
+
   it('marks shareable bookings', () => {
     const schedule = [booking('s', 'ASTAIRE', { shareable: true }), booking('n', 'ASTAIRE')];
     const events = buildCalendarEvents('ASTAIRE', false, schedule, [], teacher);
