@@ -85,3 +85,15 @@ export function setFieldErrors<T extends FieldValues>(
     }
   });
 }
+
+/**
+ * Reads the machine-readable `error` code (e.g. "BOOKING_CONFLICT") and the HTTP
+ * status from a backend error response, so callers can react to a specific failure.
+ */
+export function getApiErrorInfo(exception: unknown): { status?: number; code?: string } {
+  if (!isAxiosError(exception)) return {};
+  return {
+    status: exception.response?.status,
+    code: (exception.response?.data as ApiErrorBody | undefined)?.error,
+  };
+}

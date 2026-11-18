@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EventInput } from '@fullcalendar/react';
 import { getMyBookingsInRange, getRoomSchedule } from '@/lib/api/booking';
 import { ROOMS, type BookingView, type Room } from '@/lib/types/booking';
@@ -118,6 +118,19 @@ export function useCalendarEvents(
     };
   }, [range, key]);
 
+  // Refetches the visible range now, ignoring what's loaded, so a change made
+  // here (a new booking, or finding out a slot is taken) shows straight away.
+  const refresh = useCallback(async () => {
+    if (!range) return;
+    try {
+      const data = await fetchRange(range);
+      setLoaded((prev) => new Map(prev).set(keyOf(range), data));
+      setError(null);
+    } catch {
+      setError('Could not load bookings.');
+    }
+  }, [range]);
+
   const data = key ? loaded.get(key) : undefined;
   const events: EventInput[] = useMemo(
     () =>
@@ -131,5 +144,5 @@ export function useCalendarEvents(
     [room, showMine, data, showBooker, viewerName]
   );
 
-  return { events, loading: !!range && !data && !error, error };
+  return { events, loading: !!range && !data && !error, error, refresh };
 }

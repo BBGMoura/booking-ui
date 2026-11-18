@@ -2,7 +2,9 @@
 
 import { useCallback, useState } from 'react';
 import type { BusinessHoursInput } from '@fullcalendar/react';
+import { toast } from 'sonner';
 import { BookingEventContent } from '@/components/bookings/BookingEventContent';
+import { CreateBookingModal } from '@/components/bookings/CreateBookingModal';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
@@ -10,17 +12,18 @@ import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
 import { useAuth } from '@/lib/context/AuthContext';
 import { USER_ROLES } from '@/lib/types/auth';
+import { OPENING_HOURS_BY_DAY, validateBookingTime } from '@/lib/utils/bookingTime';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
 
 // Mirrors the backend's `schedule` config, which isn't exposed over the API.
 // Per-day closed time is shaded via businessHours.
-const OPENING_HOURS: BusinessHoursInput = [
-  { daysOfWeek: [1, 2, 3, 4, 5], startTime: '09:00', endTime: '19:00' },
-  { daysOfWeek: [6], startTime: '09:30', endTime: '19:30' },
-  { daysOfWeek: [0], startTime: '11:00', endTime: '17:00' },
-];
+const OPENING_HOURS: BusinessHoursInput = OPENING_HOURS_BY_DAY.map(({ open, close }, day) => ({
+  daysOfWeek: [day],
+  startTime: toTime(open),
+  endTime: toTime(close),
+}));
 
 const CLOSED_HOURS_CLASS = 'bg-muted/60';
 
@@ -42,7 +45,8 @@ export default function BookingsPage() {
   const fixedHeight = useFixedHeightLayout();
   const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
-  const { events, loading, error } = useCalendarEvents(room, showMine, range, {
+  const [selection, setSelection] = useState<DateRange | null>(null);
+  const { events, loading, error, refresh } = useCalendarEvents(room, showMine, range, {
     showBooker: hasRole(USER_ROLES.ADMIN),
     viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
   });
@@ -56,6 +60,19 @@ export default function BookingsPage() {
           : { start: info.start, end: info.end }
       ),
     []
+  );
+  const closeModal = useCallback(() => setSelection(null), []);
+  const handleBooked = useCallback(() => {
+    setSelection(null);
+    void refresh();
+  }, [refresh]);
+  const handleSlotUnavailable = useCallback(
+    (message: string) => {
+      setSelection(null);
+      toast.error(message);
+      void refresh();
+    },
+    [refresh]
   );
 
   return (
@@ -103,8 +120,25 @@ export default function BookingsPage() {
           slotMaxTime={toTime(GRID_END_MINUTES)}
           businessHours={OPENING_HOURS}
           nonBusinessHoursClass={CLOSED_HOURS_CLASS}
+          // Booking is per room, so there's nothing to create without one.
+          selectable={room !== null}
+          selectAllow={(span) => validateBookingTime(span.start, span.end) === null}
+          select={(info) => {
+            setSelection({ start: info.start, end: info.end });
+            info.view.calendar.unselect();
+          }}
         />
       </div>
+      {room && selection && (
+        <CreateBookingModal
+          room={room}
+          start={selection.start}
+          end={selection.end}
+          onClose={closeModal}
+          onBooked={handleBooked}
+          onSlotUnavailable={handleSlotUnavailable}
+        />
+      )}
     </div>
   );
 }

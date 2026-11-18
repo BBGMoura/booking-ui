@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import type { BookingView, Room } from '@/lib/types/booking';
 import { getMyBookingsInRange, getRoomSchedule } from '@/lib/api/booking';
@@ -138,5 +138,27 @@ describe('useCalendarEvents', () => {
     );
     await waitFor(() => expect(result.current.events).toHaveLength(1));
     expect(result.current.events[0].title).toBe('Private · Jane Smith');
+  });
+
+  it('refresh refetches the visible range and shows the new data', async () => {
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
+
+    jest
+      .mocked(getRoomSchedule)
+      .mockImplementation(async (room) => [b(`${room}-1`, room), b(`${room}-2`, room)]);
+    await act(() => result.current.refresh());
+
+    expect(result.current.events).toHaveLength(2);
+  });
+
+  it('refresh reports an error if the refetch fails', async () => {
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
+
+    jest.mocked(getRoomSchedule).mockRejectedValue(new Error('boom'));
+    await act(() => result.current.refresh());
+
+    expect(result.current.error).toBe('Could not load bookings.');
   });
 });
