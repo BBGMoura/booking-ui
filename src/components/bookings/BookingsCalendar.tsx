@@ -1,4 +1,8 @@
-import { type CalendarOptions, useCalendarController } from '@fullcalendar/react';
+import {
+  type CalendarController,
+  type CalendarOptions,
+  useCalendarController,
+} from '@fullcalendar/react';
 import interactionPlugin from '@fullcalendar/react/interaction';
 import listPlugin from '@fullcalendar/react/list';
 import timeGridPlugin from '@fullcalendar/react/timegrid';
@@ -21,6 +25,8 @@ interface BookingsCalendarProps
    * grid inside it, which needs a parent with a definite height.
    */
   height: 'auto' | '100%';
+  /** Pass one in to change the view or date from outside the calendar. */
+  controller?: CalendarController;
 }
 
 /**
@@ -28,8 +34,14 @@ interface BookingsCalendarProps
  * can be updated with `shadcn add`) with our own toolbar on top. It replaces the
  * registry's EventCalendar wrapper, whose toolbar we restyle.
  */
-export function BookingsCalendar({ availableViews, height, ...options }: BookingsCalendarProps) {
-  const controller = useCalendarController();
+export function BookingsCalendar({
+  availableViews,
+  height,
+  controller: outsideController,
+  ...options
+}: BookingsCalendarProps) {
+  const ownController = useCalendarController();
+  const controller = outsideController ?? ownController;
 
   return (
     <div className={cn('bg-background flex flex-col', height === '100%' && 'h-full')}>

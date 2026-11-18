@@ -3,15 +3,16 @@ import userEvent from '@testing-library/user-event';
 import { AxiosError } from 'axios';
 import {
   type BookingDraft,
-  CreateBookingModal,
+  CreateBookingForm,
   HIGH_DEMAND_MESSAGE,
+  NOT_FREE_MESSAGE,
   SHAREABLE_FULL_MESSAGE,
-  SLOT_TAKEN_MESSAGE,
-} from '@/components/bookings/CreateBookingModal';
-import { createBooking } from '@/lib/api/booking';
+} from '@/components/bookings/CreateBookingForm';
+import { createBooking, getRoomSchedule } from '@/lib/api/booking';
+import type { BookingView } from '@/lib/types/booking';
 import { getClassTypes, getDanceClass } from '@/lib/api/danceClass';
 
-jest.mock('@/lib/api/booking', () => ({ createBooking: jest.fn() }));
+jest.mock('@/lib/api/booking', () => ({ createBooking: jest.fn(), getRoomSchedule: jest.fn() }));
 jest.mock('@/lib/api/danceClass', () => ({ getClassTypes: jest.fn(), getDanceClass: jest.fn() }));
 
 // 2026-11-18 is a Wednesday, 2026-11-22 a Sunday.
@@ -26,10 +27,32 @@ function backendError(status: number, error: string) {
   } as never);
 }
 
-function renderModal(draft: BookingDraft = dragged) {
-  const handlers = { onClose: jest.fn(), onBooked: jest.fn(), onSlotUnavailable: jest.fn() };
-  render(<CreateBookingModal draft={draft} {...handlers} />);
-  return handlers;
+// The schedule endpoint's summary shape, as regular users get it.
+function booked(from: Date, to: Date, shareable = false): BookingView {
+  return {
+    uid: `${from.toISOString()}-${shareable}`,
+    room: 'ASTAIRE',
+    classType: 'GROUP',
+    status: 'BOOKED',
+    shareable,
+    bookedFrom: from.toISOString(),
+    bookedTo: to.toISOString(),
+  } as unknown as BookingView;
+}
+
+function renderForm(draft: BookingDraft = dragged) {
+  const handlers = {
+    onCancel: jest.fn(),
+    onBooked: jest.fn(),
+    onConflict: jest.fn(),
+    onPreviewChange: jest.fn(),
+  };
+  const view = render(<CreateBookingForm draft={draft} {...handlers} />);
+  return {
+    ...handlers,
+    rerender: (next: BookingDraft) =>
+      view.rerender(<CreateBookingForm draft={next} {...handlers} />),
+  };
 }
 
 async function choose(field: string, option: string | RegExp) {
@@ -84,15 +107,16 @@ beforeEach(() => {
     .mocked(createBooking)
     .mockReset()
     .mockResolvedValue({} as never);
+  jest.mocked(getRoomSchedule).mockReset().mockResolvedValue([]);
 });
 
 afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('CreateBookingModal', () => {
+describe('CreateBookingForm', () => {
   it('fills in the room and time from a dragged range', async () => {
-    renderModal();
+    renderForm();
 
     expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Astaire');
     expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent(
@@ -103,7 +127,7 @@ describe('CreateBookingModal', () => {
   });
 
   it('suggests the next free hour when opened without a range', async () => {
-    renderModal({ day: new Date(2026, 10, 18) });
+    renderForm({ day: new Date(2026, 10, 18) });
 
     expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Choose a room');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('09:00');
@@ -111,7 +135,7 @@ describe('CreateBookingModal', () => {
   });
 
   it('offers only the class types the backend returns for the user', async () => {
-    renderModal();
+    renderForm();
     await userEvent.click(await screen.findByRole('combobox', { name: 'Class type' }));
 
     expect(await screen.findByRole('option', { name: 'Private' })).toBeInTheDocument();
@@ -120,7 +144,7 @@ describe('CreateBookingModal', () => {
   });
 
   it('previews the price as the hourly price times the duration', async () => {
-    renderModal();
+    renderForm();
     await choose('Class type', 'Private');
 
     expect(await screen.findByText('£30.00')).toBeInTheDocument();
@@ -129,7 +153,7 @@ describe('CreateBookingModal', () => {
   });
 
   it('requires a room and a class type', async () => {
-    renderModal({ start, end });
+    renderForm({ start, end });
     await screen.findByRole('combobox', { name: 'Class type' });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Book room' })).toBeEnabled());
     await submit();
@@ -144,14 +168,14 @@ describe('CreateBookingModal', () => {
   });
 
   it('keeps the length of the booking when the start moves', async () => {
-    renderModal();
+    renderForm();
     await choose('Start', '13:00');
 
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('14:30');
   });
 
   it('only offers times within the chosen day’s opening hours', async () => {
-    renderModal();
+    renderForm();
     await userEvent.click(screen.getByRole('combobox', { name: 'Start' }));
 
     expect(await screen.findByRole('option', { name: '09:00' })).toBeInTheDocument();
@@ -160,7 +184,7 @@ describe('CreateBookingModal', () => {
   });
 
   it('clears times that fall outside a newly chosen day’s hours', async () => {
-    renderModal();
+    renderForm();
     await userEvent.click(screen.getByRole('button', { name: 'Date' }));
     await userEvent.click(await screen.findByRole('button', { name: /November 22nd, 2026/ }));
 
@@ -172,7 +196,7 @@ describe('CreateBookingModal', () => {
   });
 
   it('books the chosen room and time, then reports success', async () => {
-    const { onBooked } = renderModal();
+    const { onBooked } = renderForm();
     await choose('Room', 'Fosse');
     await choose('Class type', 'Private');
     await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
@@ -189,31 +213,34 @@ describe('CreateBookingModal', () => {
   });
 
   it.each([
-    ['BOOKING_CONFLICT', SLOT_TAKEN_MESSAGE],
+    ['BOOKING_CONFLICT', NOT_FREE_MESSAGE],
     ['BOOKING_SHAREABLE_LIMIT', SHAREABLE_FULL_MESSAGE],
-  ])('hands a 400 %s back to the caller to refresh', async (code, message) => {
+  ])('reports a 400 %s and stays open with the room reloaded', async (code, message) => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, code));
-    const { onSlotUnavailable, onBooked } = renderModal();
+    const { onConflict, onBooked } = renderForm();
     await choose('Class type', 'Private');
+    await waitFor(() => expect(getRoomSchedule).toHaveBeenCalledTimes(1));
     await submit();
 
-    await waitFor(() => expect(onSlotUnavailable).toHaveBeenCalledWith(message));
+    await waitFor(() => expect(onConflict).toHaveBeenCalledWith(message));
     expect(onBooked).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Book room' })).toBeEnabled();
+    await waitFor(() => expect(getRoomSchedule).toHaveBeenCalledTimes(2));
   });
 
-  it('keeps the modal open on a 503 BOOKING_LOCK_TIMEOUT and lets the user retry', async () => {
+  it('keeps the form open on a 503 BOOKING_LOCK_TIMEOUT and lets the user retry', async () => {
     jest
       .mocked(createBooking)
       .mockRejectedValueOnce(backendError(503, 'BOOKING_LOCK_TIMEOUT'))
       .mockResolvedValueOnce({} as never);
-    const { onBooked, onSlotUnavailable, onClose } = renderModal();
+    const { onBooked, onConflict, onCancel } = renderForm();
     await choose('Class type', 'Group');
     await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
     await submit();
 
     expect(await screen.findByText(HIGH_DEMAND_MESSAGE)).toBeInTheDocument();
-    expect(onClose).not.toHaveBeenCalled();
-    expect(onSlotUnavailable).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(onConflict).not.toHaveBeenCalled();
     expect(screen.getByRole('switch', { name: 'Shareable' })).toBeChecked();
 
     await submit();
@@ -227,18 +254,18 @@ describe('CreateBookingModal', () => {
 
   it('shows other errors in the form like the rest of the app', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, 'SOMETHING_ELSE'));
-    const { onSlotUnavailable, onClose } = renderModal();
+    const { onConflict, onCancel } = renderForm();
     await choose('Class type', 'Private');
     await submit();
 
     expect(await screen.findByText('backend message')).toBeInTheDocument();
-    expect(onSlotUnavailable).not.toHaveBeenCalled();
-    expect(onClose).not.toHaveBeenCalled();
+    expect(onConflict).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
   });
 
   it('only treats BOOKING_LOCK_TIMEOUT as a lock timeout on a 503', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(500, 'BOOKING_LOCK_TIMEOUT'));
-    renderModal();
+    renderForm();
     await choose('Class type', 'Private');
     await submit();
 
@@ -246,7 +273,7 @@ describe('CreateBookingModal', () => {
   });
 
   it('blocks a range the backend would reject without sending it', async () => {
-    renderModal({
+    renderForm({
       room: 'ASTAIRE',
       start: new Date(2026, 10, 18, 10, 0),
       end: new Date(2026, 10, 18, 10, 10),
@@ -258,10 +285,95 @@ describe('CreateBookingModal', () => {
     expect(createBooking).not.toHaveBeenCalled();
   });
 
-  it('closes on cancel', async () => {
-    const { onClose } = renderModal();
+  it('cancels', async () => {
+    const { onCancel } = renderForm();
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(onClose).toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it('loads the room’s bookings for the chosen day', async () => {
+    renderForm();
+
+    await waitFor(() =>
+      expect(getRoomSchedule).toHaveBeenCalledWith(
+        'ASTAIRE',
+        expect.stringMatching(/^2026-11-18T00:00:00/),
+        expect.stringMatching(/^2026-11-19T00:00:00/)
+      )
+    );
+  });
+
+  it('says when the room is free at the chosen time', async () => {
+    jest
+      .mocked(getRoomSchedule)
+      .mockResolvedValue([booked(new Date(2026, 10, 18, 12), new Date(2026, 10, 18, 13))]);
+    renderForm();
+
+    expect(await screen.findByText('Astaire is free at this time.')).toBeInTheDocument();
+  });
+
+  it('warns about an overlapping booking but still lets the user book', async () => {
+    jest
+      .mocked(getRoomSchedule)
+      .mockResolvedValue([booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12))]);
+    const { onBooked } = renderForm();
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /Overlaps a booking \(11:00–12:00\)\. Choose another time\./
+    );
+
+    await choose('Class type', 'Private');
+    await submit();
+    await waitFor(() => expect(onBooked).toHaveBeenCalled());
+  });
+
+  it('suggests sharing when the only overlaps are shareable', async () => {
+    jest
+      .mocked(getRoomSchedule)
+      .mockResolvedValue([booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12), true)]);
+    renderForm();
+
+    expect(await screen.findByRole('status')).toHaveTextContent(/Turn on Shareable/);
+
+    await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
+    expect(await screen.findByText('Astaire is free at this time.')).toBeInTheDocument();
+  });
+
+  it('moves the room and time to a new draft and keeps the other choices', async () => {
+    const { rerender } = renderForm();
+    await choose('Class type', 'Group');
+
+    rerender({
+      room: 'FOSSE',
+      start: new Date(2026, 10, 20, 14, 0),
+      end: new Date(2026, 10, 20, 15, 15),
+    });
+
+    expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Fosse');
+    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent(
+      'Friday 20 November 2026'
+    );
+    expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('14:00');
+    expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('15:15');
+    expect(screen.getByRole('combobox', { name: 'Class type' })).toHaveTextContent('Group');
+  });
+
+  it('reports the booking as it changes, for the calendar to preview', async () => {
+    const { onPreviewChange } = renderForm();
+    await waitFor(() =>
+      expect(onPreviewChange).toHaveBeenLastCalledWith({
+        room: 'ASTAIRE',
+        date: start,
+        start: 10 * 60,
+        end: 11 * 60 + 30,
+        isShareable: false,
+      })
+    );
+
+    await choose('Start', '13:00');
+    expect(onPreviewChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ start: 13 * 60, end: 14 * 60 + 30 })
+    );
   });
 });

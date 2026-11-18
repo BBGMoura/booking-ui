@@ -1,25 +1,43 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import type { BusinessHoursInput } from '@fullcalendar/react';
-import { PlusIcon } from 'lucide-react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  type BusinessHoursInput,
+  type EventInput,
+  useCalendarController,
+} from '@fullcalendar/react';
+import { startOfDay } from 'date-fns';
+import { PlusIcon, XIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { BookingEventContent } from '@/components/bookings/BookingEventContent';
-import { type BookingDraft, CreateBookingModal } from '@/components/bookings/CreateBookingModal';
+import {
+  type BookingDraft,
+  type BookingPreview,
+  CreateBookingForm,
+} from '@/components/bookings/CreateBookingForm';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { useAuth } from '@/lib/context/AuthContext';
 import { USER_ROLES } from '@/lib/types/auth';
 import {
+  atMinutes,
   OPENING_HOURS_BY_DAY,
   TIME_STEP_MINUTES,
   validateBookingTime,
 } from '@/lib/utils/bookingTime';
-import { MINE_COLOR } from '@/lib/utils/calendarEvents';
+import { type BookingEventProps, MINE_COLOR, ROOM_LABELS } from '@/lib/utils/calendarEvents';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
@@ -46,6 +64,15 @@ const GRID_END_MINUTES = 20 * 60 + 30;
 // count as short, so its details ran together on one line.
 const EVENT_SHORT_HEIGHT = 30;
 
+// Wide and tall enough for the booking form to sit beside the calendar rather
+// than over it.
+const SIDE_PANEL_QUERY = '(min-width: 1024px) and (min-height: 600px)';
+
+const PREVIEW_EVENT_ID = 'new-booking';
+
+const BOOKING_TITLE = 'New booking';
+const BOOKING_DESCRIPTION = 'Choose a room and time, then the type of class.';
+
 // Today if it's on screen, otherwise the first day shown, so the form opens on
 // the week the user is looking at.
 function suggestedDay(range: DateRange | null): Date {
@@ -55,12 +82,18 @@ function suggestedDay(range: DateRange | null): Date {
 }
 
 export default function BookingsPage() {
-  const { room, showMine, showMineLocked, selectRoom, setShowMine } = useCalendarView();
+  const { room, showMine, showMineLocked, selectRoom, showRoom, setShowMine } = useCalendarView();
+  const controller = useCalendarController();
+  const sidePanel = useMediaQuery(SIDE_PANEL_QUERY);
   const [scrollTime] = useState(() => initialScrollTime(new Date(), GRID_START_MINUTES));
   const fixedHeight = useFixedHeightLayout();
   const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
+  const [preview, setPreview] = useState<BookingPreview | null>(null);
+  // The view to go back to once the form closes, since it switches to day view.
+  const viewBeforeBooking = useRef<string | null>(null);
+  const previewDay = useRef<number | null>(null);
   const { events, loading, error, refresh } = useCalendarEvents(room, showMine, range, {
     showBooker: hasRole(USER_ROLES.ADMIN),
     viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
@@ -76,19 +109,81 @@ export default function BookingsPage() {
       ),
     []
   );
-  const openNewBooking = () => setDraft({ room: room ?? undefined, day: suggestedDay(range) });
-  const closeModal = useCallback(() => setDraft(null), []);
-  const handleBooked = useCallback(() => {
+  const openBooking = (next: BookingDraft) => {
+    if (!draft) viewBeforeBooking.current = controller.view?.type ?? null;
+    setDraft(next);
+  };
+  const openNewBooking = () => openBooking({ room: room ?? undefined, day: suggestedDay(range) });
+  const closeBooking = useCallback(() => {
     setDraft(null);
+    setPreview(null);
+    previewDay.current = null;
+    if (viewBeforeBooking.current) controller.changeView(viewBeforeBooking.current);
+    viewBeforeBooking.current = null;
+  }, [controller]);
+  const handleBooked = useCallback(() => {
+    closeBooking();
+    toast.success('Booked');
     void refresh();
-  }, [refresh]);
-  const handleSlotUnavailable = useCallback(
+  }, [closeBooking, refresh]);
+  const handleConflict = useCallback(
     (message: string) => {
-      setDraft(null);
       toast.error(message);
       void refresh();
     },
     [refresh]
+  );
+  // While the form is open the calendar follows it: the chosen room's schedule
+  // on the chosen day, so the user sees what else is booked around their time.
+  const handlePreviewChange = useCallback(
+    (next: BookingPreview) => {
+      setPreview(next);
+      if (next.room) showRoom(next.room);
+      const day = next.date ? startOfDay(next.date).getTime() : null;
+      if (day !== null && day !== previewDay.current) {
+        previewDay.current = day;
+        controller.changeView('timeGridDay');
+        controller.gotoDate(day);
+      }
+    },
+    [controller, showRoom]
+  );
+
+  const calendarEvents = useMemo((): EventInput[] => {
+    if (!preview?.date || preview.start == null || preview.end == null) return events;
+    if (preview.end <= preview.start) return events;
+    const props: BookingEventProps = {
+      heading: BOOKING_TITLE,
+      detail: preview.room && ROOM_LABELS[preview.room],
+      shareable: preview.isShareable,
+      mine: true,
+    };
+    const previewEvent: EventInput = {
+      id: PREVIEW_EVENT_ID,
+      start: atMinutes(preview.date, preview.start),
+      end: atMinutes(preview.date, preview.end),
+      color: MINE_COLOR,
+      // Dragging or resizing it moves the time in the form.
+      editable: true,
+      classNames: ['border-dashed', 'border-(--fc-event-color)'],
+      extendedProps: props,
+    };
+    return [...events, previewEvent];
+  }, [events, preview]);
+
+  const movePreview = (event: { id: string; start: Date | null; end: Date | null }) => {
+    if (event.id !== PREVIEW_EVENT_ID || !event.start || !event.end) return;
+    setDraft({ room: preview?.room, start: event.start, end: event.end });
+  };
+
+  const bookingForm = draft && (
+    <CreateBookingForm
+      draft={draft}
+      onPreviewChange={handlePreviewChange}
+      onCancel={closeBooking}
+      onBooked={handleBooked}
+      onConflict={handleConflict}
+    />
   );
 
   return (
@@ -105,7 +200,11 @@ export default function BookingsPage() {
           onRoomSelect={selectRoom}
           onShowMineChange={setShowMine}
         />
-        <Button className="hidden shrink-0 sm:inline-flex" onClick={openNewBooking}>
+        <Button
+          className="hidden shrink-0 sm:inline-flex"
+          onClick={openNewBooking}
+          disabled={!!draft}
+        >
           <PlusIcon />
           New booking
         </Button>
@@ -125,57 +224,96 @@ export default function BookingsPage() {
           {error}
         </p>
       )}
-      <div className="bg-card relative min-h-0 flex-1 overflow-hidden rounded-2xl border shadow-sm">
-        {loading && (
-          // A thin bar rather than a spinner over the grid, so a quick load
-          // doesn't flash anything big.
-          <div
-            role="status"
-            className="bg-primary absolute inset-x-0 top-0 z-10 h-0.5 animate-pulse"
+      <div className="flex min-h-0 flex-1 gap-4">
+        <div className="bg-card relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border shadow-sm">
+          {loading && (
+            // A thin bar rather than a spinner over the grid, so a quick load
+            // doesn't flash anything big.
+            <div
+              role="status"
+              className="bg-primary absolute inset-x-0 top-0 z-10 h-0.5 animate-pulse"
+            >
+              <span className="sr-only">Loading bookings</span>
+            </div>
+          )}
+          <BookingsCalendar
+            controller={controller}
+            availableViews={AVAILABLE_VIEWS}
+            height={fixedHeight ? '100%' : 'auto'}
+            nowIndicator
+            events={calendarEvents}
+            eventContent={BookingEventContent}
+            eventShortHeight={EVENT_SHORT_HEIGHT}
+            slotEventOverlap={false}
+            datesSet={handleDatesSet}
+            firstDay={1}
+            allDaySlot={false}
+            slotMinTime={toTime(GRID_START_MINUTES)}
+            scrollTime={scrollTime}
+            slotMaxTime={toTime(GRID_END_MINUTES)}
+            businessHours={OPENING_HOURS}
+            nonBusinessHoursClass={CLOSED_HOURS_CLASS}
+            selectable
+            // Shows the range being dragged as a placeholder booking with its times,
+            // in the colour of the user's own bookings since that's what it becomes.
+            // Every real event sets its own colour, so eventColor only reaches it.
+            selectMirror
+            eventColor={MINE_COLOR}
+            // The placeholder already shows the range, so the registry's fill
+            // behind it would only double it up.
+            highlightClass="hidden"
+            snapDuration={toTime(TIME_STEP_MINUTES)}
+            selectAllow={(span) => validateBookingTime(span.start, span.end) === null}
+            select={(info) => {
+              // With the form open, a new range moves its time rather than
+              // starting over.
+              openBooking({
+                room: preview?.room ?? room ?? undefined,
+                start: info.start,
+                end: info.end,
+              });
+              info.view.calendar.unselect();
+            }}
+            eventDrop={(info) => movePreview(info.event)}
+            eventResize={(info) => movePreview(info.event)}
+          />
+        </div>
+        {draft && sidePanel && (
+          <aside
+            aria-labelledby="new-booking-title"
+            className="bg-card w-96 shrink-0 overflow-y-auto rounded-2xl border p-6 shadow-sm"
           >
-            <span className="sr-only">Loading bookings</span>
-          </div>
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 id="new-booking-title" className="text-lg leading-none font-semibold">
+                  {BOOKING_TITLE}
+                </h2>
+                <p className="text-muted-foreground text-sm">{BOOKING_DESCRIPTION}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="-mt-2 -mr-2"
+                aria-label="Close"
+                onClick={closeBooking}
+              >
+                <XIcon />
+              </Button>
+            </div>
+            {bookingForm}
+          </aside>
         )}
-        <BookingsCalendar
-          availableViews={AVAILABLE_VIEWS}
-          height={fixedHeight ? '100%' : 'auto'}
-          nowIndicator
-          events={events}
-          eventContent={BookingEventContent}
-          eventShortHeight={EVENT_SHORT_HEIGHT}
-          slotEventOverlap={false}
-          datesSet={handleDatesSet}
-          firstDay={1}
-          allDaySlot={false}
-          slotMinTime={toTime(GRID_START_MINUTES)}
-          scrollTime={scrollTime}
-          slotMaxTime={toTime(GRID_END_MINUTES)}
-          businessHours={OPENING_HOURS}
-          nonBusinessHoursClass={CLOSED_HOURS_CLASS}
-          selectable
-          // Shows the range being dragged as a placeholder booking with its times,
-          // in the colour of the user's own bookings since that's what it becomes.
-          // Every real event sets its own colour, so eventColor only reaches it.
-          selectMirror
-          eventColor={MINE_COLOR}
-          // The placeholder already shows the range, so the registry's fill
-          // behind it would only double it up.
-          highlightClass="hidden"
-          snapDuration={toTime(TIME_STEP_MINUTES)}
-          selectAllow={(span) => validateBookingTime(span.start, span.end) === null}
-          select={(info) => {
-            setDraft({ room: room ?? undefined, start: info.start, end: info.end });
-            info.view.calendar.unselect();
-          }}
-        />
       </div>
-      {draft && (
-        <CreateBookingModal
-          draft={draft}
-          onClose={closeModal}
-          onBooked={handleBooked}
-          onSlotUnavailable={handleSlotUnavailable}
-        />
+      {draft && !sidePanel && (
+        <Dialog open onOpenChange={(open) => !open && closeBooking()}>
+          <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{BOOKING_TITLE}</DialogTitle>
+              <DialogDescription>{BOOKING_DESCRIPTION}</DialogDescription>
+            </DialogHeader>
+            {bookingForm}
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

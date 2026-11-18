@@ -45,10 +45,10 @@ export interface BookingEventProps {
  * (`bookedFrom`/`bookedTo`, no `userUid`); admins and "my bookings" get
  * the detail shape (`dateFrom`/`dateTo`).
  */
-type BookingWithEitherDates = BookingView & { bookedFrom?: string; bookedTo?: string };
+export type BookingWithEitherDates = BookingView & { bookedFrom?: string; bookedTo?: string };
 
-const startOf = (b: BookingWithEitherDates) => b.dateFrom ?? b.bookedFrom;
-const endOf = (b: BookingWithEitherDates) => b.dateTo ?? b.bookedTo;
+export const startOf = (b: BookingWithEitherDates) => b.dateFrom ?? b.bookedFrom;
+export const endOf = (b: BookingWithEitherDates) => b.dateTo ?? b.bookedTo;
 
 const isActive = (b: BookingView) => b.status !== 'CANCELLED';
 
