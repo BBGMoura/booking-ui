@@ -263,6 +263,67 @@ describe('LoginForm', () => {
 
       expect(await screen.findByRole('alert')).toBeInTheDocument();
     });
+
+    it('hides the error alert once the user edits a field', async () => {
+      const mockLogin = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
+      mockUseAuth({ login: mockLogin });
+
+      render(<LoginForm />);
+
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+      expect(await screen.findByText('Login Error')).toBeInTheDocument();
+
+      await userEvent.type(screen.getByLabelText('Password'), 'x');
+
+      expect(screen.queryByText('Login Error')).not.toBeInTheDocument();
+    });
+
+    it('shows the error alert again after a second failed attempt', async () => {
+      const mockLogin = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
+      mockUseAuth({ login: mockLogin });
+
+      render(<LoginForm />);
+
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+      expect(await screen.findByText('Login Error')).toBeInTheDocument();
+
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      expect(screen.queryByText('Login Error')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+      expect(await screen.findByText('Login Error')).toBeInTheDocument();
+      expect(mockLogin).toHaveBeenCalledTimes(2);
+      expect(screen.getByLabelText('Password')).toHaveValue('');
+    });
+
+    it('keeps a backend error on the password field after clearing it', async () => {
+      const mockLogin = jest.fn().mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          status: 400,
+          data: {
+            status: 400,
+            error: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: [{ field: 'password', message: 'password must not be blank' }],
+          },
+        },
+      });
+      mockUseAuth({ login: mockLogin });
+
+      render(<LoginForm />);
+
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+      expect(await screen.findByText('password must not be blank')).toBeInTheDocument();
+      expect(screen.getByLabelText('Password')).toHaveValue('');
+    });
   });
 
   describe('loading state', () => {

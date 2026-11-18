@@ -62,13 +62,24 @@ export default function LoginForm() {
     }
   }, []);
 
+  // A failed-login alert describes the previous attempt, so it is stale as soon as the user edits
+  // either field. Leaving it up made a second failed attempt look like nothing had happened.
+  // Only user edits ('change') clear it: the programmatic password clear below must not.
+  useEffect(() => {
+    const { unsubscribe } = form.watch((_, { type }) => {
+      if (type === 'change') form.clearErrors('root');
+    });
+    return unsubscribe;
+  }, [form]);
+
   function handleLoginError(exception: unknown) {
+    // Clear the password before setting errors: resetField would also wipe a server error on it.
+    form.setValue('password', '');
     if (isFieldValidationError(exception)) {
       setFieldErrors(exception.response!.data.details, form.setError, ['email', 'password']);
     } else {
       form.setError('root', { message: parseApiError(exception) });
     }
-    form.resetField('password');
   }
 
   async function onSubmit(values: LoginFormValues) {
