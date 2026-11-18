@@ -17,8 +17,7 @@ const OPENING_HOURS: BusinessHoursInput = [
   { daysOfWeek: [0], startTime: '11:00', endTime: '17:00' },
 ];
 
-const CLOSED_HOURS_CLASS =
-  'bg-muted/60 bg-[repeating-linear-gradient(-45deg,color-mix(in_oklab,var(--foreground)_8%,transparent)_0_1px,transparent_1px_8px)]';
+const CLOSED_HOURS_CLASS = 'bg-muted/60';
 
 export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, setShowMine } = useCalendarView();

@@ -41,13 +41,18 @@ export function CalendarControls({
         aria-label="Room"
       >
         {Object.values(ROOMS).map((r) => (
-          <ToggleGroupItem key={r} value={r}>
+          <ToggleGroupItem
+            key={r}
+            value={r}
+            className="data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
             {ROOM_LABELS[r]}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
       <Toggle
         variant="outline"
+        className="data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
         pressed={showMine}
         disabled={showMineLocked}
         onPressedChange={onShowMineChange}
