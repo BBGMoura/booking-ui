@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import type { BusinessHoursInput } from '@fullcalendar/react';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { EventCalendar } from '@/components/event-calendar';
 import { useCalendarView } from '@/hooks/use-calendar-view';
+import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
 
@@ -19,11 +21,19 @@ const OPENING_HOURS: BusinessHoursInput = [
 
 const CLOSED_HOURS_CLASS = 'bg-muted/60';
 
+const GRID_START_HOUR = 7;
+
 export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, setShowMine } = useCalendarView();
+  const [scrollTime] = useState(() => initialScrollTime(new Date(), GRID_START_HOUR));
 
   return (
-    <div className="flex flex-col gap-4">
+    // The page fills the viewport so the calendar scrolls inside its card,
+    // keeping the toolbar and day headers in view. 9rem/10rem is the app
+    // header plus the layout's padding (and the inset margin from md up); the
+    // min height stops the grid collapsing on landscape phones, where the page
+    // scrolls instead.
+    <div className="flex h-[calc(100svh-9rem)] min-h-[32rem] flex-col gap-4 md:h-[calc(100svh-10rem)]">
       <CalendarControls
         room={room}
         showMine={showMine}
@@ -31,15 +41,16 @@ export default function BookingsPage() {
         onRoomSelect={selectRoom}
         onShowMineChange={setShowMine}
       />
-      <div className="bg-card overflow-hidden rounded-2xl border shadow-sm">
+      <div className="bg-card min-h-0 flex-1 overflow-hidden rounded-2xl border shadow-sm">
         <EventCalendar
           availableViews={AVAILABLE_VIEWS}
-          height="auto"
+          height="100%"
           borderless
           nowIndicator
           firstDay={1}
           allDaySlot={false}
-          slotMinTime="07:00"
+          slotMinTime={toTime(GRID_START_HOUR)}
+          scrollTime={scrollTime}
           slotMaxTime="20:00"
           businessHours={OPENING_HOURS}
           nonBusinessHoursClass={CLOSED_HOURS_CLASS}
