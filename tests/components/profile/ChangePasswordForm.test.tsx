@@ -112,7 +112,10 @@ describe('ChangePasswordForm', () => {
     it('shows error alert when API call fails', async () => {
       mockUpdateCredentials.mockRejectedValue({
         isAxiosError: true,
-        response: { status: 400, data: { error: 'Invalid password format' } },
+        response: {
+          status: 400,
+          data: { error: 'VALIDATION_ERROR', message: 'Invalid password format' },
+        },
       });
 
       await fillAndSubmit();

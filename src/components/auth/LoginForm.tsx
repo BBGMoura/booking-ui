@@ -62,13 +62,23 @@ export default function LoginForm() {
     }
   }, []);
 
+  // A failed-login alert describes the previous attempt, so it is stale as soon as the user edits
+  // either field. Leaving it up made a second failed attempt look like nothing had happened.
+  useEffect(() => {
+    const { unsubscribe } = form.watch((_, { type }) => {
+      if (type === 'change') form.clearErrors('root');
+    });
+    return unsubscribe;
+  }, [form]);
+
   function handleLoginError(exception: unknown) {
+    // The password is deliberately kept so the user can reveal it with the toggle and spot a typo
+    // instead of retyping it blind.
     if (isFieldValidationError(exception)) {
-      setFieldErrors(exception.response!.data, form.setError, ['email', 'password']);
+      setFieldErrors(exception.response!.data.details, form.setError, ['email', 'password']);
     } else {
       form.setError('root', { message: parseApiError(exception) });
     }
-    form.resetField('password');
   }
 
   async function onSubmit(values: LoginFormValues) {

@@ -90,7 +90,7 @@ export default function ResetPasswordForm({
       if (isForbiddenError(exception)) {
         setTokenRejected(true);
       } else if (isFieldValidationError(exception)) {
-        setFieldErrors(exception.response!.data, form.setError, ['newPassword']);
+        setFieldErrors(exception.response!.data.details, form.setError, ['newPassword']);
       } else {
         form.setError('root', { message: parseApiError(exception) });
       }

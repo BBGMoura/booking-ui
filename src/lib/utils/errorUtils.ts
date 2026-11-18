@@ -5,20 +5,29 @@ export const UNEXPECTED_ERROR =
   'An unexpected error occurred. Please contact an administrator if the problem persists.';
 
 /**
- * Represents a single validation error returned by the backend.
- * Note: the naming is backwards — "message" is the field name and "error" is the human-readable message.
- * This is a backend naming issue we are not changing.
+ * A single field-level validation error from the backend's `details` array.
  */
-interface ApiErrorItem {
-  error: string;
+export interface ApiErrorDetail {
+  field: string;
   message: string;
 }
 
 /**
+ * The backend's error body (`ErrorModel`).
+ * `error` is a machine-readable code (e.g. "INVALID_TOKEN"); `message` is human-readable.
+ */
+export interface ApiErrorBody {
+  status?: number;
+  error?: string;
+  message?: string;
+  details?: ApiErrorDetail[];
+}
+
+/**
  * Turns any error into a human-readable string.
- * Used for network errors, server errors, and single error objects.
+ * Used for network errors, server errors, and backend error bodies (uses `message`).
  *
- * Does NOT handle arrays of field validation errors — use isFieldValidationError
+ * Does NOT handle field validation `details` — use isFieldValidationError
  * and setFieldErrors for those.
  */
 export function parseApiError(error: unknown): string {
@@ -27,20 +36,19 @@ export function parseApiError(error: unknown): string {
     return 'Unable to connect. Please try again or contact an administrator if the problem persists.';
   if (error.response.status >= 500)
     return 'Something went wrong on our end. Please contact an administrator.';
-  return error.response.data?.error ?? UNEXPECTED_ERROR;
+  return error.response.data?.message ?? UNEXPECTED_ERROR;
 }
 
 /**
- * Checks if the exception is a backend field validation error array.
- *
- * The backend returns an array for validation errors like:
- * [{ error: "must not be blank", message: "password" }]
- *
+ * Checks if the exception is a backend error carrying field-level `details`, e.g.
+ * { status: 400, error: "VALIDATION_ERROR", message: "...", details: [{ field: "password", message: "must not be blank" }] }
  */
 export function isFieldValidationError(
   exception: unknown
-): exception is AxiosError<ApiErrorItem[]> {
-  return isAxiosError(exception) && Array.isArray(exception.response?.data);
+): exception is AxiosError<ApiErrorBody & { details: ApiErrorDetail[] }> {
+  if (!isAxiosError(exception)) return false;
+  const details = (exception.response?.data as ApiErrorBody | undefined)?.details;
+  return Array.isArray(details) && details.length > 0;
 }
 
 /**
@@ -60,20 +68,20 @@ export function isForbiddenError(exception: unknown): exception is AxiosError {
  * - If the field name exists in validFields → sets error under that specific field
  * - If the field name doesn't exist in validFields → sets it as a root error for the alert box
  *
- * @param errors - Array of error objects from the backend
+ * @param errors - The `details` array from the backend error body
  * @param setError - react-hook-form's setError function from the form instance
  * @param validFields - Field names that exist in this form
  */
 export function setFieldErrors<T extends FieldValues>(
-  errors: ApiErrorItem[],
+  errors: ApiErrorDetail[],
   setError: UseFormSetError<T>,
   validFields: Path<T>[]
 ): void {
-  errors.forEach(({ error, message: fieldName }) => {
+  errors.forEach(({ field: fieldName, message }) => {
     if (validFields.includes(fieldName as Path<T>)) {
-      setError(fieldName as Path<T>, { type: 'server', message: error });
+      setError(fieldName as Path<T>, { type: 'server', message });
     } else {
-      setError('root', { message: error });
+      setError('root', { message });
     }
   });
 }

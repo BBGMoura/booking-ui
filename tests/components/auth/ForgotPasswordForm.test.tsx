@@ -133,7 +133,7 @@ describe('ForgotPasswordForm', () => {
       renderForm(
         jest.fn().mockRejectedValue({
           isAxiosError: true,
-          response: { status: 404, data: { error: 'No account found.' } },
+          response: { status: 404, data: { error: 'NOT_FOUND', message: 'No account found.' } },
         })
       );
 
@@ -147,7 +147,7 @@ describe('ForgotPasswordForm', () => {
       renderForm(
         jest.fn().mockRejectedValue({
           isAxiosError: true,
-          response: { status: 404, data: { error: 'No account found.' } },
+          response: { status: 404, data: { error: 'NOT_FOUND', message: 'No account found.' } },
         })
       );
 
