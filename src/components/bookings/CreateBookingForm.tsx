@@ -401,33 +401,188 @@ export function CreateBookingForm({
   const endOptions = date && start != null ? endTimeOptions(date, start) : [];
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      <FieldGroup className="gap-4">
-        <div className="grid grid-cols-2 gap-3">
+    // Only the fields scroll: the notice and the button stay in view below
+    // them. The surface around the form must be a flex column with a bounded
+    // height for this to work.
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      className="flex min-h-0 flex-1 flex-col"
+      noValidate
+    >
+      {/* Bleeds into the surface's side padding so the scrollbar sits at its
+          edge and focus rings aren't clipped. */}
+      <div className="-mx-6 min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-1">
+        <FieldGroup className="gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Controller
+              name="room"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="booking-room">Room</FieldLabel>
+                  <Select
+                    name={field.name}
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger
+                      id="booking-room"
+                      className="w-full"
+                      aria-invalid={fieldState.invalid}
+                      onBlur={field.onBlur}
+                    >
+                      <SelectValue placeholder="Choose a room" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(ROOMS).map((room) => (
+                        <SelectItem key={room} value={room}>
+                          {ROOM_LABELS[room]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+
+            <Controller
+              name="date"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="booking-date">Date</FieldLabel>
+                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="booking-date"
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start font-normal"
+                        aria-invalid={fieldState.invalid}
+                        disabled={isLoading}
+                      >
+                        <CalendarIcon className="text-muted-foreground" />
+                        {field.value ? format(field.value, 'EEE d MMM') : 'Choose a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        defaultMonth={field.value}
+                        weekStartsOn={1}
+                        disabled={{ before: startOfToday() }}
+                        onSelect={(next) => {
+                          if (!next) return;
+                          changeDate(next);
+                          setDatePickerOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Controller
+              name="start"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="booking-start">Start</FieldLabel>
+                  <Select
+                    name={field.name}
+                    value={field.value == null ? '' : String(field.value)}
+                    onValueChange={(value) => changeStart(Number(value))}
+                    disabled={isLoading || !date}
+                  >
+                    <SelectTrigger
+                      id="booking-start"
+                      className="w-full"
+                      aria-invalid={fieldState.invalid}
+                      onBlur={field.onBlur}
+                    >
+                      <SelectValue placeholder="Start" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {startOptions.map((time) => (
+                        <SelectItem key={time} value={String(time)}>
+                          {toTime(time)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+
+            <Controller
+              name="end"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="booking-end">End</FieldLabel>
+                  <Select
+                    name={field.name}
+                    value={field.value == null ? '' : String(field.value)}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    disabled={isLoading || start == null}
+                  >
+                    <SelectTrigger
+                      id="booking-end"
+                      className="w-full"
+                      aria-invalid={fieldState.invalid}
+                      onBlur={field.onBlur}
+                    >
+                      <SelectValue placeholder="End" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {endOptions.map((time) => (
+                        <SelectItem key={time} value={String(time)}>
+                          {toTime(time)}
+                          <span className="text-muted-foreground">
+                            {formatDuration(time - start!)}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+          </div>
+
           <Controller
-            name="room"
+            name="classType"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="booking-room">Room</FieldLabel>
+                <FieldLabel htmlFor="booking-class-type">Class type</FieldLabel>
                 <Select
                   name={field.name}
                   value={field.value ?? ''}
                   onValueChange={field.onChange}
-                  disabled={isLoading}
+                  disabled={isLoading || !classTypes}
                 >
                   <SelectTrigger
-                    id="booking-room"
+                    id="booking-class-type"
                     className="w-full"
                     aria-invalid={fieldState.invalid}
                     onBlur={field.onBlur}
                   >
-                    <SelectValue placeholder="Choose a room" />
+                    <SelectValue placeholder={classTypes ? 'Choose a class type' : 'Loading…'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.values(ROOMS).map((room) => (
-                      <SelectItem key={room} value={room}>
-                        {ROOM_LABELS[room]}
+                    {(classTypes ?? []).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {CLASS_TYPE_LABELS[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -438,195 +593,48 @@ export function CreateBookingForm({
           />
 
           <Controller
-            name="date"
+            name="isShareable"
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="booking-date">Date</FieldLabel>
-                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="booking-date"
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-start font-normal"
-                      aria-invalid={fieldState.invalid}
-                      disabled={isLoading}
-                    >
-                      <CalendarIcon className="text-muted-foreground" />
-                      {field.value ? format(field.value, 'EEE d MMM') : 'Choose a date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      defaultMonth={field.value}
-                      weekStartsOn={1}
-                      disabled={{ before: startOfToday() }}
-                      onSelect={(next) => {
-                        if (!next) return;
-                        changeDate(next);
-                        setDatePickerOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            render={({ field }) => (
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel htmlFor="booking-shareable">Shareable</FieldLabel>
+                  <FieldDescription>
+                    Others can book the room at the same time, up to 3 at once.
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  id="booking-shareable"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isLoading}
+                />
               </Field>
             )}
           />
-        </div>
+        </FieldGroup>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Controller
-            name="start"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="booking-start">Start</FieldLabel>
-                <Select
-                  name={field.name}
-                  value={field.value == null ? '' : String(field.value)}
-                  onValueChange={(value) => changeStart(Number(value))}
-                  disabled={isLoading || !date}
-                >
-                  <SelectTrigger
-                    id="booking-start"
-                    className="w-full"
-                    aria-invalid={fieldState.invalid}
-                    onBlur={field.onBlur}
-                  >
-                    <SelectValue placeholder="Start" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {startOptions.map((time) => (
-                      <SelectItem key={time} value={String(time)}>
-                        {toTime(time)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="end"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="booking-end">End</FieldLabel>
-                <Select
-                  name={field.name}
-                  value={field.value == null ? '' : String(field.value)}
-                  onValueChange={(value) => field.onChange(Number(value))}
-                  disabled={isLoading || start == null}
-                >
-                  <SelectTrigger
-                    id="booking-end"
-                    className="w-full"
-                    aria-invalid={fieldState.invalid}
-                    onBlur={field.onBlur}
-                  >
-                    <SelectValue placeholder="End" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {endOptions.map((time) => (
-                      <SelectItem key={time} value={String(time)}>
-                        {toTime(time)}
-                        <span className="text-muted-foreground">
-                          {formatDuration(time - start!)}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-        </div>
-
-        <Controller
-          name="classType"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="booking-class-type">Class type</FieldLabel>
-              <Select
-                name={field.name}
-                value={field.value ?? ''}
-                onValueChange={field.onChange}
-                disabled={isLoading || !classTypes}
-              >
-                <SelectTrigger
-                  id="booking-class-type"
-                  className="w-full"
-                  aria-invalid={fieldState.invalid}
-                  onBlur={field.onBlur}
-                >
-                  <SelectValue placeholder={classTypes ? 'Choose a class type' : 'Loading…'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(classTypes ?? []).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {CLASS_TYPE_LABELS[type]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
-        <Controller
-          name="isShareable"
-          control={form.control}
-          render={({ field }) => (
-            <Field orientation="horizontal">
-              <FieldContent>
-                <FieldLabel htmlFor="booking-shareable">Shareable</FieldLabel>
-                <FieldDescription>
-                  Others can book the room at the same time, up to 3 at once.
-                </FieldDescription>
-              </FieldContent>
-              <Switch
-                id="booking-shareable"
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                disabled={isLoading}
-              />
-            </Field>
-          )}
-        />
-      </FieldGroup>
-
-      <div
-        className="bg-muted/50 flex items-center justify-between gap-4 rounded-lg border px-4 py-3 text-sm"
-        aria-live="polite"
-      >
-        <div className="min-w-0">
-          <p className="font-medium">Estimated price</p>
-          <p className="text-muted-foreground">
-            {minutes === null
-              ? 'Choose a time to see the price.'
-              : pricePerHour === null
-                ? `${formatDuration(minutes)} · choose a class type`
-                : `${formatDuration(minutes)} at ${formatPrice(pricePerHour)}/hr`}
+        <div
+          className="bg-muted/50 flex items-center justify-between gap-4 rounded-lg border px-4 py-3 text-sm"
+          aria-live="polite"
+        >
+          <div className="min-w-0">
+            <p className="font-medium">Estimated price</p>
+            <p className="text-muted-foreground">
+              {minutes === null
+                ? 'Choose a time to see the price.'
+                : pricePerHour === null
+                  ? `${formatDuration(minutes)} · choose a class type`
+                  : `${formatDuration(minutes)} at ${formatPrice(pricePerHour)}/hr`}
+            </p>
+          </div>
+          <p className="text-base font-semibold tabular-nums">
+            {price === null ? '—' : formatPrice(price)}
           </p>
         </div>
-        <p className="text-base font-semibold tabular-nums">
-          {price === null ? '—' : formatPrice(price)}
-        </p>
       </div>
 
-      {/* Pinned to the bottom of whatever scrolls the form, so the notice and
-          the button stay in view on a short screen. The surface sets
-          --form-surface to its own background. */}
-      <div className="sticky bottom-0 -mx-6 -mb-6 space-y-3 border-t bg-(--form-surface,var(--background)) px-6 pt-4 pb-6">
+      <div className="-mx-6 mt-4 space-y-3 border-t px-6 pt-4">
         <BookingNotice notice={notice} />
         <Button type="submit" className="w-full" disabled={isLoading || !classTypes}>
           {isLoading ? (

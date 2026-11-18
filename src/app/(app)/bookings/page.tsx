@@ -274,7 +274,7 @@ export default function BookingsPage() {
         {draft && sidePanel && (
           <aside
             aria-labelledby="new-booking-title"
-            className="bg-card w-96 shrink-0 overflow-y-auto rounded-2xl border p-6 shadow-sm [--form-surface:var(--card)]"
+            className="bg-card flex w-96 shrink-0 flex-col rounded-2xl border p-6 shadow-sm"
           >
             <div className="mb-6 flex items-start justify-between gap-4">
               <div className="space-y-1">
@@ -299,7 +299,7 @@ export default function BookingsPage() {
       </div>
       {draft && !sidePanel && (
         <Dialog open onOpenChange={(open) => !open && closeBooking()}>
-          <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+          <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col">
             <DialogHeader>
               <DialogTitle>{BOOKING_TITLE}</DialogTitle>
               {/* Phones need the room for the form itself. */}
