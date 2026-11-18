@@ -49,3 +49,7 @@ export async function createBooking(data: CreateBookingData): Promise<BookingVie
 export async function cancelBooking(bookingUid: string): Promise<void> {
   await api.delete(`/bookings/${bookingUid}`);
 }
+
+export async function cancelBookingAsAdmin(bookingUid: string): Promise<void> {
+  await api.delete(`/admin/bookings/${bookingUid}`);
+}

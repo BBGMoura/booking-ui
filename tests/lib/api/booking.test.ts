@@ -6,6 +6,7 @@ import {
   getBookingByUid,
   createBooking,
   cancelBooking,
+  cancelBookingAsAdmin,
 } from '@/lib/api/booking';
 import type { BookingView, CreateBookingData } from '@/lib/types/booking';
 import api from '@/lib/api/axiosInstance';
@@ -176,6 +177,16 @@ describe('booking API', () => {
       const result = await cancelBooking(mockBooking.uid);
 
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('cancelBookingAsAdmin()', () => {
+    it('calls the admin delete endpoint', async () => {
+      mock.onDelete(`/admin/bookings/${mockBooking.uid}`).reply(204);
+
+      await cancelBookingAsAdmin(mockBooking.uid);
+
+      expect(mock.history.delete[0].url).toBe(`/admin/bookings/${mockBooking.uid}`);
     });
   });
 });

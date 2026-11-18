@@ -1,5 +1,5 @@
 import type { EventInput } from '@fullcalendar/react';
-import type { BookingView, ClassType, Room } from '@/lib/types/booking';
+import type { BookingStatus, BookingView, ClassType, Room } from '@/lib/types/booking';
 
 export const ROOM_LABELS: Record<Room, string> = {
   ASTAIRE: 'Astaire',
@@ -28,12 +28,32 @@ const BUSY_ELSEWHERE_CLASS =
 const NO_NAME = 'No name';
 
 /**
+ * What the details popover shows for a booking. Fields the viewer isn't
+ * allowed to see are left out here rather than hidden in the popover, so the
+ * popover can't leak them.
+ */
+export interface BookingDetails {
+  uid: string;
+  start: string;
+  end: string;
+  classType: ClassType;
+  shareable: boolean;
+  room?: Room;
+  status?: BookingStatus;
+  price?: number;
+  bookerName?: string;
+  /** Whether the viewer may cancel it: admins any booking, teachers their own. */
+  cancellable: boolean;
+}
+
+/**
  * What a booking tile shows, line by line. The tile renders `heading` under
  * the time and `detail` under that; a short tile collapses to a single line
  * and keeps only the heading.
  */
 export interface BookingEventProps {
   heading: string;
+  details: BookingDetails;
   detail?: string;
   shareable: boolean;
   mine: boolean;
@@ -55,6 +75,35 @@ const isActive = (b: BookingView) => b.status !== 'CANCELLED';
 function bookerName(b: BookingView): string {
   const name = [b.firstName, b.lastName].filter(Boolean).join(' ');
   return name || NO_NAME;
+}
+
+/**
+ * `own` is the booking from the user's own list when it's theirs: the schedule
+ * gives teachers a summary with no price, so the price comes from there.
+ * Admins see everything, teachers see everything about their own bookings
+ * except status, and only time, class type and shareable on others'.
+ */
+function detailsOf(b: BookingView, own: BookingView | undefined, admin: boolean): BookingDetails {
+  const source = own ?? b;
+  const details: BookingDetails = {
+    uid: b.uid,
+    start: startOf(b),
+    end: endOf(b),
+    classType: b.classType,
+    shareable: b.shareable,
+    cancellable: admin || !!own,
+  };
+  if (admin) {
+    return {
+      ...details,
+      room: b.room,
+      status: b.status,
+      price: b.totalPrice,
+      bookerName: bookerName(b),
+    };
+  }
+  if (own) return { ...details, room: source.room, price: source.totalPrice };
+  return details;
 }
 
 function toEvent(
@@ -115,6 +164,7 @@ export function buildCalendarEvents(
         b,
         {
           heading: ROOM_LABELS[b.room],
+          details: detailsOf(b, b, showBooker),
           detail: CLASS_TYPE_LABELS[b.classType],
           shareable: b.shareable,
           mine: true,
@@ -125,6 +175,7 @@ export function buildCalendarEvents(
   }
 
   const myUids = new Set(myBookings.map((b) => b.uid));
+  const myByUid = new Map(myBookings.map((b) => [b.uid, b]));
   const events = schedule.filter(isActive).map((b) => {
     const classType = CLASS_TYPE_LABELS[b.classType];
     const isMine = myUids.has(b.uid);
@@ -133,6 +184,7 @@ export function buildCalendarEvents(
     const who = isMine ? viewerName || NO_NAME : showBooker ? bookerName(b) : undefined;
     const props: BookingEventProps = {
       heading: classType,
+      details: detailsOf(b, myByUid.get(b.uid), showBooker),
       detail: who,
       shareable: b.shareable,
       mine: isMine,
@@ -149,6 +201,7 @@ export function buildCalendarEvents(
           b,
           {
             heading: `Busy · ${ROOM_LABELS[b.room]}`,
+            details: detailsOf(b, b, showBooker),
             detail: CLASS_TYPE_LABELS[b.classType],
             shareable: b.shareable,
             mine: true,

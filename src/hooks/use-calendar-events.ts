@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EventInput } from '@fullcalendar/react';
 import { getMyBookingsInRange, getRoomSchedule } from '@/lib/api/booking';
 import { ROOMS, type BookingView, type Room } from '@/lib/types/booking';
@@ -131,5 +131,25 @@ export function useCalendarEvents(
     [room, showMine, data, showBooker, viewerName]
   );
 
-  return { events, loading: !!range && !data && !error, error };
+  // Drops a cancelled booking from every loaded range, so it disappears
+  // without waiting for a refetch.
+  const removeBooking = useCallback((uid: string) => {
+    const without = (list: BookingView[]) => list.filter((b) => b.uid !== uid);
+    setLoaded(
+      (prev) =>
+        new Map(
+          [...prev].map(([k, d]) => [
+            k,
+            {
+              mine: without(d.mine),
+              schedules: Object.fromEntries(
+                Object.entries(d.schedules).map(([room, list]) => [room, without(list)])
+              ) as Record<Room, BookingView[]>,
+            },
+          ])
+        )
+    );
+  }, []);
+
+  return { events, removeBooking, loading: !!range && !data && !error, error };
 }

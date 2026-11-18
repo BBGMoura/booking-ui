@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import type { BusinessHoursInput } from '@fullcalendar/react';
+import { BookingDetailsPopover } from '@/components/bookings/BookingDetailsPopover';
 import { BookingEventContent } from '@/components/bookings/BookingEventContent';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
@@ -10,6 +11,7 @@ import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
 import { useAuth } from '@/lib/context/AuthContext';
 import { USER_ROLES } from '@/lib/types/auth';
+import type { BookingEventProps, BookingDetails } from '@/lib/utils/calendarEvents';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
@@ -42,10 +44,21 @@ export default function BookingsPage() {
   const fixedHeight = useFixedHeightLayout();
   const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
-  const { events, loading, error } = useCalendarEvents(room, showMine, range, {
+  const { events, removeBooking, loading, error } = useCalendarEvents(room, showMine, range, {
     showBooker: hasRole(USER_ROLES.ADMIN),
     viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
   });
+  const [selected, setSelected] = useState<{ details: BookingDetails; anchor: HTMLElement } | null>(
+    null
+  );
+  const handleEventClick = useCallback(
+    (info: { el: HTMLElement; event: { extendedProps: Record<string, unknown> } }) =>
+      setSelected({
+        details: (info.event.extendedProps as unknown as BookingEventProps).details,
+        anchor: info.el,
+      }),
+    []
+  );
   const handleDatesSet = useCallback(
     (info: { start: Date; end: Date }) =>
       setRange((current) =>
@@ -95,6 +108,7 @@ export default function BookingsPage() {
           eventContent={BookingEventContent}
           eventShortHeight={EVENT_SHORT_HEIGHT}
           slotEventOverlap={false}
+          eventClick={handleEventClick}
           datesSet={handleDatesSet}
           firstDay={1}
           allDaySlot={false}
@@ -105,6 +119,16 @@ export default function BookingsPage() {
           nonBusinessHoursClass={CLOSED_HOURS_CLASS}
         />
       </div>
+      {selected && (
+        <BookingDetailsPopover
+          key={selected.details.uid}
+          details={selected.details}
+          anchor={selected.anchor}
+          isAdmin={hasRole(USER_ROLES.ADMIN)}
+          onClose={() => setSelected(null)}
+          onCancelled={removeBooking}
+        />
+      )}
     </div>
   );
 }

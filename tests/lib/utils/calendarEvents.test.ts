@@ -104,6 +104,7 @@ describe('buildCalendarEvents', () => {
     expect(events.map((e) => e.id)).toEqual(['a', 'busy-b']);
     expect(props(events[1])).toEqual({
       heading: 'Busy · Fosse',
+      details: expect.objectContaining({ uid: 'b', room: 'FOSSE', price: 20, cancellable: true }),
       detail: 'Private',
       shareable: true,
       mine: true,
@@ -126,5 +127,72 @@ describe('buildCalendarEvents', () => {
     const cancelled = booking('c', 'ASTAIRE', { status: 'CANCELLED' });
     expect(buildCalendarEvents('ASTAIRE', true, [cancelled], [cancelled], teacher)).toEqual([]);
     expect(buildCalendarEvents(null, true, [], [cancelled], teacher)).toEqual([]);
+  });
+
+  describe('details', () => {
+    const summary = (uid: string) =>
+      ({
+        uid,
+        room: 'ASTAIRE',
+        classType: 'GROUP',
+        status: 'BOOKED',
+        shareable: true,
+        bookedFrom: '2026-11-18T12:00:00Z',
+        bookedTo: '2026-11-18T13:00:00Z',
+      }) as unknown as BookingView;
+
+    it('gives admins everything, and lets them cancel any booking', () => {
+      const [event] = buildCalendarEvents(
+        'ASTAIRE',
+        false,
+        [
+          booking('x', 'ASTAIRE', {
+            firstName: 'Jane',
+            lastName: 'Smith',
+          }),
+        ],
+        [],
+        admin
+      );
+      expect(props(event).details).toEqual({
+        uid: 'x',
+        start: '2026-11-18T10:00:00Z',
+        end: '2026-11-18T11:00:00Z',
+        classType: 'PRIVATE',
+        shareable: false,
+        room: 'ASTAIRE',
+        status: 'BOOKED',
+        price: 20,
+        bookerName: 'Jane Smith',
+        cancellable: true,
+      });
+    });
+
+    it("gives teachers their own booking's room and price, taken from their own list", () => {
+      const own = booking('a', 'ASTAIRE', { totalPrice: 35 });
+      const [event] = buildCalendarEvents('ASTAIRE', false, [summary('a')], [own], teacher);
+      expect(props(event).details).toEqual({
+        uid: 'a',
+        start: '2026-11-18T12:00:00Z',
+        end: '2026-11-18T13:00:00Z',
+        classType: 'GROUP',
+        shareable: true,
+        room: 'ASTAIRE',
+        price: 35,
+        cancellable: true,
+      });
+    });
+
+    it("gives teachers only time, class type and shareable for someone else's booking", () => {
+      const [event] = buildCalendarEvents('ASTAIRE', false, [summary('x')], [], teacher);
+      expect(props(event).details).toEqual({
+        uid: 'x',
+        start: '2026-11-18T12:00:00Z',
+        end: '2026-11-18T13:00:00Z',
+        classType: 'GROUP',
+        shareable: true,
+        cancellable: false,
+      });
+    });
   });
 });

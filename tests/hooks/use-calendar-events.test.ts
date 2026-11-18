@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import type { BookingView, Room } from '@/lib/types/booking';
 import { getMyBookingsInRange, getRoomSchedule } from '@/lib/api/booking';
@@ -138,5 +138,14 @@ describe('useCalendarEvents', () => {
     );
     await waitFor(() => expect(result.current.events).toHaveLength(1));
     expect(result.current.events[0].title).toBe('Private · Jane Smith');
+  });
+
+  it('drops a cancelled booking from the events straight away', async () => {
+    const { result } = renderHook(() => useCalendarEvents('FOSSE', true, week1, teacher));
+    await waitFor(() => expect(result.current.events.map((e) => e.id)).toContain('FOSSE-booking'));
+
+    act(() => result.current.removeBooking('FOSSE-booking'));
+
+    expect(result.current.events.map((e) => e.id)).not.toContain('FOSSE-booking');
   });
 });
