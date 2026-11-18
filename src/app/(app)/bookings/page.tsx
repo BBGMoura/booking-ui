@@ -31,7 +31,7 @@ export default function BookingsPage() {
         onRoomSelect={selectRoom}
         onShowMineChange={setShowMine}
       />
-      <div className="bg-card overflow-hidden rounded-xl border shadow-sm">
+      <div className="bg-card overflow-hidden rounded-2xl border shadow-sm">
         <EventCalendar
           availableViews={AVAILABLE_VIEWS}
           height="auto"
