@@ -32,9 +32,16 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <TooltipProvider>
-              {/* Coloured by type (red for errors, green for success) so a
-                  failure doesn't read like any other notice. */}
-              <Toaster position="top-center" richColors />
+              {/* Error toasts match the app's destructive Alert (as on a failed
+                  login), so a failure doesn't read like any other notice. */}
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  classNames: {
+                    error: 'text-destructive! [&_[data-description]]:text-destructive/90!',
+                  },
+                }}
+              />
               {children}
             </TooltipProvider>
           </AuthProvider>
