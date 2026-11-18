@@ -53,6 +53,8 @@ async function fetchRange({ start, end }: DateRange): Promise<RangeData> {
 export interface UseCalendarEventsOptions {
   /** Show who made each booking (admins only). */
   showBooker: boolean;
+  /** The logged-in user's name, shown on their own bookings. */
+  viewerName?: string;
 }
 
 /**
@@ -72,7 +74,7 @@ export function useCalendarEvents(
   room: Room | null,
   showMine: boolean,
   range: DateRange | null,
-  { showBooker }: UseCalendarEventsOptions
+  { showBooker, viewerName }: UseCalendarEventsOptions
 ) {
   const [loaded, setLoaded] = useState<ReadonlyMap<string, RangeData>>(() => new Map());
   const [error, setError] = useState<string | null>(null);
@@ -124,9 +126,9 @@ export function useCalendarEvents(
         showMine,
         data && room ? data.schedules[room] : [],
         data?.mine ?? [],
-        { showBooker }
+        { showBooker, viewerName }
       ),
-    [room, showMine, data, showBooker]
+    [room, showMine, data, showBooker, viewerName]
   );
 
   return { events, loading: !!range && !data && !error, error };

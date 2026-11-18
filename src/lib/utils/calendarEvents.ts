@@ -29,8 +29,8 @@ const NO_NAME = 'No name';
 
 /**
  * What a booking tile shows, line by line. The tile renders `heading` under
- * the time and `detail` under that, so the most useful line comes first and
- * survives when a short tile collapses to a single line.
+ * the time and `detail` under that; a short tile collapses to a single line
+ * and keeps only the heading.
  */
 export interface BookingEventProps {
   heading: string;
@@ -82,6 +82,11 @@ export interface BuildCalendarEventsOptions {
    * endpoint; teachers deliberately can't see who booked.
    */
   showBooker: boolean;
+  /**
+   * The logged-in user's name, shown on their own bookings. Taken from the
+   * session rather than the booking, since teachers' schedule has no names.
+   */
+  viewerName?: string;
 }
 
 /**
@@ -100,7 +105,7 @@ export function buildCalendarEvents(
   showMine: boolean,
   schedule: BookingView[],
   mine: BookingView[],
-  { showBooker }: BuildCalendarEventsOptions
+  { showBooker, viewerName }: BuildCalendarEventsOptions
 ): EventInput[] {
   const myBookings = mine.filter(isActive);
 
@@ -123,11 +128,15 @@ export function buildCalendarEvents(
   const events = schedule.filter(isActive).map((b) => {
     const classType = CLASS_TYPE_LABELS[b.classType];
     const isMine = myUids.has(b.uid);
-    // Your own bookings read the same as everyone else's; colour alone marks
-    // them as yours, so every tile's lines mean the same thing.
-    const props: BookingEventProps = showBooker
-      ? { heading: bookerName(b), detail: classType, shareable: b.shareable, mine: isMine }
-      : { heading: classType, shareable: b.shareable, mine: isMine };
+    // Every tile reads class type, then who booked it, as far as the viewer
+    // is allowed to know: admins see everyone, teachers only themselves.
+    const who = isMine ? viewerName || NO_NAME : showBooker ? bookerName(b) : undefined;
+    const props: BookingEventProps = {
+      heading: classType,
+      detail: who,
+      shareable: b.shareable,
+      mine: isMine,
+    };
     return toEvent(b, props, { color: isMine ? MINE_COLOR : OTHERS_COLOR });
   });
 

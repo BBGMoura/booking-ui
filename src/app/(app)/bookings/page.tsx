@@ -40,10 +40,11 @@ export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, setShowMine } = useCalendarView();
   const [scrollTime] = useState(() => initialScrollTime(new Date(), GRID_START_MINUTES));
   const fixedHeight = useFixedHeightLayout();
-  const { hasRole } = useAuth();
+  const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
   const { events, loading, error } = useCalendarEvents(room, showMine, range, {
     showBooker: hasRole(USER_ROLES.ADMIN),
+    viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
   });
   const handleDatesSet = useCallback(
     (info: { start: Date; end: Date }) =>

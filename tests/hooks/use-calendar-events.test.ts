@@ -137,6 +137,6 @@ describe('useCalendarEvents', () => {
       useCalendarEvents('ASTAIRE', false, week1, { showBooker: true })
     );
     await waitFor(() => expect(result.current.events).toHaveLength(1));
-    expect(result.current.events[0].title).toBe('Jane Smith · Private');
+    expect(result.current.events[0].title).toBe('Private · Jane Smith');
   });
 });

@@ -31,20 +31,17 @@ describe('buildCalendarEvents', () => {
     ]);
   });
 
-  it('with a room distinguishes my bookings from others by uid', () => {
+  it('with a room shows class type, then my name on my own bookings only', () => {
     const schedule = [booking('a', 'ASTAIRE'), booking('x', 'ASTAIRE')];
-    const events = buildCalendarEvents(
-      'ASTAIRE',
-      false,
-      schedule,
-      [booking('a', 'ASTAIRE')],
-      teacher
-    );
-    expect(events.map((e) => [e.id, props(e).mine, props(e).heading])).toEqual([
-      ['a', true, 'Private'],
-      ['x', false, 'Private'],
+    const events = buildCalendarEvents('ASTAIRE', false, schedule, [booking('a', 'ASTAIRE')], {
+      showBooker: false,
+      viewerName: 'Tess Teacher',
+    });
+    expect(events.map((e) => [e.id, props(e).mine, props(e).heading, props(e).detail])).toEqual([
+      ['a', true, 'Private', 'Tess Teacher'],
+      ['x', false, 'Private', undefined],
     ]);
-    expect(events.map((e) => e.title)).toEqual(['Private · yours', 'Private']);
+    expect(events.map((e) => e.title)).toEqual(['Private · Tess Teacher · yours', 'Private']);
   });
 
   it("doesn't show teachers who made other people's bookings", () => {
@@ -55,27 +52,28 @@ describe('buildCalendarEvents', () => {
     expect(event.title).toBe('Private');
   });
 
-  it('shows admins who made each booking, then the class type', () => {
+  it('shows admins the class type, then who made each booking', () => {
     const other = booking('x', 'ASTAIRE', { firstName: 'Jane', lastName: 'Smith' });
     const [event] = buildCalendarEvents('ASTAIRE', false, [other], [], admin);
-    expect([props(event).heading, props(event).detail]).toEqual(['Jane Smith', 'Private']);
-    expect(event.title).toBe('Jane Smith · Private');
+    expect([props(event).heading, props(event).detail]).toEqual(['Private', 'Jane Smith']);
+    expect(event.title).toBe('Private · Jane Smith');
   });
 
   it('falls back when the booker has no name', () => {
     const other = booking('x', 'ASTAIRE', { firstName: null, lastName: null });
     const [event] = buildCalendarEvents('ASTAIRE', false, [other], [], admin);
-    expect(props(event).heading).toBe('No name');
+    expect(props(event).detail).toBe('No name');
   });
 
-  it("lays out an admin's own booking like everyone else's, by name", () => {
-    const own = booking('a', 'ASTAIRE', { firstName: 'Ada', lastName: 'Admin' });
-    const [event] = buildCalendarEvents('ASTAIRE', false, [own], [own], admin);
-    expect([props(event).heading, props(event).detail, props(event).mine]).toEqual([
-      'Ada Admin',
-      'Private',
-      true,
-    ]);
+  it("shows the viewer's own name on their bookings, falling back when they have none", () => {
+    const own = booking('a', 'ASTAIRE');
+    const named = buildCalendarEvents('ASTAIRE', false, [own], [own], {
+      showBooker: true,
+      viewerName: 'Ada Admin',
+    });
+    expect(props(named[0]).detail).toBe('Ada Admin');
+    const unnamed = buildCalendarEvents('ASTAIRE', false, [own], [own], teacher);
+    expect(props(unnamed[0]).detail).toBe('No name');
   });
 
   it('marks shareable bookings', () => {
