@@ -44,7 +44,7 @@ export function CalendarControls({
           <ToggleGroupItem
             key={r}
             value={r}
-            className="data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground"
           >
             {ROOM_LABELS[r]}
           </ToggleGroupItem>
@@ -52,7 +52,7 @@ export function CalendarControls({
       </ToggleGroup>
       <Toggle
         variant="outline"
-        className="data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+        className="data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground"
         pressed={showMine}
         disabled={showMineLocked}
         onPressedChange={onShowMineChange}

@@ -72,7 +72,7 @@ export function EventCalendarToolbar({
               value={availableView}
               onClick={() => controller.changeView(availableView)}
               aria-label={buttons[availableView]?.hint}
-              className="data-[state=active]:bg-muted dark:data-[state=active]:bg-muted px-3 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none dark:data-[state=active]:border-transparent"
+              className="data-[state=active]:bg-foreground/10 dark:data-[state=active]:bg-foreground/10 px-3 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none dark:data-[state=active]:border-transparent"
             >
               {buttons[availableView]?.text}
             </TabsTrigger>
