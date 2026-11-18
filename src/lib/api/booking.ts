@@ -1,4 +1,10 @@
-import type { BookingView, CreateBookingData, Room } from '@/lib/types/booking';
+import type {
+  BookingView,
+  CreateBookingData,
+  GetBookingsParams,
+  Page,
+  Room,
+} from '@/lib/types/booking';
 import api from '@/lib/api/axiosInstance';
 
 export async function getRoomSchedule(
@@ -23,6 +29,16 @@ export async function getMyBookingsInRange(
     params: { dateFrom, dateTo, size: 1000 },
   });
   return data.content;
+}
+
+export async function getBookings(params: GetBookingsParams = {}): Promise<Page<BookingView>> {
+  const { data } = await api.get<Page<BookingView>>('/bookings', { params });
+  return data;
+}
+
+export async function getBookingByUid(bookingUid: string): Promise<BookingView> {
+  const { data } = await api.get<BookingView>(`/bookings/${bookingUid}`);
+  return data;
 }
 
 export async function createBooking(data: CreateBookingData): Promise<BookingView> {

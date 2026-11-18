@@ -57,3 +57,37 @@ export interface CreateBookingData {
   dateFrom: string;
   dateTo: string;
 }
+
+/**
+ * Paging metadata nested under `page` in a paged response
+ */
+export interface PageMetadata {
+  size: number;
+  number: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+/**
+ * A paged response from the API
+ * Matches Spring Data's PagedModel: the backend serialises pages VIA_DTO,
+ * so paging info sits under `page` and there are no `first`/`last` flags.
+ */
+export interface Page<T> {
+  content: T[];
+  page: PageMetadata;
+}
+
+/**
+ * Query params for GET /bookings
+ * "Upcoming": dateFrom=<now>, order=ASC. "Past": dateTo=<now>, order=DESC.
+ * `order` must be upper case: the backend rejects `asc`/`desc` with a 400.
+ */
+export interface GetBookingsParams {
+  page?: number;
+  size?: number;
+  status?: BookingStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  order?: 'ASC' | 'DESC';
+}
