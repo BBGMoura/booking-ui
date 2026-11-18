@@ -44,6 +44,9 @@ export interface BookingView {
   dateFrom: string;
   dateTo: string;
   totalPrice: number;
+  /** Who made the booking. Not set for every user, so either can be null. */
+  firstName?: string | null;
+  lastName?: string | null;
 }
 
 /**
