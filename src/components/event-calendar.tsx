@@ -1,6 +1,3 @@
-// Started from the FullCalendar shadcn registry (@fullcalendar/breezy-event-calendar)
-// and since customised, so it's our code now. Re-running `shadcn add` for it would
-// overwrite these changes; diff before accepting.
 import { type CalendarOptions, useCalendarController } from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/react/daygrid';
 import interactionPlugin from '@fullcalendar/react/interaction';
@@ -68,7 +65,7 @@ export function EventCalendar({
       dir={direction === 'rtl' ? 'rtl' : undefined}
     >
       <EventCalendarToolbar
-        className="border-b p-4 sm:p-5"
+        className="bg-sidebar text-sidebar-foreground border-b p-4"
         controller={controller}
         availableViews={availableViews}
         addButton={addButton}

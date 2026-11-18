@@ -1,10 +1,6 @@
-// Started from the FullCalendar shadcn registry (@fullcalendar/breezy-event-calendar)
-// and since customised, so it's our code now. Re-running `shadcn add` for it would
-// overwrite these changes; diff before accepting.
 import { CalendarController } from '@fullcalendar/react';
 import { EventCalendarNextIcon, EventCalendarPrevIcon } from '@/components/event-calendar-icons';
 import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
@@ -30,9 +26,9 @@ export function EventCalendarToolbar({
 
   return (
     <div className={cn('flex flex-wrap items-center justify-between gap-3', className)}>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3">
         {addButton && (
-          <Button onClick={(ev) => addButton.click?.(ev.nativeEvent)} aria-label={addButton.hint}>
+          <Button onClick={addButton.click as any} aria-label={addButton.hint}>
             {addButton.text}
           </Button>
         )}
@@ -43,12 +39,12 @@ export function EventCalendarToolbar({
         >
           {buttons.today.text}
         </Button>
-        <ButtonGroup>
+        <div className="flex items-center">
           <Button
             onClick={() => controller.prev()}
             disabled={buttons.prev.isDisabled}
             aria-label={buttons.prev.hint}
-            variant="outline"
+            variant="ghost"
             size="icon"
           >
             <EventCalendarPrevIcon />
@@ -57,25 +53,22 @@ export function EventCalendarToolbar({
             onClick={() => controller.next()}
             disabled={buttons.next.isDisabled}
             aria-label={buttons.next.hint}
-            variant="outline"
+            variant="ghost"
             size="icon"
           >
             <EventCalendarNextIcon />
           </Button>
-        </ButtonGroup>
-        <div className="text-xl font-semibold tracking-tight sm:text-2xl">
-          {controller.view?.title}
         </div>
+        <div className="text-xl">{controller.view?.title}</div>
       </div>
       <Tabs value={controller.view?.type ?? availableViews[0]}>
-        <TabsList className="gap-1 bg-transparent p-0">
+        <TabsList>
           {availableViews.map((availableView) => (
             <TabsTrigger
               key={availableView}
               value={availableView}
               onClick={() => controller.changeView(availableView)}
               aria-label={buttons[availableView]?.hint}
-              className="data-[state=active]:bg-foreground/10 dark:data-[state=active]:bg-foreground/10 px-3 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none dark:data-[state=active]:border-transparent"
             >
               {buttons[availableView]?.text}
             </TabsTrigger>

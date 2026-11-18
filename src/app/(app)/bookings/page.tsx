@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { BusinessHoursInput } from '@fullcalendar/react';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
-import { EventCalendar } from '@/components/event-calendar';
+import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
 import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
@@ -46,10 +46,9 @@ export default function BookingsPage() {
         onShowMineChange={setShowMine}
       />
       <div className="bg-card min-h-0 flex-1 overflow-hidden rounded-2xl border shadow-sm">
-        <EventCalendar
+        <BookingsCalendar
           availableViews={AVAILABLE_VIEWS}
           height={fixedHeight ? '100%' : 'auto'}
-          borderless
           nowIndicator
           firstDay={1}
           allDaySlot={false}
