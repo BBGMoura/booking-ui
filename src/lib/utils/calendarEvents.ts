@@ -17,10 +17,6 @@ export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
 };
 
 const OTHERS_COLOR = 'var(--chart-2)';
-// Someone else's shareable booking still leaves room to book alongside it,
-// so it gets its own colour to show that availability. A stopgap borrowed from
-// the chart palette until the booking palette is defined.
-const SHAREABLE_COLOR = 'var(--chart-4)';
 const MINE_COLOR = 'var(--chart-1)';
 const BUSY_ELSEWHERE_COLOR = 'var(--muted-foreground)';
 
@@ -141,8 +137,7 @@ export function buildCalendarEvents(
       shareable: b.shareable,
       mine: isMine,
     };
-    const color = isMine ? MINE_COLOR : b.shareable ? SHAREABLE_COLOR : OTHERS_COLOR;
-    return toEvent(b, props, { color });
+    return toEvent(b, props, { color: isMine ? MINE_COLOR : OTHERS_COLOR });
   });
 
   if (showMine) {
