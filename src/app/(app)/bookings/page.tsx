@@ -24,27 +24,28 @@ export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, setShowMine } = useCalendarView();
 
   return (
-    <div className="bg-card overflow-hidden rounded-xl border shadow-sm">
+    <div className="flex flex-col gap-4">
       <CalendarControls
-        className="bg-sidebar px-4 pt-4"
         room={room}
         showMine={showMine}
         showMineLocked={showMineLocked}
         onRoomSelect={selectRoom}
         onShowMineChange={setShowMine}
       />
-      <EventCalendar
-        availableViews={AVAILABLE_VIEWS}
-        height="auto"
-        borderless
-        nowIndicator
-        firstDay={1}
-        allDaySlot={false}
-        slotMinTime="07:00"
-        slotMaxTime="20:00"
-        businessHours={OPENING_HOURS}
-        nonBusinessHoursClass={CLOSED_HOURS_CLASS}
-      />
+      <div className="bg-card overflow-hidden rounded-xl border shadow-sm">
+        <EventCalendar
+          availableViews={AVAILABLE_VIEWS}
+          height="auto"
+          borderless
+          nowIndicator
+          firstDay={1}
+          allDaySlot={false}
+          slotMinTime="07:00"
+          slotMaxTime="20:00"
+          businessHours={OPENING_HOURS}
+          nonBusinessHoursClass={CLOSED_HOURS_CLASS}
+        />
+      </div>
     </div>
   );
 }
