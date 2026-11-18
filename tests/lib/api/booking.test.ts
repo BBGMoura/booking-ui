@@ -2,6 +2,8 @@ import MockAdapter from 'axios-mock-adapter';
 import {
   getRoomSchedule,
   getMyBookingsInRange,
+  getBookings,
+  getBookingByUid,
   createBooking,
   cancelBooking,
 } from '@/lib/api/booking';
@@ -78,6 +80,51 @@ describe('booking API', () => {
       const result = await getMyBookingsInRange('2026-11-01T00:00:00Z', '2026-11-02T00:00:00Z');
 
       expect(result).toEqual([mockBooking]);
+    });
+  });
+
+  describe('getBookings()', () => {
+    const page = {
+      content: [mockBooking],
+      number: 0,
+      size: 5,
+      totalElements: 1,
+      totalPages: 1,
+      first: true,
+      last: true,
+    };
+
+    it('passes paging, filter and order params to the bookings endpoint', async () => {
+      mock.onGet('/bookings').reply(200, page);
+      const params = {
+        page: 1,
+        size: 10,
+        status: 'BOOKED' as const,
+        dateFrom: '2026-11-01T00:00:00Z',
+        order: 'asc' as const,
+      };
+
+      await getBookings(params);
+
+      expect(mock.history.get[0].url).toBe('/bookings');
+      expect(mock.history.get[0].params).toEqual(params);
+    });
+
+    it('returns the full page', async () => {
+      mock.onGet('/bookings').reply(200, page);
+
+      expect(await getBookings()).toEqual(page);
+    });
+  });
+
+  describe('getBookingByUid()', () => {
+    it('gets the booking by uid and returns it', async () => {
+      mock.onGet(`/bookings/${mockBooking.uid}`).reply(200, mockBooking);
+
+      const result = await getBookingByUid(mockBooking.uid);
+
+      expect(mock.history.get[0].url).toBe(`/bookings/${mockBooking.uid}`);
+      expect(result).toEqual(mockBooking);
     });
   });
 

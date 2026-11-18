@@ -57,3 +57,29 @@ export interface CreateBookingData {
   dateFrom: string;
   dateTo: string;
 }
+
+/**
+ * Spring Data page wrapper returned by GET /bookings
+ */
+export interface Page<T> {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+/**
+ * Query params for GET /bookings
+ * "Upcoming": dateFrom=<now>, order=asc. "Past": dateTo=<now>, order=desc.
+ */
+export interface GetBookingsParams {
+  page?: number;
+  size?: number;
+  status?: BookingStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  order?: 'asc' | 'desc';
+}
