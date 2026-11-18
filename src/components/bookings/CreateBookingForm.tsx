@@ -123,7 +123,6 @@ interface CreateBookingFormProps {
   draft: BookingDraft;
   /** Called whenever the room, date, time or shareable choice changes. */
   onPreviewChange?: (preview: BookingPreview) => void;
-  onCancel: () => void;
   /** The booking was created. */
   onBooked: () => void;
   /**
@@ -209,7 +208,6 @@ function BookingNotice({ notice }: { notice: Notice }) {
 export function CreateBookingForm({
   draft,
   onPreviewChange,
-  onCancel,
   onBooked,
   onConflict,
 }: CreateBookingFormProps) {
@@ -630,21 +628,16 @@ export function CreateBookingForm({
           --form-surface to its own background. */}
       <div className="sticky bottom-0 -mx-6 -mb-6 space-y-3 border-t bg-(--form-surface,var(--background)) px-6 pt-4 pb-6">
         <BookingNotice notice={notice} />
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isLoading || !classTypes}>
-            {isLoading ? (
-              <>
-                <Spinner />
-                Booking…
-              </>
-            ) : (
-              'Book room'
-            )}
-          </Button>
-        </div>
+        <Button type="submit" className="w-full" disabled={isLoading || !classTypes}>
+          {isLoading ? (
+            <>
+              <Spinner />
+              Booking…
+            </>
+          ) : (
+            'Book room'
+          )}
+        </Button>
       </div>
     </form>
   );

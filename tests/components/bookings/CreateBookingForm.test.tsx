@@ -42,7 +42,6 @@ function booked(from: Date, to: Date, shareable = false): BookingView {
 
 function renderForm(draft: BookingDraft = dragged) {
   const handlers = {
-    onCancel: jest.fn(),
     onBooked: jest.fn(),
     onConflict: jest.fn(),
     onPreviewChange: jest.fn(),
@@ -253,13 +252,12 @@ describe('CreateBookingForm', () => {
       .mocked(createBooking)
       .mockRejectedValueOnce(backendError(503, 'BOOKING_LOCK_TIMEOUT'))
       .mockResolvedValueOnce({} as never);
-    const { onBooked, onConflict, onCancel } = renderForm();
+    const { onBooked, onConflict } = renderForm();
     await choose('Class type', 'Group');
     await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
     await submit();
 
     expect(await screen.findByText(HIGH_DEMAND_MESSAGE)).toBeInTheDocument();
-    expect(onCancel).not.toHaveBeenCalled();
     expect(onConflict).not.toHaveBeenCalled();
     expect(screen.getByRole('switch', { name: 'Shareable' })).toBeChecked();
 
@@ -274,13 +272,12 @@ describe('CreateBookingForm', () => {
 
   it('shows other errors in the form like the rest of the app', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, 'SOMETHING_ELSE'));
-    const { onConflict, onCancel } = renderForm();
+    const { onConflict } = renderForm();
     await choose('Class type', 'Private');
     await submit();
 
     expect(await screen.findByText('backend message')).toBeInTheDocument();
     expect(onConflict).not.toHaveBeenCalled();
-    expect(onCancel).not.toHaveBeenCalled();
   });
 
   it('only treats BOOKING_LOCK_TIMEOUT as a lock timeout on a 503', async () => {
@@ -303,13 +300,6 @@ describe('CreateBookingForm', () => {
 
     expect(await screen.findByText(/at least 15 minutes/)).toBeInTheDocument();
     expect(createBooking).not.toHaveBeenCalled();
-  });
-
-  it('cancels', async () => {
-    const { onCancel } = renderForm();
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-
-    expect(onCancel).toHaveBeenCalled();
   });
 
   it('loads the room’s bookings for the chosen day', async () => {

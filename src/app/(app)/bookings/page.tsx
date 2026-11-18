@@ -174,7 +174,6 @@ export default function BookingsPage() {
     <CreateBookingForm
       draft={draft}
       onPreviewChange={handlePreviewChange}
-      onCancel={closeBooking}
       onBooked={handleBooked}
       onConflict={handleConflict}
     />
