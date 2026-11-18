@@ -1,6 +1,5 @@
 'use client';
 
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -54,13 +53,12 @@ export function CalendarControls({
       </ToggleGroup>
       <Separator orientation="vertical" className="data-[orientation=vertical]:h-5" />
       <Toggle
-        className="text-foreground/60 hover:text-foreground hover:bg-foreground/5 data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground px-3 disabled:opacity-70"
+        className="text-foreground/60 hover:text-foreground hover:bg-foreground/5 data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground"
         pressed={showMine}
         disabled={showMineLocked}
         onPressedChange={onShowMineChange}
         aria-label="Show mine"
       >
-        {showMine ? <EyeIcon /> : <EyeOffIcon />}
         Show mine
       </Toggle>
     </div>
