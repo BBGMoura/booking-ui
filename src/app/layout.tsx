@@ -32,7 +32,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <TooltipProvider>
-              <Toaster position="top-center" />
+              {/* Coloured by type (red for errors, green for success) so a
+                  failure doesn't read like any other notice. */}
+              <Toaster position="top-center" richColors />
               {children}
             </TooltipProvider>
           </AuthProvider>
