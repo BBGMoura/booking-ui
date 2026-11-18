@@ -119,9 +119,7 @@ describe('CreateBookingForm', () => {
     renderForm();
 
     expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Astaire');
-    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent(
-      'Wednesday 18 November 2026'
-    );
+    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent('Wed 18 Nov');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('10:00');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('11:30');
   });
@@ -188,9 +186,7 @@ describe('CreateBookingForm', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Date' }));
     await userEvent.click(await screen.findByRole('button', { name: /November 22nd, 2026/ }));
 
-    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent(
-      'Sunday 22 November 2026'
-    );
+    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent('Sun 22 Nov');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('Start');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('End');
   });
@@ -215,17 +211,41 @@ describe('CreateBookingForm', () => {
   it.each([
     ['BOOKING_CONFLICT', NOT_FREE_MESSAGE],
     ['BOOKING_SHAREABLE_LIMIT', SHAREABLE_FULL_MESSAGE],
-  ])('reports a 400 %s and stays open with the room reloaded', async (code, message) => {
+  ])('shows a 400 %s by the button and reloads the room', async (code, message) => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, code));
     const { onConflict, onBooked } = renderForm();
     await choose('Class type', 'Private');
     await waitFor(() => expect(getRoomSchedule).toHaveBeenCalledTimes(1));
     await submit();
 
-    await waitFor(() => expect(onConflict).toHaveBeenCalledWith(message));
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(onConflict).toHaveBeenCalled();
     expect(onBooked).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Book room' })).toBeEnabled();
     await waitFor(() => expect(getRoomSchedule).toHaveBeenCalledTimes(2));
+  });
+
+  it('turns the overlap warning into an error once the backend refuses, until the time changes', async () => {
+    jest
+      .mocked(getRoomSchedule)
+      .mockResolvedValue([booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12))]);
+    jest.mocked(createBooking).mockRejectedValue(backendError(400, 'BOOKING_CONFLICT'));
+    renderForm();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /Overlaps a booking \(11:00–12:00\)/
+    );
+
+    await choose('Class type', 'Private');
+    await submit();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /Overlaps a booking \(11:00–12:00\)/
+    );
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+    await choose('Start', '13:00');
+    expect(await screen.findByText('Astaire is free at this time.')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('keeps the form open on a 503 BOOKING_LOCK_TIMEOUT and lets the user retry', async () => {
@@ -351,9 +371,7 @@ describe('CreateBookingForm', () => {
     });
 
     expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Fosse');
-    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent(
-      'Friday 20 November 2026'
-    );
+    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent('Fri 20 Nov');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('14:00');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('15:15');
     expect(screen.getByRole('combobox', { name: 'Class type' })).toHaveTextContent('Group');

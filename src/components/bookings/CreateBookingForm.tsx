@@ -4,9 +4,8 @@ import { z } from 'zod';
 import { useEffect, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { AlertCircleIcon, CalendarIcon, CircleCheckIcon, TriangleAlertIcon } from 'lucide-react';
+import { CalendarIcon, CircleCheckIcon, CircleXIcon, TriangleAlertIcon } from 'lucide-react';
 import { addDays, format, startOfDay, startOfToday } from 'date-fns';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import { createBooking, getRoomSchedule } from '@/lib/api/booking';
 import { getClassTypes, getDanceClass } from '@/lib/api/danceClass';
 import {
@@ -127,10 +127,10 @@ interface CreateBookingFormProps {
   /** The booking was created. */
   onBooked: () => void;
   /**
-   * The backend refused the time because it clashes with another booking. The
-   * form stays open; the caller shows `message` and refreshes the calendar.
+   * The backend refused the time because it clashes with another booking, so
+   * the calendar is out of date. The form stays open and shows the error.
    */
-  onConflict: (message: string) => void;
+  onConflict: () => void;
 }
 
 function draftValues(draft: BookingDraft): Partial<BookingFormValues> {
@@ -165,35 +165,36 @@ function conflictMessage(conflict: BookingConflict, isShareable: boolean): strin
   return `Overlaps a booking (${formatRange(first)})${more}. Choose another time.`;
 }
 
+type Notice = { tone: 'error' | 'warning'; message: string } | { tone: 'free'; room: Room } | null;
+
+const NOTICE_STYLES = {
+  error: 'border-destructive/40 bg-card text-destructive',
+  warning:
+    'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200',
+};
+
 /**
- * Whether the room looks free at the chosen time, once the room's bookings are
- * loaded. A clash is only a warning: the backend decides, on submit.
+ * The line above the buttons: an error once a booking has failed, a warning
+ * while the time clashes (the backend still decides), or that the room is free.
  */
-function Availability({
-  room,
-  checked,
-  message,
-}: {
-  room?: Room;
-  checked: boolean;
-  message: string | null;
-}) {
-  if (message) {
+function BookingNotice({ notice }: { notice: Notice }) {
+  if (!notice) return null;
+  if (notice.tone === 'free') {
     return (
-      <p
-        role="status"
-        className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
-      >
-        <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
-        {message}
+      <p className="text-muted-foreground flex gap-2 text-sm">
+        <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-500" />
+        {ROOM_LABELS[notice.room]} is free at this time.
       </p>
     );
   }
-  if (!checked || !room) return null;
+  const Icon = notice.tone === 'error' ? CircleXIcon : TriangleAlertIcon;
   return (
-    <p className="text-muted-foreground flex gap-2 text-sm">
-      <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-500" />
-      {ROOM_LABELS[room]} is free at this time.
+    <p
+      role={notice.tone === 'error' ? 'alert' : 'status'}
+      className={cn('flex gap-2 rounded-lg border px-3 py-2 text-sm', NOTICE_STYLES[notice.tone])}
+    >
+      <Icon className="mt-0.5 size-4 shrink-0" />
+      {notice.message}
     </p>
   );
 }
@@ -220,6 +221,9 @@ export function CreateBookingForm({
   // The room's bookings for one day, tagged with which room and day they're for.
   const [schedule, setSchedule] = useState<{ key: string; bookings: BookingView[] } | null>(null);
   const [scheduleVersion, setScheduleVersion] = useState(0);
+  // A booking the backend refused, tagged with the choices it was for, so the
+  // error clears as soon as the user changes any of them.
+  const [rejection, setRejection] = useState<{ key: string; message: string } | null>(null);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -248,6 +252,7 @@ export function CreateBookingForm({
 
   const day = date ? startOfDay(date) : null;
   const scheduleKey = room && day ? `${room}|${day.getTime()}` : null;
+  const choiceKey = `${scheduleKey}|${start}|${end}|${isShareable}`;
 
   useEffect(() => {
     onPreviewChange?.({
@@ -341,7 +346,21 @@ export function CreateBookingForm({
           isShareable,
         })
       : null;
-  const availabilityMessage = localConflict ? conflictMessage(localConflict, isShareable) : null;
+  const clash = localConflict && conflictMessage(localConflict, isShareable);
+  const rejected = rejection?.key === choiceKey ? rejection.message : null;
+  const rootError =
+    form.formState.errors.root?.message ??
+    (classTypesFailed ? 'Could not load the class types. Please close this and try again.' : null);
+  const notice: Notice = rootError
+    ? { tone: 'error', message: rootError }
+    : rejected
+      ? // The reloaded schedule says what's in the way, when it shows the clash.
+        { tone: 'error', message: clash ?? rejected }
+      : clash
+        ? { tone: 'warning', message: clash }
+        : loadedSchedule && hasTime && room
+          ? { tone: 'free', room }
+          : null;
 
   async function onSubmit(values: BookingFormValues) {
     setIsLoading(true);
@@ -358,10 +377,15 @@ export function CreateBookingForm({
     } catch (exception) {
       const { status, code } = getApiErrorInfo(exception);
       if (status === 400 && (code === 'BOOKING_CONFLICT' || code === 'BOOKING_SHAREABLE_LIMIT')) {
-        // Reload the room so the clash shows above the button, and keep
-        // everything the user entered so they only need to change the time.
+        // Show it beside the button rather than in a toast, keep everything
+        // the user entered, and reload the room so the error can say what's
+        // in the way.
+        setRejection({
+          key: choiceKey,
+          message: code === 'BOOKING_CONFLICT' ? NOT_FREE_MESSAGE : SHAREABLE_FULL_MESSAGE,
+        });
         setScheduleVersion((v) => v + 1);
-        onConflict(code === 'BOOKING_CONFLICT' ? NOT_FREE_MESSAGE : SHAREABLE_FULL_MESSAGE);
+        onConflict();
       } else if (status === 503 && code === 'BOOKING_LOCK_TIMEOUT') {
         form.setError('root', { message: HIGH_DEMAND_MESSAGE });
       } else if (isFieldValidationError(exception)) {
@@ -379,91 +403,82 @@ export function CreateBookingForm({
   const endOptions = date && start != null ? endTimeOptions(date, start) : [];
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
-      {(form.formState.errors.root || classTypesFailed) && (
-        <Alert variant="destructive">
-          <AlertCircleIcon />
-          <AlertTitle>Could not book</AlertTitle>
-          <AlertDescription>
-            {form.formState.errors.root?.message ??
-              'Could not load the class types. Please close this and try again.'}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <FieldGroup className="gap-5">
-        <Controller
-          name="room"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="booking-room">Room</FieldLabel>
-              <Select
-                name={field.name}
-                value={field.value ?? ''}
-                onValueChange={field.onChange}
-                disabled={isLoading}
-              >
-                <SelectTrigger
-                  id="booking-room"
-                  className="w-full"
-                  aria-invalid={fieldState.invalid}
-                  onBlur={field.onBlur}
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
+      <FieldGroup className="gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Controller
+            name="room"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="booking-room">Room</FieldLabel>
+                <Select
+                  name={field.name}
+                  value={field.value ?? ''}
+                  onValueChange={field.onChange}
+                  disabled={isLoading}
                 >
-                  <SelectValue placeholder="Choose a room" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(ROOMS).map((room) => (
-                    <SelectItem key={room} value={room}>
-                      {ROOM_LABELS[room]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
-        <Controller
-          name="date"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="booking-date">Date</FieldLabel>
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="booking-date"
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-start font-normal"
+                  <SelectTrigger
+                    id="booking-room"
+                    className="w-full"
                     aria-invalid={fieldState.invalid}
-                    disabled={isLoading}
+                    onBlur={field.onBlur}
                   >
-                    <CalendarIcon className="text-muted-foreground" />
-                    {field.value ? format(field.value, 'EEEE d MMMM yyyy') : 'Choose a date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    defaultMonth={field.value}
-                    weekStartsOn={1}
-                    disabled={{ before: startOfToday() }}
-                    onSelect={(next) => {
-                      if (!next) return;
-                      changeDate(next);
-                      setDatePickerOpen(false);
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
+                    <SelectValue placeholder="Choose a room" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(ROOMS).map((room) => (
+                      <SelectItem key={room} value={room}>
+                        {ROOM_LABELS[room]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+
+          <Controller
+            name="date"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="booking-date">Date</FieldLabel>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="booking-date"
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-start font-normal"
+                      aria-invalid={fieldState.invalid}
+                      disabled={isLoading}
+                    >
+                      <CalendarIcon className="text-muted-foreground" />
+                      {field.value ? format(field.value, 'EEE d MMM') : 'Choose a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      defaultMonth={field.value}
+                      weekStartsOn={1}
+                      disabled={{ before: startOfToday() }}
+                      onSelect={(next) => {
+                        if (!next) return;
+                        changeDate(next);
+                        setDatePickerOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Controller
@@ -577,7 +592,7 @@ export function CreateBookingForm({
               <FieldContent>
                 <FieldLabel htmlFor="booking-shareable">Shareable</FieldLabel>
                 <FieldDescription>
-                  Others can book the room at the same time, up to 3 bookings at once.
+                  Others can book the room at the same time, up to 3 at once.
                 </FieldDescription>
               </FieldContent>
               <Switch
@@ -610,26 +625,26 @@ export function CreateBookingForm({
         </p>
       </div>
 
-      <Availability
-        room={room}
-        checked={!!loadedSchedule && hasTime}
-        message={availabilityMessage}
-      />
-
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading || !classTypes}>
-          {isLoading ? (
-            <>
-              <Spinner />
-              Booking…
-            </>
-          ) : (
-            'Book room'
-          )}
-        </Button>
+      {/* Pinned to the bottom of whatever scrolls the form, so the notice and
+          the button stay in view on a short screen. The surface sets
+          --form-surface to its own background. */}
+      <div className="sticky bottom-0 -mx-6 -mb-6 space-y-3 border-t bg-(--form-surface,var(--background)) px-6 pt-4 pb-6">
+        <BookingNotice notice={notice} />
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isLoading || !classTypes}>
+            {isLoading ? (
+              <>
+                <Spinner />
+                Booking…
+              </>
+            ) : (
+              'Book room'
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );

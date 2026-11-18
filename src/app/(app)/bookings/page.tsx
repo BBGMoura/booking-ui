@@ -126,13 +126,7 @@ export default function BookingsPage() {
     toast.success('Booked');
     void refresh();
   }, [closeBooking, refresh]);
-  const handleConflict = useCallback(
-    (message: string) => {
-      toast.error(message);
-      void refresh();
-    },
-    [refresh]
-  );
+  const handleConflict = useCallback(() => void refresh(), [refresh]);
   // While the form is open the calendar follows it: the chosen room's schedule
   // on the chosen day, so the user sees what else is booked around their time.
   const handlePreviewChange = useCallback(
@@ -281,7 +275,7 @@ export default function BookingsPage() {
         {draft && sidePanel && (
           <aside
             aria-labelledby="new-booking-title"
-            className="bg-card w-96 shrink-0 overflow-y-auto rounded-2xl border p-6 shadow-sm"
+            className="bg-card w-96 shrink-0 overflow-y-auto rounded-2xl border p-6 shadow-sm [--form-surface:var(--card)]"
           >
             <div className="mb-6 flex items-start justify-between gap-4">
               <div className="space-y-1">
@@ -309,7 +303,10 @@ export default function BookingsPage() {
           <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{BOOKING_TITLE}</DialogTitle>
-              <DialogDescription>{BOOKING_DESCRIPTION}</DialogDescription>
+              {/* Phones need the room for the form itself. */}
+              <DialogDescription className="sr-only sm:not-sr-only">
+                {BOOKING_DESCRIPTION}
+              </DialogDescription>
             </DialogHeader>
             {bookingForm}
           </DialogContent>
