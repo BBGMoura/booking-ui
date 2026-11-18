@@ -86,12 +86,7 @@ describe('booking API', () => {
   describe('getBookings()', () => {
     const page = {
       content: [mockBooking],
-      number: 0,
-      size: 5,
-      totalElements: 1,
-      totalPages: 1,
-      first: true,
-      last: true,
+      page: { size: 5, number: 0, totalElements: 1, totalPages: 1 },
     };
 
     it('passes paging, filter and order params to the bookings endpoint', async () => {
@@ -101,7 +96,7 @@ describe('booking API', () => {
         size: 10,
         status: 'BOOKED' as const,
         dateFrom: '2026-11-01T00:00:00Z',
-        order: 'asc' as const,
+        order: 'ASC' as const,
       };
 
       await getBookings(params);
