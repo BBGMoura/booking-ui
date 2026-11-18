@@ -17,7 +17,7 @@ export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
 };
 
 const OTHERS_COLOR = 'var(--chart-2)';
-const MINE_COLOR = 'var(--chart-1)';
+export const MINE_COLOR = 'var(--chart-1)';
 const BUSY_ELSEWHERE_COLOR = 'var(--muted-foreground)';
 
 // Hatched, dashed and see-through so it reads as a layer over the room's grid

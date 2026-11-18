@@ -19,6 +19,7 @@ import {
   TIME_STEP_MINUTES,
   validateBookingTime,
 } from '@/lib/utils/bookingTime';
+import { MINE_COLOR } from '@/lib/utils/calendarEvents';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
@@ -152,8 +153,14 @@ export default function BookingsPage() {
           businessHours={OPENING_HOURS}
           nonBusinessHoursClass={CLOSED_HOURS_CLASS}
           selectable
-          // Shows the range being dragged as a placeholder booking with its times.
+          // Shows the range being dragged as a placeholder booking with its times,
+          // in the colour of the user's own bookings since that's what it becomes.
+          // Every real event sets its own colour, so eventColor only reaches it.
           selectMirror
+          eventColor={MINE_COLOR}
+          // The placeholder already shows the range, so the registry's fill
+          // behind it would only double it up.
+          highlightClass="hidden"
           snapDuration={toTime(TIME_STEP_MINUTES)}
           selectAllow={(span) => validateBookingTime(span.start, span.end) === null}
           select={(info) => {
