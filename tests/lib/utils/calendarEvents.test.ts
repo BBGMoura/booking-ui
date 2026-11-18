@@ -41,9 +41,10 @@ describe('buildCalendarEvents', () => {
       teacher
     );
     expect(events.map((e) => [e.id, props(e).mine, props(e).heading])).toEqual([
-      ['a', true, 'Yours'],
+      ['a', true, 'Private'],
       ['x', false, 'Private'],
     ]);
+    expect(events.map((e) => e.title)).toEqual(['Private · yours', 'Private']);
   });
 
   it("doesn't show teachers who made other people's bookings", () => {
@@ -67,10 +68,14 @@ describe('buildCalendarEvents', () => {
     expect(props(event).heading).toBe('No name');
   });
 
-  it("shows an admin's own booking as theirs rather than by name", () => {
+  it("lays out an admin's own booking like everyone else's, by name", () => {
     const own = booking('a', 'ASTAIRE', { firstName: 'Ada', lastName: 'Admin' });
     const [event] = buildCalendarEvents('ASTAIRE', false, [own], [own], admin);
-    expect(props(event).heading).toBe('Yours');
+    expect([props(event).heading, props(event).detail, props(event).mine]).toEqual([
+      'Ada Admin',
+      'Private',
+      true,
+    ]);
   });
 
   it('marks shareable bookings', () => {

@@ -68,7 +68,9 @@ function toEvent(
     end: endOf(booking),
     // Plain-text version of the tile, used by FullCalendar for accessible
     // labels and anywhere our custom tile content isn't rendered.
-    title: props.detail ? `${props.heading} · ${props.detail}` : props.heading,
+    title: [props.heading, props.detail, props.mine && !props.busyElsewhere && 'yours']
+      .filter(Boolean)
+      .join(' · '),
     extendedProps: props,
     ...extra,
   };
@@ -121,11 +123,11 @@ export function buildCalendarEvents(
   const events = schedule.filter(isActive).map((b) => {
     const classType = CLASS_TYPE_LABELS[b.classType];
     const isMine = myUids.has(b.uid);
-    const props: BookingEventProps = isMine
-      ? { heading: 'Yours', detail: classType, shareable: b.shareable, mine: true }
-      : showBooker
-        ? { heading: bookerName(b), detail: classType, shareable: b.shareable, mine: false }
-        : { heading: classType, shareable: b.shareable, mine: false };
+    // Your own bookings read the same as everyone else's; colour alone marks
+    // them as yours, so every tile's lines mean the same thing.
+    const props: BookingEventProps = showBooker
+      ? { heading: bookerName(b), detail: classType, shareable: b.shareable, mine: isMine }
+      : { heading: classType, shareable: b.shareable, mine: isMine };
     return toEvent(b, props, { color: isMine ? MINE_COLOR : OTHERS_COLOR });
   });
 

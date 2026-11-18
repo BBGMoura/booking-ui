@@ -18,8 +18,10 @@ function durationMinutes({ start, end }: EventDisplayInfo['event']) {
  * column that's clipped out of view.
  */
 export function BookingEventContent(info: EventDisplayInfo) {
-  const { heading, detail, shareable } = info.event.extendedProps as BookingEventProps;
+  const { heading, detail, shareable, mine } = info.event.extendedProps as BookingEventProps;
   const compact = durationMinutes(info.event) < COMPACT_BELOW_MINUTES;
+  // Sighted users tell their own bookings apart by colour alone.
+  const yours = mine && <span className="sr-only">Yours</span>;
 
   const time = (
     <span className="flex min-w-0 shrink-0 items-center gap-1">
@@ -37,6 +39,7 @@ export function BookingEventContent(info: EventDisplayInfo) {
       <div className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap">
         {time}
         <span className="truncate font-semibold">{heading}</span>
+        {yours}
       </div>
     );
   }
@@ -46,6 +49,7 @@ export function BookingEventContent(info: EventDisplayInfo) {
       {time}
       <span className="truncate font-semibold">{heading}</span>
       {detail && <span className="truncate">{detail}</span>}
+      {yours}
     </div>
   );
 }
