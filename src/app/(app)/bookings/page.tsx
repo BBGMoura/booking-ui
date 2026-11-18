@@ -2,17 +2,23 @@
 
 import { useCallback, useState } from 'react';
 import type { BusinessHoursInput } from '@fullcalendar/react';
+import { PlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { BookingEventContent } from '@/components/bookings/BookingEventContent';
-import { CreateBookingModal } from '@/components/bookings/CreateBookingModal';
+import { type BookingDraft, CreateBookingModal } from '@/components/bookings/CreateBookingModal';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
+import { Button } from '@/components/ui/button';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
 import { useAuth } from '@/lib/context/AuthContext';
 import { USER_ROLES } from '@/lib/types/auth';
-import { OPENING_HOURS_BY_DAY, validateBookingTime } from '@/lib/utils/bookingTime';
+import {
+  OPENING_HOURS_BY_DAY,
+  TIME_STEP_MINUTES,
+  validateBookingTime,
+} from '@/lib/utils/bookingTime';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
@@ -39,13 +45,21 @@ const GRID_END_MINUTES = 20 * 60 + 30;
 // count as short, so its details ran together on one line.
 const EVENT_SHORT_HEIGHT = 30;
 
+// Today if it's on screen, otherwise the first day shown, so the form opens on
+// the week the user is looking at.
+function suggestedDay(range: DateRange | null): Date {
+  const today = new Date();
+  if (!range || (today >= range.start && today < range.end)) return today;
+  return range.start;
+}
+
 export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, setShowMine } = useCalendarView();
   const [scrollTime] = useState(() => initialScrollTime(new Date(), GRID_START_MINUTES));
   const fixedHeight = useFixedHeightLayout();
   const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
-  const [selection, setSelection] = useState<DateRange | null>(null);
+  const [draft, setDraft] = useState<BookingDraft | null>(null);
   const { events, loading, error, refresh } = useCalendarEvents(room, showMine, range, {
     showBooker: hasRole(USER_ROLES.ADMIN),
     viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
@@ -61,14 +75,15 @@ export default function BookingsPage() {
       ),
     []
   );
-  const closeModal = useCallback(() => setSelection(null), []);
+  const openNewBooking = () => setDraft({ room: room ?? undefined, day: suggestedDay(range) });
+  const closeModal = useCallback(() => setDraft(null), []);
   const handleBooked = useCallback(() => {
-    setSelection(null);
+    setDraft(null);
     void refresh();
   }, [refresh]);
   const handleSlotUnavailable = useCallback(
     (message: string) => {
-      setSelection(null);
+      setDraft(null);
       toast.error(message);
       void refresh();
     },
@@ -81,13 +96,29 @@ export default function BookingsPage() {
     // day headers in view. Otherwise (phones) the calendar is full height and
     // the whole page scrolls, since a viewport-high grid would be too short.
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <CalendarControls
-        room={room}
-        showMine={showMine}
-        showMineLocked={showMineLocked}
-        onRoomSelect={selectRoom}
-        onShowMineChange={setShowMine}
-      />
+      <div className="flex items-start justify-between gap-3">
+        <CalendarControls
+          room={room}
+          showMine={showMine}
+          showMineLocked={showMineLocked}
+          onRoomSelect={selectRoom}
+          onShowMineChange={setShowMine}
+        />
+        <Button className="hidden shrink-0 sm:inline-flex" onClick={openNewBooking}>
+          <PlusIcon />
+          New booking
+        </Button>
+      </div>
+      {/* Phones have no room for the button beside the room filters, so it
+          floats bottom right, where a page's main action usually sits. */}
+      <Button
+        size="icon"
+        className="fixed right-5 bottom-5 z-40 size-14 rounded-full shadow-lg sm:hidden [&_svg:not([class*='size-'])]:size-6"
+        aria-label="New booking"
+        onClick={openNewBooking}
+      >
+        <PlusIcon />
+      </Button>
       {error && (
         <p role="alert" className="text-destructive text-sm">
           {error}
@@ -120,20 +151,20 @@ export default function BookingsPage() {
           slotMaxTime={toTime(GRID_END_MINUTES)}
           businessHours={OPENING_HOURS}
           nonBusinessHoursClass={CLOSED_HOURS_CLASS}
-          // Booking is per room, so there's nothing to create without one.
-          selectable={room !== null}
+          selectable
+          // Shows the range being dragged as a placeholder booking with its times.
+          selectMirror
+          snapDuration={toTime(TIME_STEP_MINUTES)}
           selectAllow={(span) => validateBookingTime(span.start, span.end) === null}
           select={(info) => {
-            setSelection({ start: info.start, end: info.end });
+            setDraft({ room: room ?? undefined, start: info.start, end: info.end });
             info.view.calendar.unselect();
           }}
         />
       </div>
-      {room && selection && (
+      {draft && (
         <CreateBookingModal
-          room={room}
-          start={selection.start}
-          end={selection.end}
+          draft={draft}
           onClose={closeModal}
           onBooked={handleBooked}
           onSlotUnavailable={handleSlotUnavailable}
