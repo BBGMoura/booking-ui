@@ -299,7 +299,9 @@ export default function BookingsPage() {
       </div>
       {draft && !sidePanel && (
         <Dialog open onOpenChange={(open) => !open && closeBooking()}>
-          <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col">
+          {/* A full-width sheet from the bottom edge on phones; the usual centred
+              dialog from the sm breakpoint up. */}
+          <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col max-sm:top-auto max-sm:bottom-0 max-sm:max-w-none max-sm:translate-y-0 max-sm:rounded-none max-sm:rounded-t-2xl max-sm:border-x-0 max-sm:border-b-0 max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <DialogHeader>
               <DialogTitle>{BOOKING_TITLE}</DialogTitle>
               {/* Phones need the room for the form itself. */}
