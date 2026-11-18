@@ -1,5 +1,7 @@
 'use client';
 
+import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ROOMS, type Room } from '@/lib/types/booking';
@@ -27,10 +29,10 @@ export function CalendarControls({
   onShowMineChange,
 }: CalendarControlsProps) {
   return (
-    <div className="flex flex-wrap items-center gap-4">
+    <div className="flex flex-wrap items-center gap-3">
       <ToggleGroup
         type="single"
-        variant="outline"
+        spacing={1}
         value={room ?? ''}
         // Radix reports '' when the selected item is clicked again; the hook
         // handles the deselect, so only forward actual room clicks.
@@ -44,20 +46,21 @@ export function CalendarControls({
           <ToggleGroupItem
             key={r}
             value={r}
-            className="data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground"
+            className="text-foreground/60 hover:text-foreground hover:bg-foreground/5 data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground"
           >
             {ROOM_LABELS[r]}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
+      <Separator orientation="vertical" className="data-[orientation=vertical]:h-5" />
       <Toggle
-        variant="outline"
-        className="data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground"
+        className="text-foreground/60 hover:text-foreground hover:bg-foreground/5 data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground px-3 disabled:opacity-70"
         pressed={showMine}
         disabled={showMineLocked}
         onPressedChange={onShowMineChange}
         aria-label="Show mine"
       >
+        {showMine ? <EyeIcon /> : <EyeOffIcon />}
         Show mine
       </Toggle>
     </div>
