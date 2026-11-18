@@ -164,6 +164,17 @@ describe('CreateBookingForm', () => {
     expect(createBooking).not.toHaveBeenCalled();
   });
 
+  it('fills in and shows an end time when a start is chosen with no time set', async () => {
+    // After 18:00 an hour no longer fits before closing, so no slot is suggested.
+    jest.setSystemTime(new Date(2026, 10, 18, 18, 20));
+    renderForm({ room: 'ASTAIRE', day: new Date(2026, 10, 18) });
+    expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('End');
+
+    await choose('Start', '18:00');
+
+    expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('19:00');
+  });
+
   it('keeps the length of the booking when the start moves', async () => {
     renderForm();
     await choose('Start', '13:00');
@@ -190,14 +201,16 @@ describe('CreateBookingForm', () => {
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('End');
   });
 
-  it('books the chosen room and time, then reports success', async () => {
+  it('books the chosen room and time, then hands back the saved booking', async () => {
+    const saved = { uid: 'saved-1', totalPrice: 30 } as BookingView;
+    jest.mocked(createBooking).mockResolvedValue(saved);
     const { onBooked } = renderForm();
     await choose('Room', 'Fosse');
     await choose('Class type', 'Private');
     await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
     await submit();
 
-    await waitFor(() => expect(onBooked).toHaveBeenCalled());
+    await waitFor(() => expect(onBooked).toHaveBeenCalledWith(saved));
     expect(createBooking).toHaveBeenCalledWith({
       room: 'FOSSE',
       classType: 'PRIVATE',

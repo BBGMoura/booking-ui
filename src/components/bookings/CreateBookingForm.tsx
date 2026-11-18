@@ -123,8 +123,8 @@ interface CreateBookingFormProps {
   draft: BookingDraft;
   /** Called whenever the room, date, time or shareable choice changes. */
   onPreviewChange?: (preview: BookingPreview) => void;
-  /** The booking was created. */
-  onBooked: () => void;
+  /** The booking was created; `booking` is what the backend saved. */
+  onBooked: (booking: BookingView) => void;
   /**
    * The backend refused the time because it clashes with another booking, so
    * the calendar is out of date. The form stays open and shows the error.
@@ -363,14 +363,14 @@ export function CreateBookingForm({
   async function onSubmit(values: BookingFormValues) {
     setIsLoading(true);
     try {
-      await createBooking({
+      const booking = await createBooking({
         room: values.room,
         classType: values.classType,
         isShareable: values.isShareable,
         dateFrom: toOffsetDateTime(atMinutes(values.date, values.start)),
         dateTo: toOffsetDateTime(atMinutes(values.date, values.end)),
       });
-      onBooked();
+      onBooked(booking);
       return;
     } catch (exception) {
       const { status, code } = getApiErrorInfo(exception);
@@ -496,6 +496,10 @@ export function CreateBookingForm({
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="booking-start">Start</FieldLabel>
                   <Select
+                    // Radix doesn't update what the trigger shows when the value
+                    // goes between empty and set from code (a new date clearing
+                    // it, or a new start filling in the end), so it's remounted then.
+                    key={field.value == null ? 'empty' : 'chosen'}
                     name={field.name}
                     value={field.value == null ? '' : String(field.value)}
                     onValueChange={(value) => changeStart(Number(value))}
@@ -529,6 +533,10 @@ export function CreateBookingForm({
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="booking-end">End</FieldLabel>
                   <Select
+                    // Radix doesn't update what the trigger shows when the value
+                    // goes between empty and set from code (a new date clearing
+                    // it, or a new start filling in the end), so it's remounted then.
+                    key={field.value == null ? 'empty' : 'chosen'}
                     name={field.name}
                     value={field.value == null ? '' : String(field.value)}
                     onValueChange={(value) => field.onChange(Number(value))}
