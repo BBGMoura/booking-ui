@@ -8,11 +8,11 @@ import {
   NOT_FREE_MESSAGE,
   SHAREABLE_FULL_MESSAGE,
 } from '@/components/bookings/CreateBookingForm';
-import { createBooking, getRoomSchedule } from '@/lib/api/booking';
+import { createBooking } from '@/lib/api/booking';
 import type { BookingView } from '@/lib/types/booking';
 import { getClassTypes, getDanceClass } from '@/lib/api/danceClass';
 
-jest.mock('@/lib/api/booking', () => ({ createBooking: jest.fn(), getRoomSchedule: jest.fn() }));
+jest.mock('@/lib/api/booking', () => ({ createBooking: jest.fn() }));
 jest.mock('@/lib/api/danceClass', () => ({ getClassTypes: jest.fn(), getDanceClass: jest.fn() }));
 
 // 2026-11-18 is a Wednesday, 2026-11-22 a Sunday.
@@ -40,17 +40,21 @@ function booked(from: Date, to: Date, shareable = false): BookingView {
   } as unknown as BookingView;
 }
 
-function renderForm(draft: BookingDraft = dragged) {
+/**
+ * @param schedule the room's bookings the page would pass in, or null while
+ *     they're loading; an empty room by default
+ */
+function renderForm(draft: BookingDraft = dragged, schedule: BookingView[] | null = []) {
   const handlers = {
     onBooked: jest.fn(),
     onConflict: jest.fn(),
     onPreviewChange: jest.fn(),
   };
-  const view = render(<CreateBookingForm draft={draft} {...handlers} />);
+  const view = render(<CreateBookingForm draft={draft} schedule={schedule} {...handlers} />);
   return {
     ...handlers,
-    rerender: (next: BookingDraft) =>
-      view.rerender(<CreateBookingForm draft={next} {...handlers} />),
+    rerender: (next: BookingDraft, nextSchedule = schedule) =>
+      view.rerender(<CreateBookingForm draft={next} schedule={nextSchedule} {...handlers} />),
   };
 }
 
@@ -106,7 +110,6 @@ beforeEach(() => {
     .mocked(createBooking)
     .mockReset()
     .mockResolvedValue({} as never);
-  jest.mocked(getRoomSchedule).mockReset().mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -166,11 +169,11 @@ describe('CreateBookingForm', () => {
 
   it('fills in and shows an end time when a start is chosen with no time set', async () => {
     // After 18:00 an hour no longer fits before closing, so no slot is suggested.
-    jest.setSystemTime(new Date(2026, 10, 18, 18, 20));
+    jest.setSystemTime(new Date(2026, 10, 18, 18, 5));
     renderForm({ room: 'ASTAIRE', day: new Date(2026, 10, 18) });
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('End');
 
-    await choose('Start', '18:00');
+    await choose('Start', '18:15');
 
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('19:00');
   });
@@ -223,26 +226,33 @@ describe('CreateBookingForm', () => {
   it.each([
     ['BOOKING_CONFLICT', NOT_FREE_MESSAGE],
     ['BOOKING_SHAREABLE_LIMIT', SHAREABLE_FULL_MESSAGE],
-  ])('shows a 400 %s by the button and reloads the room', async (code, message) => {
+  ])('shows a 400 %s by the button and asks for the room to be reloaded', async (code, message) => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, code));
     const { onConflict, onBooked } = renderForm();
     await choose('Class type', 'Private');
-    await waitFor(() => expect(getRoomSchedule).toHaveBeenCalledTimes(1));
     await submit();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
     expect(onConflict).toHaveBeenCalled();
     expect(onBooked).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Book room' })).toBeEnabled();
-    await waitFor(() => expect(getRoomSchedule).toHaveBeenCalledTimes(2));
+  });
+
+  it('says what is in the way once the reloaded schedule shows the clash', async () => {
+    jest.mocked(createBooking).mockRejectedValue(backendError(400, 'BOOKING_CONFLICT'));
+    const { rerender } = renderForm();
+    await choose('Class type', 'Private');
+    await submit();
+    expect(await screen.findByRole('alert')).toHaveTextContent(NOT_FREE_MESSAGE);
+
+    rerender(dragged, [booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12))]);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/Overlaps a booking \(11:00–12:00\)/);
   });
 
   it('turns the overlap warning into an error once the backend refuses, until the time changes', async () => {
-    jest
-      .mocked(getRoomSchedule)
-      .mockResolvedValue([booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12))]);
     jest.mocked(createBooking).mockRejectedValue(backendError(400, 'BOOKING_CONFLICT'));
-    renderForm();
+    renderForm(dragged, [booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12))]);
     expect(await screen.findByRole('status')).toHaveTextContent(
       /Overlaps a booking \(11:00–12:00\)/
     );
@@ -315,32 +325,24 @@ describe('CreateBookingForm', () => {
     expect(createBooking).not.toHaveBeenCalled();
   });
 
-  it('loads the room’s bookings for the chosen day', async () => {
-    renderForm();
+  it('says nothing about availability until the room’s bookings have loaded', async () => {
+    renderForm(dragged, null);
+    await screen.findByRole('combobox', { name: 'Class type' });
 
-    await waitFor(() =>
-      expect(getRoomSchedule).toHaveBeenCalledWith(
-        'ASTAIRE',
-        expect.stringMatching(/^2026-11-18T00:00:00/),
-        expect.stringMatching(/^2026-11-19T00:00:00/)
-      )
-    );
+    expect(screen.queryByText(/is free at this time/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('says when the room is free at the chosen time', async () => {
-    jest
-      .mocked(getRoomSchedule)
-      .mockResolvedValue([booked(new Date(2026, 10, 18, 12), new Date(2026, 10, 18, 13))]);
-    renderForm();
+    renderForm(dragged, [booked(new Date(2026, 10, 18, 12), new Date(2026, 10, 18, 13))]);
 
     expect(await screen.findByText('Astaire is free at this time.')).toBeInTheDocument();
   });
 
   it('warns about an overlapping booking but still lets the user book', async () => {
-    jest
-      .mocked(getRoomSchedule)
-      .mockResolvedValue([booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12))]);
-    const { onBooked } = renderForm();
+    const { onBooked } = renderForm(dragged, [
+      booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12)),
+    ]);
 
     expect(await screen.findByRole('status')).toHaveTextContent(
       /Overlaps a booking \(11:00–12:00\)\. Choose another time\./
@@ -352,10 +354,7 @@ describe('CreateBookingForm', () => {
   });
 
   it('suggests sharing when the only overlaps are shareable', async () => {
-    jest
-      .mocked(getRoomSchedule)
-      .mockResolvedValue([booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12), true)]);
-    renderForm();
+    renderForm(dragged, [booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12), true)]);
 
     expect(await screen.findByRole('status')).toHaveTextContent(/Turn on Shareable/);
 
@@ -396,5 +395,70 @@ describe('CreateBookingForm', () => {
     expect(onPreviewChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ start: 13 * 60, end: 14 * 60 + 30 })
     );
+  });
+
+  it('changes only the room for a room-only draft', async () => {
+    const { rerender } = renderForm();
+    await choose('Class type', 'Group');
+
+    rerender({ room: 'BUSSELL' });
+
+    expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Bussell');
+    expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('10:00');
+    expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('11:30');
+    expect(screen.getByRole('combobox', { name: 'Class type' })).toHaveTextContent('Group');
+  });
+
+  it('opens with the class type and shareable choice a draft carries', async () => {
+    renderForm({ ...dragged, classType: 'GROUP', isShareable: true });
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Class type' })).toHaveTextContent('Group')
+    );
+    expect(screen.getByRole('switch', { name: 'Shareable' })).toBeChecked();
+  });
+
+  it('rejects a time that has already passed', async () => {
+    renderForm({
+      room: 'ASTAIRE',
+      start: new Date(2026, 10, 18, 7, 0),
+      end: new Date(2026, 10, 18, 8, 0),
+    });
+    await choose('Class type', 'Private');
+    await submit();
+
+    expect(await screen.findByText('Choose a time that hasn’t passed')).toBeInTheDocument();
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
+  it('never shows the previous class type’s price while the new one loads', async () => {
+    let resolveGroup: (value: Awaited<ReturnType<typeof getDanceClass>>) => void = () => {};
+    jest
+      .mocked(getDanceClass)
+      .mockResolvedValueOnce({
+        classType: 'PRIVATE',
+        active: true,
+        pricePerHour: 20,
+        role: 'ROLE_USER',
+      })
+      .mockReturnValueOnce(new Promise((resolve) => (resolveGroup = resolve)));
+    renderForm();
+    await choose('Class type', 'Private');
+    expect(await screen.findByText('£30.00')).toBeInTheDocument();
+
+    await choose('Class type', 'Group');
+    expect(screen.queryByText('£30.00')).not.toBeInTheDocument();
+
+    resolveGroup({ classType: 'GROUP', active: true, pricePerHour: 10, role: 'ROLE_USER' });
+    expect(await screen.findByText('£15.00')).toBeInTheDocument();
+  });
+
+  it('offers only start times that haven’t passed today', async () => {
+    jest.setSystemTime(new Date(2026, 10, 18, 13, 20));
+    renderForm({ room: 'ASTAIRE', day: new Date(2026, 10, 18) });
+    await userEvent.click(screen.getByRole('combobox', { name: 'Start' }));
+
+    expect(await screen.findByRole('option', { name: '13:30' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: '13:15' })).not.toBeInTheDocument();
   });
 });

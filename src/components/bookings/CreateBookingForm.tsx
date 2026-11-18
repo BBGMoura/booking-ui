@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { CalendarIcon, CircleCheckIcon, CircleXIcon, TriangleAlertIcon } from 'lucide-react';
-import { addDays, format, startOfDay, startOfToday } from 'date-fns';
+import { format, startOfToday } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -27,7 +27,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { createBooking, getRoomSchedule } from '@/lib/api/booking';
+import { createBooking } from '@/lib/api/booking';
 import { getClassTypes, getDanceClass } from '@/lib/api/danceClass';
 import {
   CLASS_TYPES,
@@ -76,23 +76,36 @@ const bookingSchema = z
   .object({
     room: z.enum(Object.values(ROOMS) as [Room, ...Room[]], { error: 'Choose a room' }),
     date: z.date({ error: 'Choose a date' }),
-    start: z.number({ error: 'Choose a start time' }),
-    end: z.number({ error: 'Choose an end time' }),
+    // Null while unchosen (a new date can clear them). Not undefined, which
+    // Controller would read as "use the default value".
+    start: z.number().nullable(),
+    end: z.number().nullable(),
     classType: z.enum(Object.values(CLASS_TYPES) as [ClassType, ...ClassType[]], {
       error: 'Choose a class type',
     }),
     isShareable: z.boolean(),
   })
   .superRefine(({ date, start, end }, ctx) => {
-    const message = validateBookingTime(atMinutes(date, start), atMinutes(date, end));
+    if (start === null)
+      ctx.addIssue({ code: 'custom', path: ['start'], message: 'Choose a start time' });
+    if (end === null)
+      ctx.addIssue({ code: 'custom', path: ['end'], message: 'Choose an end time' });
+    if (start === null || end === null) return;
+    const from = atMinutes(date, start);
+    // The backend allows past times, but booking one is never what's meant.
+    if (from < new Date()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['start'],
+        message: 'Choose a time that hasn’t passed',
+      });
+      return;
+    }
+    const message = validateBookingTime(from, atMinutes(date, end));
     if (message) ctx.addIssue({ code: 'custom', path: ['end'], message });
   });
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
-
-// Clears a time select. Not undefined, which Controller would read as "use the
-// default value". The schema rejects it like any other missing value.
-const NO_TIME = null as unknown as number;
 
 /** What the form is opened or updated with. Anything left out is chosen in the form. */
 export interface BookingDraft {
@@ -102,6 +115,8 @@ export interface BookingDraft {
   end?: Date;
   /** The day to suggest a slot on when there's no range. Defaults to today. */
   day?: Date;
+  classType?: ClassType;
+  isShareable?: boolean;
 }
 
 /** The booking as it stands in the form, for the calendar to preview. */
@@ -111,6 +126,7 @@ export interface BookingPreview {
   /** Minutes after midnight; unset until chosen. */
   start?: number;
   end?: number;
+  classType?: ClassType;
   isShareable: boolean;
 }
 
@@ -121,35 +137,52 @@ interface CreateBookingFormProps {
    * calendar) and keeps everything else the user has chosen.
    */
   draft: BookingDraft;
-  /** Called whenever the room, date, time or shareable choice changes. */
+  /**
+   * The chosen room's bookings around the chosen day, to warn about clashes
+   * before submitting; null while they're loading. The calendar loads them
+   * anyway, so the form doesn't fetch its own copy.
+   */
+  schedule: BookingView[] | null;
+  /** Called whenever any choice changes. */
   onPreviewChange?: (preview: BookingPreview) => void;
   /** The booking was created; `booking` is what the backend saved. */
   onBooked: (booking: BookingView) => void;
   /**
    * The backend refused the time because it clashes with another booking, so
-   * the calendar is out of date. The form stays open and shows the error.
+   * `schedule` is out of date and should be reloaded. The form stays open and
+   * shows the error.
    */
   onConflict: () => void;
 }
 
-function draftValues(draft: BookingDraft): Partial<BookingFormValues> {
+/**
+ * The form values a draft sets. On mount a draft without a range suggests a
+ * slot; after mount it changes only what it names, so picking a room from the
+ * calendar's filters keeps the chosen time.
+ */
+function draftValues(draft: BookingDraft, isUpdate = false): Partial<BookingFormValues> {
+  const values: Partial<BookingFormValues> = {
+    ...(draft.room && { room: draft.room }),
+    ...(draft.classType && { classType: draft.classType }),
+    ...(draft.isShareable !== undefined && { isShareable: draft.isShareable }),
+  };
   if (draft.start && draft.end) {
     return {
-      ...(draft.room && { room: draft.room }),
+      ...values,
       date: draft.start,
       start: minutesOfDay(draft.start),
       end: minutesOfDay(draft.end),
     };
   }
+  if (isUpdate && !draft.day) return values;
   const date = draft.day ?? new Date();
   const slot = defaultBookingSlot(date, new Date());
-  return {
-    ...(draft.room && { room: draft.room }),
-    date,
-    start: slot?.start ?? NO_TIME,
-    end: slot?.end ?? NO_TIME,
-  };
+  return { ...values, date, start: slot?.start ?? null, end: slot?.end ?? null };
 }
+
+/** The start times on offer for `day`, leaving out any that have passed. */
+const upcomingStartTimes = (day: Date, now = new Date()) =>
+  startTimeOptions(day).filter((time) => atMinutes(day, time) >= now);
 
 const formatRange = (b: BookingView) =>
   `${format(new Date(startOf(b as BookingWithEitherDates)!), 'HH:mm')}–${format(new Date(endOf(b as BookingWithEitherDates)!), 'HH:mm')}`;
@@ -207,18 +240,17 @@ function BookingNotice({ notice }: { notice: Notice }) {
  */
 export function CreateBookingForm({
   draft,
+  schedule,
   onPreviewChange,
   onBooked,
   onConflict,
 }: CreateBookingFormProps) {
   const [classTypes, setClassTypes] = useState<ClassType[] | null>(null);
   const [classTypesFailed, setClassTypesFailed] = useState(false);
-  const [pricePerHour, setPricePerHour] = useState<number | null>(null);
+  // Tagged with its class type, so a switch never shows the previous price.
+  const [price, setPrice] = useState<{ classType: ClassType; perHour: number } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  // The room's bookings for one day, tagged with which room and day they're for.
-  const [schedule, setSchedule] = useState<{ key: string; bookings: BookingView[] } | null>(null);
-  const [scheduleVersion, setScheduleVersion] = useState(0);
   // A booking the backend refused, tagged with the choices it was for, so the
   // error clears as soon as the user changes any of them.
   const [rejection, setRejection] = useState<{ key: string; message: string } | null>(null);
@@ -243,14 +275,12 @@ export function CreateBookingForm({
     if (appliedDraft.current === draft) return;
     appliedDraft.current = draft;
     const options = { shouldValidate: form.formState.isSubmitted };
-    for (const [name, value] of Object.entries(draftValues(draft))) {
+    for (const [name, value] of Object.entries(draftValues(draft, true))) {
       form.setValue(name as keyof BookingFormValues, value as never, options);
     }
   }, [draft, form]);
 
-  const day = date ? startOfDay(date) : null;
-  const scheduleKey = room && day ? `${room}|${day.getTime()}` : null;
-  const choiceKey = `${scheduleKey}|${start}|${end}|${isShareable}`;
+  const choiceKey = `${room}|${date?.getTime()}|${start}|${end}|${isShareable}`;
 
   useEffect(() => {
     onPreviewChange?.({
@@ -258,29 +288,11 @@ export function CreateBookingForm({
       date,
       start: start ?? undefined,
       end: end ?? undefined,
+      classType,
       isShareable,
     });
     // `date` is compared by value: the form hands out a new Date only when it changes.
-  }, [onPreviewChange, room, date, start, end, isShareable]);
-
-  useEffect(() => {
-    if (!room || !day || !scheduleKey) return;
-    let current = true;
-    getRoomSchedule(room, toOffsetDateTime(day), toOffsetDateTime(addDays(day, 1)))
-      .then((bookings) => {
-        if (current) setSchedule({ key: scheduleKey, bookings });
-      })
-      .catch(() => {
-        // Without the schedule there's nothing to check against; the backend
-        // still rejects a clash on submit.
-        if (current) setSchedule(null);
-      });
-    return () => {
-      current = false;
-    };
-    // `day` is derived from scheduleKey, which is what should trigger a fetch.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleKey, scheduleVersion]);
+  }, [onPreviewChange, room, date, start, end, classType, isShareable]);
 
   useEffect(() => {
     let current = true;
@@ -301,10 +313,10 @@ export function CreateBookingForm({
     let current = true;
     getDanceClass(classType)
       .then((danceClass) => {
-        if (current) setPricePerHour(danceClass.pricePerHour);
+        if (current) setPrice({ classType, perHour: danceClass.pricePerHour });
       })
       .catch(() => {
-        if (current) setPricePerHour(null);
+        if (current) setPrice(null);
       });
     return () => {
       current = false;
@@ -315,11 +327,11 @@ export function CreateBookingForm({
   function changeDate(next: Date) {
     form.setValue('date', next, { shouldValidate: true });
     if (start == null) return;
-    if (!startTimeOptions(next).includes(start)) {
-      form.setValue('start', NO_TIME);
-      form.setValue('end', NO_TIME);
+    if (!upcomingStartTimes(next).includes(start)) {
+      form.setValue('start', null);
+      form.setValue('end', null);
     } else if (end != null && !endTimeOptions(next, start).includes(end)) {
-      form.setValue('end', NO_TIME);
+      form.setValue('end', null);
     }
   }
 
@@ -335,10 +347,9 @@ export function CreateBookingForm({
   }
 
   const hasTime = !!date && start != null && end != null && end > start;
-  const loadedSchedule = schedule && schedule.key === scheduleKey ? schedule.bookings : null;
   const localConflict =
-    loadedSchedule && hasTime
-      ? findConflict(loadedSchedule, {
+    schedule && room && hasTime
+      ? findConflict(schedule, {
           start: atMinutes(date, start),
           end: atMinutes(date, end),
           isShareable,
@@ -356,7 +367,7 @@ export function CreateBookingForm({
         { tone: 'error', message: clash ?? rejected }
       : clash
         ? { tone: 'warning', message: clash }
-        : loadedSchedule && hasTime && room
+        : schedule && hasTime && room
           ? { tone: 'free', room }
           : null;
 
@@ -367,22 +378,22 @@ export function CreateBookingForm({
         room: values.room,
         classType: values.classType,
         isShareable: values.isShareable,
-        dateFrom: toOffsetDateTime(atMinutes(values.date, values.start)),
-        dateTo: toOffsetDateTime(atMinutes(values.date, values.end)),
+        // The schema rejects a missing time, so both are set here.
+        dateFrom: toOffsetDateTime(atMinutes(values.date, values.start!)),
+        dateTo: toOffsetDateTime(atMinutes(values.date, values.end!)),
       });
       onBooked(booking);
       return;
     } catch (exception) {
       const { status, code } = getApiErrorInfo(exception);
       if (status === 400 && (code === 'BOOKING_CONFLICT' || code === 'BOOKING_SHAREABLE_LIMIT')) {
-        // Show it beside the button rather than in a toast, keep everything
-        // the user entered, and reload the room so the error can say what's
-        // in the way.
+        // Show it beside the button rather than in a toast and keep everything
+        // the user entered. Once the caller reloads the schedule, the error
+        // can say what's in the way.
         setRejection({
           key: choiceKey,
           message: code === 'BOOKING_CONFLICT' ? NOT_FREE_MESSAGE : SHAREABLE_FULL_MESSAGE,
         });
-        setScheduleVersion((v) => v + 1);
         onConflict();
       } else if (status === 503 && code === 'BOOKING_LOCK_TIMEOUT') {
         form.setError('root', { message: HIGH_DEMAND_MESSAGE });
@@ -396,8 +407,9 @@ export function CreateBookingForm({
   }
 
   const minutes = hasTime ? end - start : null;
-  const price = minutes !== null && pricePerHour !== null ? (pricePerHour * minutes) / 60 : null;
-  const startOptions = date ? startTimeOptions(date) : [];
+  const pricePerHour = price && price.classType === classType ? price.perHour : null;
+  const total = minutes !== null && pricePerHour !== null ? (pricePerHour * minutes) / 60 : null;
+  const startOptions = date ? upcomingStartTimes(date) : [];
   const endOptions = date && start != null ? endTimeOptions(date, start) : [];
 
   return (
@@ -637,7 +649,7 @@ export function CreateBookingForm({
             </p>
           </div>
           <p className="text-base font-semibold tabular-nums">
-            {price === null ? '—' : formatPrice(price)}
+            {total === null ? '—' : formatPrice(total)}
           </p>
         </div>
       </div>

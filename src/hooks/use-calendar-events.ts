@@ -144,5 +144,12 @@ export function useCalendarEvents(
     [room, showMine, data, showBooker, viewerName]
   );
 
-  return { events, loading: !!range && !data && !error, error, refresh };
+  return {
+    events,
+    /** Every room's bookings in the visible range, or null until they've loaded. */
+    schedules: data?.schedules ?? null,
+    loading: !!range && !data && !error,
+    error,
+    refresh,
+  };
 }

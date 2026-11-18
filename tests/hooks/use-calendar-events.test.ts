@@ -140,6 +140,14 @@ describe('useCalendarEvents', () => {
     expect(result.current.events[0].title).toBe('Private · Jane Smith');
   });
 
+  it('exposes every room’s bookings for the visible range once loaded', async () => {
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
+    expect(result.current.schedules).toBeNull();
+
+    await waitFor(() => expect(result.current.schedules).not.toBeNull());
+    expect(result.current.schedules!.FOSSE).toEqual([b('FOSSE-booking', 'FOSSE')]);
+  });
+
   it('refresh refetches the visible range and shows the new data', async () => {
     const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
     await waitFor(() => expect(result.current.events).toHaveLength(1));

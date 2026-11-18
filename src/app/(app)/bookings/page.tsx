@@ -1,44 +1,24 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
-import {
-  type BusinessHoursInput,
-  type EventInput,
-  useCalendarController,
-} from '@fullcalendar/react';
-import { startOfDay } from 'date-fns';
-import { PlusIcon, XIcon } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { type BusinessHoursInput, useCalendarController } from '@fullcalendar/react';
+import { PlusIcon } from 'lucide-react';
 import { BookingConfirmation } from '@/components/bookings/BookingConfirmation';
 import { BookingEventContent } from '@/components/bookings/BookingEventContent';
-import {
-  type BookingDraft,
-  type BookingPreview,
-  CreateBookingForm,
-} from '@/components/bookings/CreateBookingForm';
+import { BookingSurface } from '@/components/bookings/BookingSurface';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
+import { CreateBookingForm } from '@/components/bookings/CreateBookingForm';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { canSelect, useNewBooking } from '@/hooks/use-new-booking';
 import { useAuth } from '@/lib/context/AuthContext';
 import { USER_ROLES } from '@/lib/types/auth';
-import type { BookingView } from '@/lib/types/booking';
-import {
-  atMinutes,
-  OPENING_HOURS_BY_DAY,
-  TIME_STEP_MINUTES,
-  validateBookingTime,
-} from '@/lib/utils/bookingTime';
-import { type BookingEventProps, MINE_COLOR, ROOM_LABELS } from '@/lib/utils/calendarEvents';
+import { OPENING_HOURS_BY_DAY, TIME_STEP_MINUTES } from '@/lib/utils/bookingTime';
+import { MINE_COLOR } from '@/lib/utils/calendarEvents';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
@@ -69,20 +49,10 @@ const EVENT_SHORT_HEIGHT = 30;
 // than over it.
 const SIDE_PANEL_QUERY = '(min-width: 1024px) and (min-height: 600px)';
 
-const PREVIEW_EVENT_ID = 'new-booking';
-
 const BOOKING_TITLE = 'New booking';
 const BOOKING_DESCRIPTION = 'Choose a room and time, then the type of class.';
 const CONFIRMED_TITLE = 'Booking confirmed';
 const CONFIRMED_DESCRIPTION = 'Here are the details of your booking.';
-
-// Today if it's on screen, otherwise the first day shown, so the form opens on
-// the week the user is looking at.
-function suggestedDay(range: DateRange | null): Date {
-  const today = new Date();
-  if (!range || (today >= range.start && today < range.end)) return today;
-  return range.start;
-}
 
 export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, showRoom, setShowMine } = useCalendarView();
@@ -92,17 +62,18 @@ export default function BookingsPage() {
   const fixedHeight = useFixedHeightLayout();
   const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
-  const [draft, setDraft] = useState<BookingDraft | null>(null);
-  const [preview, setPreview] = useState<BookingPreview | null>(null);
-  // Set once the booking is made: the panel shows its confirmation instead of
-  // the form until the user closes it.
-  const [confirmed, setConfirmed] = useState<BookingView | null>(null);
-  // The view to go back to once the form closes, since it switches to day view.
-  const viewBeforeBooking = useRef<string | null>(null);
-  const previewDay = useRef<number | null>(null);
-  const { events, loading, error, refresh } = useCalendarEvents(room, showMine, range, {
+  const { events, schedules, loading, error, refresh } = useCalendarEvents(room, showMine, range, {
     showBooker: hasRole(USER_ROLES.ADMIN),
     viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
+  });
+  const booking = useNewBooking({
+    controller,
+    room,
+    range,
+    showRoom,
+    schedules,
+    refresh,
+    sidePanel,
   });
   const handleDatesSet = useCallback(
     (info: { start: Date; end: Date }) =>
@@ -115,89 +86,13 @@ export default function BookingsPage() {
       ),
     []
   );
-  const openBooking = (next: BookingDraft) => {
-    if (!draft) viewBeforeBooking.current = controller.view?.type ?? null;
-    // Picking a new range from the confirmation starts the next booking.
-    setConfirmed(null);
-    setDraft(next);
-  };
-  const openNewBooking = () => openBooking({ room: room ?? undefined, day: suggestedDay(range) });
-  const closeBooking = useCallback(() => {
-    setDraft(null);
-    setPreview(null);
-    setConfirmed(null);
-    previewDay.current = null;
-    if (viewBeforeBooking.current) controller.changeView(viewBeforeBooking.current);
-    viewBeforeBooking.current = null;
-  }, [controller]);
-  // The calendar stays on the booking's day behind the confirmation, with the
-  // placeholder replaced by the real booking once it reloads.
-  const handleBooked = useCallback(
-    (booking: BookingView) => {
-      setConfirmed(booking);
-      setPreview(null);
-      void refresh();
-    },
-    [refresh]
+  const calendarEvents = useMemo(
+    () => (booking.previewEvent ? [...events, booking.previewEvent] : events),
+    [events, booking.previewEvent]
   );
-  const handleConflict = useCallback(() => void refresh(), [refresh]);
-  // While the form is open the calendar follows it: the chosen room's schedule
-  // on the chosen day, so the user sees what else is booked around their time.
-  const handlePreviewChange = useCallback(
-    (next: BookingPreview) => {
-      setPreview(next);
-      if (next.room) showRoom(next.room);
-      const day = next.date ? startOfDay(next.date).getTime() : null;
-      if (day !== null && day !== previewDay.current) {
-        previewDay.current = day;
-        controller.changeView('timeGridDay');
-        controller.gotoDate(day);
-      }
-    },
-    [controller, showRoom]
-  );
-
-  const calendarEvents = useMemo((): EventInput[] => {
-    if (!preview?.date || preview.start == null || preview.end == null) return events;
-    if (preview.end <= preview.start) return events;
-    const props: BookingEventProps = {
-      heading: BOOKING_TITLE,
-      detail: preview.room && ROOM_LABELS[preview.room],
-      shareable: preview.isShareable,
-      mine: true,
-    };
-    const previewEvent: EventInput = {
-      id: PREVIEW_EVENT_ID,
-      start: atMinutes(preview.date, preview.start),
-      end: atMinutes(preview.date, preview.end),
-      color: MINE_COLOR,
-      // Dragging or resizing it moves the time in the form.
-      editable: true,
-      classNames: ['border-dashed', 'border-(--fc-event-color)'],
-      extendedProps: props,
-    };
-    return [...events, previewEvent];
-  }, [events, preview]);
-
-  const movePreview = (event: { id: string; start: Date | null; end: Date | null }) => {
-    if (event.id !== PREVIEW_EVENT_ID || !event.start || !event.end) return;
-    setDraft({ room: preview?.room, start: event.start, end: event.end });
-  };
-
-  const title = confirmed ? CONFIRMED_TITLE : BOOKING_TITLE;
-  const description = confirmed ? CONFIRMED_DESCRIPTION : BOOKING_DESCRIPTION;
-  const bookingContent = confirmed ? (
-    <BookingConfirmation booking={confirmed} onDone={closeBooking} />
-  ) : (
-    draft && (
-      <CreateBookingForm
-        draft={draft}
-        onPreviewChange={handlePreviewChange}
-        onBooked={handleBooked}
-        onConflict={handleConflict}
-      />
-    )
-  );
+  // While the form is open, the room filters pick the form's room, so the
+  // calendar and the form can't show different rooms.
+  const handleRoomSelect = booking.isOpen && !booking.confirmed ? booking.chooseRoom : selectRoom;
 
   return (
     // When the layout is locked to the viewport, the page takes the remaining
@@ -210,13 +105,13 @@ export default function BookingsPage() {
           room={room}
           showMine={showMine}
           showMineLocked={showMineLocked}
-          onRoomSelect={selectRoom}
+          onRoomSelect={handleRoomSelect}
           onShowMineChange={setShowMine}
         />
         <Button
           className="hidden shrink-0 sm:inline-flex"
-          onClick={openNewBooking}
-          disabled={!!draft}
+          onClick={booking.openNew}
+          disabled={booking.isOpen}
         >
           <PlusIcon />
           New booking
@@ -228,7 +123,7 @@ export default function BookingsPage() {
         size="icon"
         className="fixed right-5 bottom-5 z-40 size-14 rounded-full shadow-lg sm:hidden [&_svg:not([class*='size-'])]:size-6"
         aria-label="New booking"
-        onClick={openNewBooking}
+        onClick={booking.openNew}
       >
         <PlusIcon />
       </Button>
@@ -276,62 +171,51 @@ export default function BookingsPage() {
             // behind it would only double it up.
             highlightClass="hidden"
             snapDuration={toTime(TIME_STEP_MINUTES)}
-            selectAllow={(span) => validateBookingTime(span.start, span.end) === null}
+            selectAllow={(span) => canSelect(span)}
             select={(info) => {
-              // With the form open, a new range moves its time rather than
-              // starting over.
-              openBooking({
-                room: preview?.room ?? room ?? undefined,
-                start: info.start,
-                end: info.end,
-              });
+              booking.select(info);
               info.view.calendar.unselect();
             }}
-            eventDrop={(info) => movePreview(info.event)}
-            eventResize={(info) => movePreview(info.event)}
+            eventDrop={(info) => booking.movePreview(info.event)}
+            eventResize={(info) => booking.movePreview(info.event)}
           />
         </div>
-        {draft && sidePanel && (
-          <aside
-            aria-labelledby="new-booking-title"
-            className="bg-card flex w-96 shrink-0 flex-col rounded-2xl border p-6 shadow-sm"
-          >
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <h2 id="new-booking-title" className="text-lg leading-none font-semibold">
-                  {title}
-                </h2>
-                <p className="text-muted-foreground text-sm">{description}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="-mt-2 -mr-2"
-                aria-label="Close"
-                onClick={closeBooking}
-              >
-                <XIcon />
-              </Button>
-            </div>
-            {bookingContent}
-          </aside>
-        )}
+        {booking.isOpen && sidePanel && <BookingSurfaceFor booking={booking} sidePanel />}
       </div>
-      {draft && !sidePanel && (
-        <Dialog open onOpenChange={(open) => !open && closeBooking()}>
-          {/* As wide as the screen on phones, centred like any other dialog. */}
-          <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col max-sm:max-w-none max-sm:border-x-0">
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-              {/* Phones need the room for the form itself. */}
-              <DialogDescription className="sr-only sm:not-sr-only">
-                {description}
-              </DialogDescription>
-            </DialogHeader>
-            {bookingContent}
-          </DialogContent>
-        </Dialog>
-      )}
+      {booking.isOpen && !sidePanel && <BookingSurfaceFor booking={booking} sidePanel={false} />}
     </div>
+  );
+}
+
+/** The booking form, or its confirmation once booked, in the panel or dialog. */
+function BookingSurfaceFor({
+  booking,
+  sidePanel,
+}: {
+  booking: ReturnType<typeof useNewBooking>;
+  sidePanel: boolean;
+}) {
+  const { confirmed, draft } = booking;
+  return (
+    <BookingSurface
+      sidePanel={sidePanel}
+      title={confirmed ? CONFIRMED_TITLE : BOOKING_TITLE}
+      description={confirmed ? CONFIRMED_DESCRIPTION : BOOKING_DESCRIPTION}
+      onClose={booking.close}
+    >
+      {confirmed ? (
+        <BookingConfirmation booking={confirmed} onDone={booking.close} />
+      ) : (
+        draft && (
+          <CreateBookingForm
+            draft={draft}
+            schedule={booking.schedule}
+            onPreviewChange={booking.handlePreviewChange}
+            onBooked={booking.handleBooked}
+            onConflict={booking.handleConflict}
+          />
+        )
+      )}
+    </BookingSurface>
   );
 }
