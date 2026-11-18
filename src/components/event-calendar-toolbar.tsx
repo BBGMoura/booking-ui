@@ -26,7 +26,7 @@ export function EventCalendarToolbar({
 
   return (
     <div className={cn('flex flex-wrap items-center justify-between gap-3', className)}>
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {addButton && (
           <Button onClick={addButton.click as any} aria-label={addButton.hint}>
             {addButton.text}
@@ -59,7 +59,7 @@ export function EventCalendarToolbar({
             <EventCalendarNextIcon />
           </Button>
         </div>
-        <div className="text-xl">{controller.view?.title}</div>
+        <div className="text-lg sm:text-xl">{controller.view?.title}</div>
       </div>
       <Tabs value={controller.view?.type ?? availableViews[0]}>
         <TabsList>
