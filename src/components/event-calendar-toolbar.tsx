@@ -1,3 +1,6 @@
+// Started from the FullCalendar shadcn registry (@fullcalendar/breezy-event-calendar)
+// and since customised, so it's our code now. Re-running `shadcn add` for it would
+// overwrite these changes; diff before accepting.
 import { CalendarController } from '@fullcalendar/react';
 import { EventCalendarNextIcon, EventCalendarPrevIcon } from '@/components/event-calendar-icons';
 import { Button } from '@/components/ui/button';
@@ -29,7 +32,7 @@ export function EventCalendarToolbar({
     <div className={cn('flex flex-wrap items-center justify-between gap-3', className)}>
       <div className="flex flex-wrap items-center gap-3">
         {addButton && (
-          <Button onClick={addButton.click as any} aria-label={addButton.hint}>
+          <Button onClick={(ev) => addButton.click?.(ev.nativeEvent)} aria-label={addButton.hint}>
             {addButton.text}
           </Button>
         )}

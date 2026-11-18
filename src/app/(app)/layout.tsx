@@ -7,13 +7,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // On screens big enough for it, the layout is locked to the viewport and
     // the page area scrolls under the header, so a page can fill the remaining
     // height with flex-1 instead of subtracting the header and padding itself.
-    // Phones keep normal document scrolling. The media query is mirrored in
-    // useFixedHeightLayout.
-    <SidebarProvider className="[@media(min-width:768px)_and_(min-height:600px)]:h-svh">
+    // Phones keep normal document scrolling. The breakpoint is the
+    // `fixed-layout` variant in globals.css.
+    <SidebarProvider className="fixed-layout:h-svh">
       <AppSidebar />
       <SidebarInset className="min-w-0">
         <AppHeader />
-        <div className="flex flex-1 flex-col gap-4 p-10 [@media(min-width:768px)_and_(min-height:600px)]:min-h-0 [@media(min-width:768px)_and_(min-height:600px)]:overflow-y-auto">
+        <div className="fixed-layout:min-h-0 fixed-layout:overflow-y-auto flex flex-1 flex-col gap-4 p-10">
           {children}
         </div>
       </SidebarInset>

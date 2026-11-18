@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
-// Must match the arbitrary variant in `src/app/(app)/layout.tsx`, which can't
-// read this constant because Tailwind only sees literal class names.
+// Must match the `fixed-layout` variant in `src/app/globals.css`. CSS can't read
+// a JS constant, so the query lives in both places.
 const FIXED_HEIGHT_LAYOUT_QUERY = '(min-width: 768px) and (min-height: 600px)';
 
 const subscribe = (onChange: () => void) => {

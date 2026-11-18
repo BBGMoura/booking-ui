@@ -1,3 +1,6 @@
+// Started from the FullCalendar shadcn registry (@fullcalendar/breezy-event-calendar)
+// and since customised, so it's our code now. Re-running `shadcn add` for it would
+// overwrite these changes; diff before accepting.
 import { type CalendarOptions, useCalendarController } from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/react/daygrid';
 import interactionPlugin from '@fullcalendar/react/interaction';
