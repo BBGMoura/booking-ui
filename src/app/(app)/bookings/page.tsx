@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import type { BusinessHoursInput } from '@fullcalendar/react';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { EventCalendar } from '@/components/event-calendar';
 import { useCalendarView } from '@/hooks/use-calendar-view';
+import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
@@ -26,36 +27,17 @@ const CLOSED_HOURS_CLASS = 'bg-muted/60';
 const GRID_START_MINUTES = 8 * 60;
 const GRID_END_MINUTES = 20 * 60 + 30;
 
-// A viewport-high calendar only leaves a usable grid under the controls and
-// toolbar on screens that are wide and tall enough. Elsewhere (phones in
-// either orientation) the whole page scrolls instead. Keep in sync with the
-// arbitrary variant on the page wrapper below.
-const FIXED_HEIGHT_QUERY = '(min-width: 768px) and (min-height: 600px)';
-
-const subscribeToFixedHeight = (onChange: () => void) => {
-  const mql = window.matchMedia(FIXED_HEIGHT_QUERY);
-  mql.addEventListener('change', onChange);
-  return () => mql.removeEventListener('change', onChange);
-};
-
-function useFixedHeightCalendar() {
-  return useSyncExternalStore(
-    subscribeToFixedHeight,
-    () => window.matchMedia(FIXED_HEIGHT_QUERY).matches,
-    () => false
-  );
-}
-
 export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, setShowMine } = useCalendarView();
   const [scrollTime] = useState(() => initialScrollTime(new Date(), GRID_START_MINUTES));
-  const fixedHeight = useFixedHeightCalendar();
+  const fixedHeight = useFixedHeightLayout();
 
   return (
-    // With a fixed height the page fills the viewport so the calendar scrolls
-    // inside its card, keeping the toolbar and day headers in view. 10rem is
-    // the app header plus the layout's padding and inset margin.
-    <div className="flex flex-col gap-4 [@media(min-width:768px)_and_(min-height:600px)]:h-[calc(100svh-10rem)]">
+    // When the layout is locked to the viewport, the page takes the remaining
+    // height and the calendar scrolls inside its card, keeping the toolbar and
+    // day headers in view. Otherwise (phones) the calendar is full height and
+    // the whole page scrolls, since a viewport-high grid would be too short.
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <CalendarControls
         room={room}
         showMine={showMine}
