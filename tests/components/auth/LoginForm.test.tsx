@@ -234,7 +234,7 @@ describe('LoginForm', () => {
       });
     });
 
-    it('clears password field on failed login', async () => {
+    it('keeps the password on failed login', async () => {
       const mockLogin = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
       mockUseAuth({ login: mockLogin });
 
@@ -244,9 +244,8 @@ describe('LoginForm', () => {
       await userEvent.type(screen.getByLabelText('Password'), validPassword);
       await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
-      await waitFor(() => {
-        expect(screen.getByLabelText('Password')).toHaveValue('');
-      });
+      await screen.findByText('Login Error');
+      expect(screen.getByLabelText('Password')).toHaveValue(validPassword);
     });
   });
 
@@ -297,10 +296,9 @@ describe('LoginForm', () => {
 
       expect(await screen.findByText('Login Error')).toBeInTheDocument();
       expect(mockLogin).toHaveBeenCalledTimes(2);
-      expect(screen.getByLabelText('Password')).toHaveValue('');
     });
 
-    it('keeps a backend error on the password field after clearing it', async () => {
+    it('shows a backend error on the password field', async () => {
       const mockLogin = jest.fn().mockRejectedValue({
         isAxiosError: true,
         response: {
@@ -322,7 +320,6 @@ describe('LoginForm', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
       expect(await screen.findByText('password must not be blank')).toBeInTheDocument();
-      expect(screen.getByLabelText('Password')).toHaveValue('');
     });
   });
 
