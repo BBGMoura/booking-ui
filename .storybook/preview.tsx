@@ -4,6 +4,8 @@ import { withThemeByClassName } from '@storybook/addon-themes';
 import '../src/app/globals.css';
 
 sb.mock('../src/lib/api/auth.ts');
+sb.mock('../src/lib/api/booking.ts');
+sb.mock('../src/lib/api/danceClass.ts');
 
 const preview: Preview = {
   decorators: [

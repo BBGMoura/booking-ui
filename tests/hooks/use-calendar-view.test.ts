@@ -46,4 +46,11 @@ describe('useCalendarView', () => {
     act(() => result.current.selectRoom('ALEX_MOORE'));
     expect(result.current.room).toBe('ALEX_MOORE');
   });
+
+  it('shows a room without deselecting it when it is already shown', () => {
+    const { result } = renderHook(() => useCalendarView());
+    act(() => result.current.showRoom('FOSSE'));
+    act(() => result.current.showRoom('FOSSE'));
+    expect(result.current.room).toBe('FOSSE');
+  });
 });
