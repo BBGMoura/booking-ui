@@ -49,11 +49,10 @@ export function BookingConfirmation({ booking, onDone }: BookingConfirmationProp
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6 py-1">
         <div className="flex flex-col items-center pt-2 pb-6 text-center">
-          <span className="grid size-14 place-items-center rounded-full bg-emerald-100 ring-8 ring-emerald-50 dark:bg-emerald-950 dark:ring-emerald-950/40">
-            <CheckIcon
-              className="size-7 text-emerald-600 dark:text-emerald-400"
-              strokeWidth={2.5}
-            />
+          <span className="grid size-16 place-items-center rounded-full bg-emerald-100 dark:bg-emerald-950">
+            <span className="grid size-11 place-items-center rounded-full bg-emerald-600">
+              <CheckIcon className="size-6 text-white" strokeWidth={3} />
+            </span>
           </span>
           <p className="mt-5 text-lg font-semibold">You’re booked!</p>
           <p className="text-muted-foreground mt-1 text-sm">
