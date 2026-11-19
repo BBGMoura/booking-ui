@@ -42,6 +42,35 @@ export function suggestedDay(range: DateRange | null, now = new Date()): Date {
   return range.start;
 }
 
+/**
+ * The calendar's placeholder for the booking in the form, or null until it has
+ * a date and a valid time.
+ */
+export function previewEventFor(preview: BookingPreview | null): EventInput | null {
+  if (!preview?.date || preview.start === undefined || preview.end === undefined) return null;
+  if (preview.end <= preview.start) return null;
+  const props: BookingEventProps = {
+    // Named like a real booking once there's a class type to name it by.
+    heading: preview.classType ? CLASS_TYPE_LABELS[preview.classType] : PREVIEW_EVENT_TITLE,
+    detail: preview.room && ROOM_LABELS[preview.room],
+    shareable: preview.isShareable,
+    mine: true,
+  };
+  return {
+    id: PREVIEW_EVENT_ID,
+    start: atMinutes(preview.date, preview.start),
+    end: atMinutes(preview.date, preview.end),
+    color: MINE_COLOR,
+    // Dragging or resizing it moves the time in the form.
+    editable: true,
+    // A pale fill inside a dashed outline in the text's colour marks it as a
+    // draft, not a booking yet. Important, as the registry's tile classes set
+    // their own border and background.
+    className: PREVIEW_EVENT_CLASS,
+    extendedProps: props,
+  };
+}
+
 /** The draft that recreates the form as it stands, for when it has to remount. */
 function draftFromPreview(preview: BookingPreview): BookingDraft {
   const { room, date, start, end, classType, isShareable } = preview;
@@ -129,30 +158,7 @@ export function useNewBooking({
     [controller, showRoom]
   );
 
-  const previewEvent = useMemo((): EventInput | null => {
-    if (!preview?.date || preview.start === undefined || preview.end === undefined) return null;
-    if (preview.end <= preview.start) return null;
-    const props: BookingEventProps = {
-      // Named like a real booking once there's a class type to name it by.
-      heading: preview.classType ? CLASS_TYPE_LABELS[preview.classType] : PREVIEW_EVENT_TITLE,
-      detail: preview.room && ROOM_LABELS[preview.room],
-      shareable: preview.isShareable,
-      mine: true,
-    };
-    return {
-      id: PREVIEW_EVENT_ID,
-      start: atMinutes(preview.date, preview.start),
-      end: atMinutes(preview.date, preview.end),
-      color: MINE_COLOR,
-      // Dragging or resizing it moves the time in the form.
-      editable: true,
-      // A pale fill inside a dashed outline in the text's colour marks it as a
-      // draft, not a booking yet. Important, as the registry's tile classes set
-      // their own border and background.
-      className: PREVIEW_EVENT_CLASS,
-      extendedProps: props,
-    };
-  }, [preview]);
+  const previewEvent = useMemo(() => previewEventFor(preview), [preview]);
 
   // The calendar's bookings cover the form's day once it has navigated there,
   // so the form checks clashes against those rather than fetching them again.
