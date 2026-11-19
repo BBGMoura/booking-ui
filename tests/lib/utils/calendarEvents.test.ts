@@ -63,6 +63,7 @@ describe('buildCalendarEvents', () => {
     const other = booking('x', 'ASTAIRE', { firstName: null, lastName: null });
     const [event] = buildCalendarEvents('ASTAIRE', false, [other], [], admin);
     expect(props(event).detail).toBe('No name');
+    expect(props(event).details.bookerName).toBeUndefined();
   });
 
   it("shows the viewer's own name on their bookings, falling back when they have none", () => {

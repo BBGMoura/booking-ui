@@ -1,8 +1,18 @@
 import { useState } from 'react';
+import {
+  CircleCheck,
+  CircleX,
+  PoundSterling,
+  Trash2,
+  User,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { cancelBooking, cancelBookingAsAdmin } from '@/lib/api/booking';
 import { parseApiError } from '@/lib/utils/errorUtils';
+import type { BookingStatus } from '@/lib/types/booking';
 import { CLASS_TYPE_LABELS, ROOM_LABELS, type BookingDetails } from '@/lib/utils/calendarEvents';
 
 interface BookingDetailsPopoverProps {
@@ -18,18 +28,27 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
-  year: 'numeric',
 });
 const timeFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 function formatWhen(start: string, end: string) {
   const from = new Date(start);
-  return `${dateFormat.format(from)}, ${timeFormat.format(from)}–${timeFormat.format(new Date(end))}`;
+  return `${dateFormat.format(from)} · ${timeFormat.format(from)}–${timeFormat.format(new Date(end))}`;
 }
 
+const STATUS_META: Partial<Record<BookingStatus, { label: string; icon: LucideIcon }>> = {
+  CANCELLED: { label: 'Cancelled', icon: CircleX },
+  COMPLETED: { label: 'Completed', icon: CircleCheck },
+};
+
 /**
- * Details of the clicked booking. What's shown was already decided by the role
- * rules when the event was built; this only lays it out and handles cancelling.
+ * A small card with more about the clicked booking. What's shown was already
+ * decided by the role rules when the event was built; this only lays it out
+ * and handles cancelling.
+ *
+ * It's meant to read as a quiet "more info" card, not a form: only facts worth
+ * noticing get a line (a name, shareable, a non-zero price, a status other than
+ * the usual "booked"), and cancelling stays a muted action until it's confirmed.
  *
  * Cancelling needs a second click because it can't be undone. The confirmation
  * is inline rather than a separate dialog so Escape and focus keep working
@@ -49,15 +68,22 @@ export function BookingDetailsPopover({
   // Bookings that have started can't be cancelled.
   const canCancel = details.cancellable && new Date(details.start).getTime() > Date.now();
 
-  const rows: [string, string | undefined][] = [
-    ['Teacher', details.bookerName],
-    ['Room', details.room && ROOM_LABELS[details.room]],
-    ['When', formatWhen(details.start, details.end)],
-    ['Class type', CLASS_TYPE_LABELS[details.classType]],
-    ['Shareable', details.shareable ? 'Yes' : 'No'],
-    ['Status', details.status && details.status.charAt(0) + details.status.slice(1).toLowerCase()],
-    ['Price', details.price === undefined ? undefined : `£${details.price.toFixed(2)}`],
-  ];
+  const title = [CLASS_TYPE_LABELS[details.classType], details.room && ROOM_LABELS[details.room]]
+    .filter(Boolean)
+    .join(' · ');
+  const status = details.status && STATUS_META[details.status];
+  const facts: { key: string; icon: LucideIcon; text: string; srLabel?: string }[] = [];
+  if (details.bookerName)
+    facts.push({ key: 'name', icon: User, text: details.bookerName, srLabel: 'Booked by' });
+  if (details.shareable) facts.push({ key: 'shareable', icon: Users, text: 'Shareable' });
+  if (details.price)
+    facts.push({
+      key: 'price',
+      icon: PoundSterling,
+      text: details.price.toFixed(2),
+      srLabel: 'Price £',
+    });
+  if (status) facts.push({ key: 'status', icon: status.icon, text: status.label });
 
   async function confirmCancel() {
     if (cancelling) return;
@@ -78,61 +104,84 @@ export function BookingDetailsPopover({
       <PopoverAnchor virtualRef={{ current: anchor }} />
       <PopoverContent
         aria-label="Booking details"
+        className="w-64 p-3"
+        tabIndex={-1}
+        onOpenAutoFocus={(e) => {
+          // By default the first button (Cancel) takes focus and shows a focus
+          // ring, so opening the card looks like it's offering to cancel.
+          e.preventDefault();
+          (e.target as HTMLElement).focus();
+        }}
         onCloseAutoFocus={(e) => {
           // Nothing triggers this popover, so put focus back on the tile.
           e.preventDefault();
           anchor.focus();
         }}
       >
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-          {rows
-            .filter((row): row is [string, string] => row[1] !== undefined)
-            .map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="text-muted-foreground">{label}</dt>
-                <dd>{value}</dd>
-              </div>
+        <p className="text-sm leading-snug font-medium">{title}</p>
+        <p className="text-muted-foreground mt-0.5 text-xs">
+          {formatWhen(details.start, details.end)}
+        </p>
+        {facts.length > 0 && (
+          <ul className="text-muted-foreground mt-2.5 space-y-1 text-xs">
+            {facts.map(({ key, icon: Icon, text, srLabel }) => (
+              <li key={key} className="flex items-center gap-2">
+                <Icon className="size-3.5 shrink-0" aria-hidden />
+                <span className="text-foreground/90 truncate">
+                  {srLabel && <span className="sr-only">{srLabel} </span>}
+                  {text}
+                </span>
+              </li>
             ))}
-        </dl>
+          </ul>
+        )}
         {error && (
-          <p role="alert" className="text-destructive mt-3 text-sm">
+          <p role="alert" className="text-destructive mt-2.5 text-xs">
             {error}
           </p>
         )}
-        {canCancel &&
-          (confirming ? (
-            <div className="mt-4 space-y-2">
-              <p className="text-sm">Cancel this booking? This can&apos;t be undone.</p>
-              <div className="flex gap-2">
+        {canCancel && (
+          <div className="mt-3 border-t pt-2">
+            {confirming ? (
+              <div className="space-y-2">
+                <p className="text-xs">Cancel this booking? This can&apos;t be undone.</p>
+                <div className="flex justify-end gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    aria-disabled={cancelling}
+                    onClick={() => setConfirming(false)}
+                  >
+                    Keep
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="xs"
+                    aria-disabled={cancelling}
+                    onClick={confirmCancel}
+                    autoFocus
+                  >
+                    Yes, cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-end">
                 <Button
-                  variant="destructive"
-                  size="sm"
-                  aria-disabled={cancelling}
-                  onClick={confirmCancel}
-                  autoFocus
+                  variant="ghost"
+                  size="xs"
+                  className="text-muted-foreground hover:text-destructive"
+                  // "Cancel" alone could read as "close this" to a screen reader.
+                  aria-label="Cancel booking"
+                  onClick={() => setConfirming(true)}
                 >
-                  Yes, cancel booking
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  aria-disabled={cancelling}
-                  onClick={() => setConfirming(false)}
-                >
-                  Keep booking
+                  <Trash2 aria-hidden />
+                  Cancel
                 </Button>
               </div>
-            </div>
-          ) : (
-            <Button
-              variant="destructive"
-              size="sm"
-              className="mt-4"
-              onClick={() => setConfirming(true)}
-            >
-              Cancel booking
-            </Button>
-          ))}
+            )}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

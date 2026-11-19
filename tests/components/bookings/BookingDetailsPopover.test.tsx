@@ -48,25 +48,30 @@ beforeEach(() => {
 });
 
 describe('BookingDetailsPopover', () => {
-  it('shows every field it is given, for an admin', () => {
-    setup(
-      details({ bookerName: 'Jane Smith', room: 'FOSSE', status: 'BOOKED', price: 12.5 }),
-      true
-    );
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    expect(screen.getByText('Fosse')).toBeInTheDocument();
-    expect(screen.getByText('Private')).toBeInTheDocument();
-    expect(screen.getByText('Yes')).toBeInTheDocument();
-    expect(screen.getByText('Booked')).toBeInTheDocument();
-    expect(screen.getByText('£12.50')).toBeInTheDocument();
+  it('shows class type and room as the title, then the time', () => {
+    setup(details({ room: 'FOSSE' }));
+    expect(screen.getByText('Private · Fosse')).toBeInTheDocument();
+    expect(screen.getByText(/\d{2}:\d{2}–\d{2}:\d{2}/)).toBeInTheDocument();
   });
 
-  it('shows no teacher, room, status or price when they are not given', () => {
-    setup(details({ cancellable: false }));
-    for (const label of ['Teacher', 'Room', 'Status', 'Price'])
-      expect(screen.queryByText(label)).not.toBeInTheDocument();
-    expect(screen.getByText('Class type')).toBeInTheDocument();
+  it('shows the name, shareable, price and a non-default status when given', () => {
+    setup(details({ bookerName: 'Jane Smith', price: 12.5, status: 'COMPLETED' }), true);
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    expect(screen.getByText('Shareable')).toBeInTheDocument();
+    expect(screen.getByText('12.50')).toBeInTheDocument();
+    expect(screen.getByText('Completed')).toBeInTheDocument();
+  });
+
+  it('leaves out the usual or empty facts: booked status, zero price, not shareable', () => {
+    setup(details({ shareable: false, price: 0, status: 'BOOKED', cancellable: false }));
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.queryByText(/booked/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancel booking' })).not.toBeInTheDocument();
+  });
+
+  it('labels the cancel button "Cancel" but names it fully for screen readers', () => {
+    setup(details());
+    expect(screen.getByRole('button', { name: 'Cancel booking' })).toHaveTextContent(/^Cancel$/);
   });
 
   it('hides cancel for a booking that has already started', () => {
@@ -79,7 +84,7 @@ describe('BookingDetailsPopover', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
     expect(cancelBookingAsAdmin).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }));
 
     expect(cancelBookingAsAdmin).toHaveBeenCalledWith('b1');
     expect(cancelBooking).not.toHaveBeenCalled();
@@ -90,14 +95,14 @@ describe('BookingDetailsPopover', () => {
   it('lets a teacher cancel their own booking through the teacher endpoint', async () => {
     setup(details());
     await userEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }));
     expect(cancelBooking).toHaveBeenCalledWith('b1');
   });
 
   it('goes back without cancelling when the user keeps the booking', async () => {
     setup(details(), true);
     await userEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Keep booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Keep' }));
     expect(screen.getByRole('button', { name: 'Cancel booking' })).toBeInTheDocument();
     expect(cancelBookingAsAdmin).not.toHaveBeenCalled();
   });
@@ -111,7 +116,7 @@ describe('BookingDetailsPopover', () => {
     const { onCancelled, onClose } = setup(details(), true);
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Booking already cancelled');
     expect(onCancelled).not.toHaveBeenCalled();

@@ -72,9 +72,12 @@ const endOf = (b: BookingWithEitherDates) => b.dateTo ?? b.bookedTo;
 
 const isActive = (b: BookingView) => b.status !== 'CANCELLED';
 
+function fullName(b: BookingView): string | undefined {
+  return [b.firstName, b.lastName].filter(Boolean).join(' ') || undefined;
+}
+
 function bookerName(b: BookingView): string {
-  const name = [b.firstName, b.lastName].filter(Boolean).join(' ');
-  return name || NO_NAME;
+  return fullName(b) ?? NO_NAME;
 }
 
 /**
@@ -99,7 +102,8 @@ function detailsOf(b: BookingView, own: BookingView | undefined, admin: boolean)
       room: b.room,
       status: b.status,
       price: b.totalPrice,
-      bookerName: bookerName(b),
+      // The tile needs a placeholder to keep its layout; the details card just leaves it out.
+      bookerName: fullName(b),
     };
   }
   if (own) return { ...details, room: source.room, price: source.totalPrice };
