@@ -138,7 +138,9 @@ export function useNewBooking({
       color: MINE_COLOR,
       // Dragging or resizing it moves the time in the form.
       editable: true,
-      classNames: ['border-dashed', 'border-(--fc-event-color)'],
+      // A dashed outline marks it as a draft, not a booking yet. Important, as
+      // the registry's tile classes set a transparent border.
+      className: 'border-dashed! border-(--fc-event-color)!',
       extendedProps: props,
     };
   }, [preview]);
