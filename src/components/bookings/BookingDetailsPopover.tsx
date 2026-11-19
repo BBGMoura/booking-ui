@@ -149,7 +149,7 @@ export function BookingDetailsPopover({
                   <Button
                     variant="ghost"
                     size="xs"
-                    aria-disabled={cancelling}
+                    disabled={cancelling}
                     onClick={() => setConfirming(false)}
                   >
                     Keep
@@ -157,7 +157,7 @@ export function BookingDetailsPopover({
                   <Button
                     variant="destructive"
                     size="xs"
-                    aria-disabled={cancelling}
+                    disabled={cancelling}
                     onClick={confirmCancel}
                     autoFocus
                   >

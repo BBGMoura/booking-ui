@@ -107,6 +107,16 @@ describe('BookingDetailsPopover', () => {
     expect(cancelBookingAsAdmin).not.toHaveBeenCalled();
   });
 
+  it('disables both buttons while the cancel is in progress', async () => {
+    jest.mocked(cancelBookingAsAdmin).mockReturnValue(new Promise(() => {}));
+    setup(details(), true);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }));
+
+    expect(screen.getByRole('button', { name: 'Yes, cancel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Keep' })).toBeDisabled();
+  });
+
   it("shows the backend's message when cancelling fails, and stays open", async () => {
     const error = new AxiosError('fail', '409', undefined, undefined, {
       status: 409,
