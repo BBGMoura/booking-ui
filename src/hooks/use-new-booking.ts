@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { CalendarController, DateSpanApi, EventInput } from '@fullcalendar/react';
+import type { CalendarController, EventInput } from '@fullcalendar/react';
 import { startOfDay } from 'date-fns';
+import type { DateSpan } from '@/components/bookings/BookingsCalendar';
 import type { BookingDraft, BookingPreview } from '@/components/bookings/CreateBookingForm';
 import type { DateRange } from '@/hooks/use-calendar-events';
 import type { BookingView, Room } from '@/lib/types/booking';
-import { atMinutes, validateBookingTime } from '@/lib/utils/bookingTime';
+import { atMinutes } from '@/lib/utils/bookingTime';
 import { type BookingEventProps, MINE_COLOR, ROOM_LABELS } from '@/lib/utils/calendarEvents';
 
 export const PREVIEW_EVENT_ID = 'new-booking';
@@ -32,11 +33,6 @@ interface UseNewBookingOptions {
 export function suggestedDay(range: DateRange | null, now = new Date()): Date {
   if (!range || range.start <= now) return now;
   return range.start;
-}
-
-/** A range dragged on the calendar can become a booking. */
-export function canSelect(span: { start: Date; end: Date }, now = new Date()): boolean {
-  return span.start >= now && validateBookingTime(span.start, span.end) === null;
 }
 
 /** The draft that recreates the form as it stands, for when it has to remount. */
@@ -167,7 +163,7 @@ export function useNewBooking({
     handleConflict,
     handlePreviewChange,
     /** A range picked on the calendar: opens the form, or moves its time if open. */
-    select: (span: DateSpanApi) =>
+    select: (span: DateSpan) =>
       open({ room: preview?.room ?? room ?? undefined, start: span.start, end: span.end }),
     /** The placeholder was dragged or resized. */
     movePreview: (event: { id: string; start: Date | null; end: Date | null }) => {

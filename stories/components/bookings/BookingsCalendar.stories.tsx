@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import { fn } from 'storybook/test';
 import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
 
 const meta: Meta<typeof BookingsCalendar> = {
@@ -8,18 +9,10 @@ const meta: Meta<typeof BookingsCalendar> = {
     layout: 'padded',
   },
   args: {
-    availableViews: ['timeGridWeek', 'timeGridDay'],
-    firstDay: 1,
-    allDaySlot: false,
-    nowIndicator: true,
-    slotMinTime: '08:00',
-    slotMaxTime: '20:30',
-    businessHours: [
-      { daysOfWeek: [1, 2, 3, 4, 5], startTime: '09:00', endTime: '19:00' },
-      { daysOfWeek: [6], startTime: '09:30', endTime: '19:30' },
-      { daysOfWeek: [0], startTime: '11:00', endTime: '17:00' },
-    ],
-    nonBusinessHoursClass: 'bg-muted/60',
+    events: [],
+    onRangeChange: fn(),
+    onSelect: fn(),
+    onEventChange: fn(),
   },
 };
 

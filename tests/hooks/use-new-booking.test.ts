@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import type { CalendarController } from '@fullcalendar/react';
 import type { BookingPreview } from '@/components/bookings/CreateBookingForm';
-import { canSelect, PREVIEW_EVENT_ID, suggestedDay, useNewBooking } from '@/hooks/use-new-booking';
+import { PREVIEW_EVENT_ID, suggestedDay, useNewBooking } from '@/hooks/use-new-booking';
 import type { BookingView, Room } from '@/lib/types/booking';
 
 // Wednesday 18 November 2026, 08:20.
@@ -66,26 +66,6 @@ describe('suggestedDay', () => {
   it('is the first day shown for a future week', () => {
     const next = { start: new Date(2026, 10, 23), end: new Date(2026, 10, 30) };
     expect(suggestedDay(next, now)).toBe(next.start);
-  });
-});
-
-describe('canSelect', () => {
-  it('allows a valid future range', () => {
-    expect(
-      canSelect({ start: new Date(2026, 10, 18, 10), end: new Date(2026, 10, 18, 11) }, now)
-    ).toBe(true);
-  });
-
-  it('refuses a range that has started', () => {
-    expect(
-      canSelect({ start: new Date(2026, 10, 17, 10), end: new Date(2026, 10, 17, 11) }, now)
-    ).toBe(false);
-  });
-
-  it('refuses a range outside opening hours', () => {
-    expect(
-      canSelect({ start: new Date(2026, 10, 18, 19), end: new Date(2026, 10, 18, 20) }, now)
-    ).toBe(false);
   });
 });
 

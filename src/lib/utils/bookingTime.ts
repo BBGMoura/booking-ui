@@ -70,6 +70,15 @@ export function validateBookingTime(start: Date, end: Date): string | null {
 }
 
 /**
+ * Whether a range picked on the calendar can become a booking: it hasn't
+ * started yet and passes the backend's time rules. The backend allows past
+ * times, but booking one is never what's meant.
+ */
+export function isBookableRange(range: { start: Date; end: Date }, now = new Date()): boolean {
+  return range.start >= now && validateBookingTime(range.start, range.end) === null;
+}
+
+/**
  * Formats a date as an ISO 8601 date-time with its local UTC offset (e.g.
  * `2026-11-18T10:00:00+00:00`). The backend reads opening hours from the local
  * time in the offset it's sent, so a UTC `toISOString()` would shift them.

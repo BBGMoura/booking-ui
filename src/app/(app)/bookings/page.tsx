@@ -1,64 +1,28 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { type BusinessHoursInput, useCalendarController } from '@fullcalendar/react';
+import { useCalendarController } from '@fullcalendar/react';
 import { PlusIcon } from 'lucide-react';
-import { BookingConfirmation } from '@/components/bookings/BookingConfirmation';
-import { BookingEventContent } from '@/components/bookings/BookingEventContent';
-import { BookingSurface } from '@/components/bookings/BookingSurface';
+import { BookingsCalendar, type DateSpan } from '@/components/bookings/BookingsCalendar';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
-import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
-import { CreateBookingForm } from '@/components/bookings/CreateBookingForm';
+import { NewBookingPanel } from '@/components/bookings/NewBookingPanel';
 import { Button } from '@/components/ui/button';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { canSelect, useNewBooking } from '@/hooks/use-new-booking';
+import { useNewBooking } from '@/hooks/use-new-booking';
 import { useAuth } from '@/lib/context/AuthContext';
 import { USER_ROLES } from '@/lib/types/auth';
-import { OPENING_HOURS_BY_DAY, TIME_STEP_MINUTES } from '@/lib/utils/bookingTime';
-import { MINE_COLOR } from '@/lib/utils/calendarEvents';
-import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
-
-const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
-
-// Mirrors the backend's `schedule` config, which isn't exposed over the API.
-// Per-day closed time is shaded via businessHours.
-const OPENING_HOURS: BusinessHoursInput = OPENING_HOURS_BY_DAY.map(({ open, close }, day) => ({
-  daysOfWeek: [day],
-  startTime: toTime(open),
-  endTime: toTime(close),
-}));
-
-const CLOSED_HOURS_CLASS = 'bg-muted/60';
-
-// An hour either side of the earliest opening (09:00) and latest closing
-// (19:30), so both ends of the day read as closed time rather than being cut
-// off. The start stays on the hour because FullCalendar labels slots from
-// slotMinTime, so a half-hour start would put every label on the half hour.
-const GRID_START_MINUTES = 8 * 60;
-const GRID_END_MINUTES = 20 * 60 + 30;
-
-// Tiles shorter than this (in px) put their lines side by side instead of
-// stacking them. The registry's default (50px) made an hour-long booking
-// count as short, so its details ran together on one line.
-const EVENT_SHORT_HEIGHT = 30;
 
 // Wide and tall enough for the booking form to sit beside the calendar rather
 // than over it.
 const SIDE_PANEL_QUERY = '(min-width: 1024px) and (min-height: 600px)';
 
-const BOOKING_TITLE = 'New booking';
-const BOOKING_DESCRIPTION = 'Choose a room and time, then the type of class.';
-const CONFIRMED_TITLE = 'Booking confirmed';
-const CONFIRMED_DESCRIPTION = 'Here are the details of your booking.';
-
 export default function BookingsPage() {
   const { room, showMine, showMineLocked, selectRoom, showRoom, setShowMine } = useCalendarView();
   const controller = useCalendarController();
   const sidePanel = useMediaQuery(SIDE_PANEL_QUERY);
-  const [scrollTime] = useState(() => initialScrollTime(new Date(), GRID_START_MINUTES));
   const fixedHeight = useFixedHeightLayout();
   const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
@@ -75,14 +39,17 @@ export default function BookingsPage() {
     refresh,
     sidePanel,
   });
-  const handleDatesSet = useCallback(
-    (info: { start: Date; end: Date }) =>
+
+  // Keeps the same object while the range is unchanged, since a new one makes
+  // the bookings load again.
+  const handleRangeChange = useCallback(
+    (next: DateSpan) =>
       setRange((current) =>
         current &&
-        current.start.getTime() === info.start.getTime() &&
-        current.end.getTime() === info.end.getTime()
+        current.start.getTime() === next.start.getTime() &&
+        current.end.getTime() === next.end.getTime()
           ? current
-          : { start: info.start, end: info.end }
+          : next
       ),
     []
   );
@@ -146,76 +113,16 @@ export default function BookingsPage() {
           )}
           <BookingsCalendar
             controller={controller}
-            availableViews={AVAILABLE_VIEWS}
             height={fixedHeight ? '100%' : 'auto'}
-            nowIndicator
             events={calendarEvents}
-            eventContent={BookingEventContent}
-            eventShortHeight={EVENT_SHORT_HEIGHT}
-            slotEventOverlap={false}
-            datesSet={handleDatesSet}
-            firstDay={1}
-            allDaySlot={false}
-            slotMinTime={toTime(GRID_START_MINUTES)}
-            scrollTime={scrollTime}
-            slotMaxTime={toTime(GRID_END_MINUTES)}
-            businessHours={OPENING_HOURS}
-            nonBusinessHoursClass={CLOSED_HOURS_CLASS}
-            selectable
-            // Shows the range being dragged as a placeholder booking with its times,
-            // in the colour of the user's own bookings since that's what it becomes.
-            // Every real event sets its own colour, so eventColor only reaches it.
-            selectMirror
-            eventColor={MINE_COLOR}
-            // The placeholder already shows the range, so the registry's fill
-            // behind it would only double it up.
-            highlightClass="hidden"
-            snapDuration={toTime(TIME_STEP_MINUTES)}
-            selectAllow={(span) => canSelect(span)}
-            select={(info) => {
-              booking.select(info);
-              info.view.calendar.unselect();
-            }}
-            eventDrop={(info) => booking.movePreview(info.event)}
-            eventResize={(info) => booking.movePreview(info.event)}
+            onRangeChange={handleRangeChange}
+            onSelect={booking.select}
+            onEventChange={booking.movePreview}
           />
         </div>
-        {booking.isOpen && sidePanel && <BookingSurfaceFor booking={booking} sidePanel />}
+        {booking.isOpen && sidePanel && <NewBookingPanel booking={booking} sidePanel />}
       </div>
-      {booking.isOpen && !sidePanel && <BookingSurfaceFor booking={booking} sidePanel={false} />}
+      {booking.isOpen && !sidePanel && <NewBookingPanel booking={booking} sidePanel={false} />}
     </div>
-  );
-}
-
-/** The booking form, or its confirmation once booked, in the panel or dialog. */
-function BookingSurfaceFor({
-  booking,
-  sidePanel,
-}: {
-  booking: ReturnType<typeof useNewBooking>;
-  sidePanel: boolean;
-}) {
-  const { confirmed, draft } = booking;
-  return (
-    <BookingSurface
-      sidePanel={sidePanel}
-      title={confirmed ? CONFIRMED_TITLE : BOOKING_TITLE}
-      description={confirmed ? CONFIRMED_DESCRIPTION : BOOKING_DESCRIPTION}
-      onClose={booking.close}
-    >
-      {confirmed ? (
-        <BookingConfirmation booking={confirmed} onDone={booking.close} />
-      ) : (
-        draft && (
-          <CreateBookingForm
-            draft={draft}
-            schedule={booking.schedule}
-            onPreviewChange={booking.handlePreviewChange}
-            onBooked={booking.handleBooked}
-            onConflict={booking.handleConflict}
-          />
-        )
-      )}
-    </BookingSurface>
   );
 }

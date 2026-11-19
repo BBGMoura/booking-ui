@@ -4,6 +4,7 @@ import {
   durationInHours,
   endTimeOptions,
   formatDuration,
+  isBookableRange,
   startTimeOptions,
   toOffsetDateTime,
   validateBookingTime,
@@ -123,5 +124,28 @@ describe('formatDuration', () => {
     [90, '1 hr 30 min'],
   ])('formats %i minutes as %s', (minutes, text) => {
     expect(formatDuration(minutes)).toBe(text);
+  });
+});
+
+// Wednesday 18 November 2026, 08:20.
+const NOW = new Date(2026, 10, 18, 8, 20);
+
+describe('isBookableRange', () => {
+  it('allows a valid future range', () => {
+    expect(
+      isBookableRange({ start: new Date(2026, 10, 18, 10), end: new Date(2026, 10, 18, 11) }, NOW)
+    ).toBe(true);
+  });
+
+  it('refuses a range that has started', () => {
+    expect(
+      isBookableRange({ start: new Date(2026, 10, 17, 10), end: new Date(2026, 10, 17, 11) }, NOW)
+    ).toBe(false);
+  });
+
+  it('refuses a range outside opening hours', () => {
+    expect(
+      isBookableRange({ start: new Date(2026, 10, 18, 19), end: new Date(2026, 10, 18, 20) }, NOW)
+    ).toBe(false);
   });
 });
