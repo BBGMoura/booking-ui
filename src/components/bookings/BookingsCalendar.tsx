@@ -14,7 +14,11 @@ import { EventCalendarCloseIcon } from '@/components/event-calendar-icons';
 import { EventCalendarViews } from '@/components/ui/event-calendar-views';
 import { cn } from '@/lib/utils';
 import { isBookableRange, OPENING_HOURS_BY_DAY, TIME_STEP_MINUTES } from '@/lib/utils/bookingTime';
-import { MINE_COLOR } from '@/lib/utils/calendarEvents';
+import {
+  MINE_COLOR,
+  type BookingDetails,
+  type BookingEventProps,
+} from '@/lib/utils/calendarEvents';
 import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const plugins = [timeGridPlugin, listPlugin, interactionPlugin];
@@ -63,6 +67,8 @@ interface BookingsCalendarProps {
   onSelect?: (range: DateSpan) => void;
   /** An editable event (only the new booking's placeholder) was dragged or resized. */
   onEventChange?: (event: { id: string; start: Date | null; end: Date | null }) => void;
+  /** A booking was clicked; `el` is its tile, for anchoring the details card. */
+  onBookingClick?: (details: BookingDetails, el: HTMLElement) => void;
 }
 
 /**
@@ -79,6 +85,7 @@ export function BookingsCalendar({
   onRangeChange,
   onSelect,
   onEventChange,
+  onBookingClick,
 }: BookingsCalendarProps) {
   const ownController = useCalendarController();
   const controller = outsideController ?? ownController;
@@ -128,6 +135,11 @@ export function BookingsCalendar({
           select={(info) => {
             onSelect?.({ start: info.start, end: info.end });
             info.view.calendar.unselect();
+          }}
+          eventClick={(info) => {
+            // The new booking's placeholder has no details, so clicking it does nothing.
+            const { details } = info.event.extendedProps as BookingEventProps;
+            if (details) onBookingClick?.(details, info.el);
           }}
           eventDrop={(info) => onEventChange?.(info.event)}
           eventResize={(info) => onEventChange?.(info.event)}

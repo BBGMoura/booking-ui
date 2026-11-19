@@ -140,6 +140,15 @@ describe('useCalendarEvents', () => {
     expect(result.current.events[0].title).toBe('Private · Jane Smith');
   });
 
+  it('drops a cancelled booking from the events straight away', async () => {
+    const { result } = renderHook(() => useCalendarEvents('FOSSE', true, week1, teacher));
+    await waitFor(() => expect(result.current.events.map((e) => e.id)).toContain('FOSSE-booking'));
+
+    act(() => result.current.removeBooking('FOSSE-booking'));
+
+    expect(result.current.events.map((e) => e.id)).not.toContain('FOSSE-booking');
+  });
+
   it('exposes every room’s bookings for the visible range once loaded', async () => {
     const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
     expect(result.current.schedules).toBeNull();

@@ -3,10 +3,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useCalendarController } from '@fullcalendar/react';
 import { PlusIcon } from 'lucide-react';
+import { BookingDetailsPopover } from '@/components/bookings/BookingDetailsPopover';
 import { BookingsCalendar, type DateSpan } from '@/components/bookings/BookingsCalendar';
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { NewBookingPanel } from '@/components/bookings/NewBookingPanel';
 import { Button } from '@/components/ui/button';
+import { useBookingDetails } from '@/hooks/use-booking-details';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
@@ -26,10 +28,16 @@ export default function BookingsPage() {
   const fixedHeight = useFixedHeightLayout();
   const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
-  const { events, schedules, loading, error, refresh } = useCalendarEvents(room, showMine, range, {
-    showBooker: hasRole(USER_ROLES.ADMIN),
-    viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
-  });
+  const { events, schedules, loading, error, refresh, removeBooking } = useCalendarEvents(
+    room,
+    showMine,
+    range,
+    {
+      showBooker: hasRole(USER_ROLES.ADMIN),
+      viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
+    }
+  );
+  const bookingDetails = useBookingDetails();
   const booking = useNewBooking({
     controller,
     room,
@@ -118,11 +126,22 @@ export default function BookingsPage() {
             onRangeChange={handleRangeChange}
             onSelect={booking.select}
             onEventChange={booking.movePreview}
+            onBookingClick={bookingDetails.open}
           />
         </div>
         {booking.isOpen && sidePanel && <NewBookingPanel booking={booking} sidePanel />}
       </div>
       {booking.isOpen && !sidePanel && <NewBookingPanel booking={booking} sidePanel={false} />}
+      {bookingDetails.selected && (
+        <BookingDetailsPopover
+          key={bookingDetails.selected.details.uid}
+          details={bookingDetails.selected.details}
+          anchor={bookingDetails.selected.anchor}
+          isAdmin={hasRole(USER_ROLES.ADMIN)}
+          onClose={bookingDetails.close}
+          onCancelled={removeBooking}
+        />
+      )}
     </div>
   );
 }

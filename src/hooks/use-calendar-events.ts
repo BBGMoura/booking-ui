@@ -144,8 +144,29 @@ export function useCalendarEvents(
     [room, showMine, data, showBooker, viewerName]
   );
 
+  // Drops a cancelled booking from every loaded range, so it disappears
+  // without waiting for a refetch.
+  const removeBooking = useCallback((uid: string) => {
+    const without = (list: BookingView[]) => list.filter((b) => b.uid !== uid);
+    setLoaded(
+      (prev) =>
+        new Map(
+          [...prev].map(([k, d]) => [
+            k,
+            {
+              mine: without(d.mine),
+              schedules: Object.fromEntries(
+                Object.entries(d.schedules).map(([room, list]) => [room, without(list)])
+              ) as Record<Room, BookingView[]>,
+            },
+          ])
+        )
+    );
+  }, []);
+
   return {
     events,
+    removeBooking,
     /** Every room's bookings in the visible range, or null until they've loaded. */
     schedules: data?.schedules ?? null,
     loading: !!range && !data && !error,
