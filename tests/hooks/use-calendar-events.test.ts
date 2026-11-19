@@ -148,4 +148,34 @@ describe('useCalendarEvents', () => {
 
     expect(result.current.events.map((e) => e.id)).not.toContain('FOSSE-booking');
   });
+
+  it('exposes every room’s bookings for the visible range once loaded', async () => {
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
+    expect(result.current.schedules).toBeNull();
+
+    await waitFor(() => expect(result.current.schedules).not.toBeNull());
+    expect(result.current.schedules!.FOSSE).toEqual([b('FOSSE-booking', 'FOSSE')]);
+  });
+
+  it('refresh refetches the visible range and shows the new data', async () => {
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
+
+    jest
+      .mocked(getRoomSchedule)
+      .mockImplementation(async (room) => [b(`${room}-1`, room), b(`${room}-2`, room)]);
+    await act(() => result.current.refresh());
+
+    expect(result.current.events).toHaveLength(2);
+  });
+
+  it('refresh reports an error if the refetch fails', async () => {
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
+
+    jest.mocked(getRoomSchedule).mockRejectedValue(new Error('boom'));
+    await act(() => result.current.refresh());
+
+    expect(result.current.error).toBe('Could not load bookings.');
+  });
 });

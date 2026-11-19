@@ -16,6 +16,8 @@ export interface CalendarView {
   queries: CalendarQueries;
   /** Select a room; selecting the current room again deselects it. */
   selectRoom: (room: Room) => void;
+  /** Show a room's schedule; unlike selectRoom, never deselects. */
+  showRoom: (room: Room) => void;
   clearRoom: () => void;
   setShowMine: (showMine: boolean) => void;
 }
@@ -30,6 +32,8 @@ export function useCalendarView(): CalendarView {
   const selectRoom = useCallback((next: Room) => {
     setRoom((current) => (current === next ? null : next));
   }, []);
+
+  const showRoom = useCallback((next: Room) => setRoom(next), []);
 
   const clearRoom = useCallback(() => setRoom(null), []);
 
@@ -47,6 +51,7 @@ export function useCalendarView(): CalendarView {
     showMineLocked: room === null,
     queries: { roomSchedule: room, myBookings: showMine },
     selectRoom,
+    showRoom,
     clearRoom,
     setShowMine,
   };

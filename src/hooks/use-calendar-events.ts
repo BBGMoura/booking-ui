@@ -118,6 +118,19 @@ export function useCalendarEvents(
     };
   }, [range, key]);
 
+  // Refetches the visible range now, ignoring what's loaded, so a change made
+  // here (a new booking, or finding out a slot is taken) shows straight away.
+  const refresh = useCallback(async () => {
+    if (!range) return;
+    try {
+      const data = await fetchRange(range);
+      setLoaded((prev) => new Map(prev).set(keyOf(range), data));
+      setError(null);
+    } catch {
+      setError('Could not load bookings.');
+    }
+  }, [range]);
+
   const data = key ? loaded.get(key) : undefined;
   const events: EventInput[] = useMemo(
     () =>
@@ -151,5 +164,13 @@ export function useCalendarEvents(
     );
   }, []);
 
-  return { events, removeBooking, loading: !!range && !data && !error, error };
+  return {
+    events,
+    removeBooking,
+    /** Every room's bookings in the visible range, or null until they've loaded. */
+    schedules: data?.schedules ?? null,
+    loading: !!range && !data && !error,
+    error,
+    refresh,
+  };
 }

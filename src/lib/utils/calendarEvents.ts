@@ -17,13 +17,8 @@ export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
 };
 
 const OTHERS_COLOR = 'var(--chart-2)';
-const MINE_COLOR = 'var(--chart-1)';
+export const MINE_COLOR = 'var(--chart-1)';
 const BUSY_ELSEWHERE_COLOR = 'var(--muted-foreground)';
-
-// Hatched, dashed and see-through so it reads as a layer over the room's grid
-// rather than a booking in it.
-const BUSY_ELSEWHERE_CLASS =
-  'border-dashed opacity-70 bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_oklab,var(--fc-event-color)_20%,transparent)_6px_12px)]';
 
 const NO_NAME = 'No name';
 
@@ -53,7 +48,8 @@ export interface BookingDetails {
  */
 export interface BookingEventProps {
   heading: string;
-  details: BookingDetails;
+  /** Missing only on the new booking's placeholder, which isn't a booking yet. */
+  details?: BookingDetails;
   detail?: string;
   shareable: boolean;
   mine: boolean;
@@ -65,10 +61,10 @@ export interface BookingEventProps {
  * (`bookedFrom`/`bookedTo`, no `userUid`); admins and "my bookings" get
  * the detail shape (`dateFrom`/`dateTo`).
  */
-type BookingWithEitherDates = BookingView & { bookedFrom?: string; bookedTo?: string };
+export type BookingWithEitherDates = BookingView & { bookedFrom?: string; bookedTo?: string };
 
-const startOf = (b: BookingWithEitherDates) => b.dateFrom ?? b.bookedFrom;
-const endOf = (b: BookingWithEitherDates) => b.dateTo ?? b.bookedTo;
+export const startOf = (b: BookingWithEitherDates) => b.dateFrom ?? b.bookedFrom;
+export const endOf = (b: BookingWithEitherDates) => b.dateTo ?? b.bookedTo;
 
 const isActive = (b: BookingView) => b.status !== 'CANCELLED';
 
@@ -214,7 +210,6 @@ export function buildCalendarEvents(
           {
             id: `busy-${b.uid}`,
             color: BUSY_ELSEWHERE_COLOR,
-            classNames: [BUSY_ELSEWHERE_CLASS],
           }
         )
       );

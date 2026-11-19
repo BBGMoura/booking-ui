@@ -3,6 +3,7 @@ import {
   parseApiError,
   isFieldValidationError,
   isForbiddenError,
+  getApiErrorInfo,
   setFieldErrors,
 } from '@/lib/utils/errorUtils';
 import { UseFormSetError } from 'react-hook-form';
@@ -208,5 +209,18 @@ describe('setFieldErrors()', () => {
       message: 'must not be blank',
     });
     expect(setError).toHaveBeenCalledWith('root', { message: 'unexpected error' });
+  });
+});
+
+describe('getApiErrorInfo', () => {
+  it('reads the status and error code from a backend error response', () => {
+    expect(getApiErrorInfo(mockAxiosError(400, { error: 'BOOKING_CONFLICT' }))).toEqual({
+      status: 400,
+      code: 'BOOKING_CONFLICT',
+    });
+  });
+
+  it('returns nothing for a non-axios error', () => {
+    expect(getApiErrorInfo(new Error('x'))).toEqual({});
   });
 });
