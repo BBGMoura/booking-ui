@@ -6,10 +6,17 @@ import type { BookingDraft, BookingPreview } from '@/components/bookings/CreateB
 import type { DateRange } from '@/hooks/use-calendar-events';
 import type { BookingView, Room } from '@/lib/types/booking';
 import { atMinutes } from '@/lib/utils/bookingTime';
-import { type BookingEventProps, MINE_COLOR, ROOM_LABELS } from '@/lib/utils/calendarEvents';
+import {
+  type BookingEventProps,
+  CLASS_TYPE_LABELS,
+  MINE_COLOR,
+  ROOM_LABELS,
+} from '@/lib/utils/calendarEvents';
 
 export const PREVIEW_EVENT_ID = 'new-booking';
 export const PREVIEW_EVENT_TITLE = 'New booking';
+const PREVIEW_EVENT_CLASS =
+  'border-dashed! border-[color-mix(in_oklab,var(--fc-event-color)_50%,var(--foreground))]! bg-[color-mix(in_oklab,var(--fc-event-color)_10%,var(--background))]!';
 
 interface UseNewBookingOptions {
   controller: CalendarController;
@@ -126,7 +133,8 @@ export function useNewBooking({
     if (!preview?.date || preview.start === undefined || preview.end === undefined) return null;
     if (preview.end <= preview.start) return null;
     const props: BookingEventProps = {
-      heading: PREVIEW_EVENT_TITLE,
+      // Named like a real booking once there's a class type to name it by.
+      heading: preview.classType ? CLASS_TYPE_LABELS[preview.classType] : PREVIEW_EVENT_TITLE,
       detail: preview.room && ROOM_LABELS[preview.room],
       shareable: preview.isShareable,
       mine: true,
@@ -138,9 +146,10 @@ export function useNewBooking({
       color: MINE_COLOR,
       // Dragging or resizing it moves the time in the form.
       editable: true,
-      // A dashed outline marks it as a draft, not a booking yet. Important, as
-      // the registry's tile classes set a transparent border.
-      className: 'border-dashed! border-(--fc-event-color)!',
+      // A pale fill inside a dashed outline in the text's colour marks it as a
+      // draft, not a booking yet. Important, as the registry's tile classes set
+      // their own border and background.
+      className: PREVIEW_EVENT_CLASS,
       extendedProps: props,
     };
   }, [preview]);

@@ -106,6 +106,20 @@ describe('useNewBooking', () => {
     });
   });
 
+  it('names the placeholder by its class type once one is chosen', () => {
+    const { result } = setup();
+    act(() => result.current.openNew());
+
+    act(() => result.current.handlePreviewChange({ ...preview, classType: undefined }));
+    expect(result.current.previewEvent?.extendedProps).toMatchObject({ heading: 'New booking' });
+
+    act(() => result.current.handlePreviewChange(preview));
+    expect(result.current.previewEvent?.extendedProps).toMatchObject({
+      heading: 'Group',
+      detail: 'Fosse',
+    });
+  });
+
   it('moves the form’s time when the placeholder is dragged, and ignores other events', () => {
     const { result } = setup();
     act(() => result.current.openNew());
