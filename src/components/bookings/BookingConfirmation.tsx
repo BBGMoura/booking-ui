@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { format } from 'date-fns';
 import { CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,19 +14,31 @@ interface BookingConfirmationProps {
   onDone: () => void;
 }
 
-function Detail({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  children,
+  total = false,
+}: {
+  label: string;
+  children: ReactNode;
+  total?: boolean;
+}) {
   return (
-    <div>
-      <dt className="text-muted-foreground text-xs font-medium tracking-wide uppercase">{label}</dt>
-      <dd className="mt-1 text-sm font-medium">{children}</dd>
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className={total ? 'font-medium' : 'text-muted-foreground'}>{label}</dt>
+      <dd className={total ? 'text-lg font-semibold tabular-nums' : 'text-right font-medium'}>
+        {children}
+      </dd>
     </div>
   );
 }
 
 /**
- * Shown in place of the booking form once a booking is made, styled like a
- * ticket: what was booked and what it costs. Lays out like the form, with the
- * details scrolling above a fixed button, so it fits the same panel or dialog.
+ * Shown in place of the booking form once a booking is made: what was booked
+ * and what it costs, in a grey card like the form's price estimate, with the
+ * total torn off below a dashed line like a ticket stub. Lays out like the
+ * form, with the details scrolling above a fixed button, so it fits the same
+ * panel or dialog.
  */
 export function BookingConfirmation({ booking, onDone }: BookingConfirmationProps) {
   const from = new Date(booking.dateFrom);
@@ -44,25 +57,24 @@ export function BookingConfirmation({ booking, onDone }: BookingConfirmationProp
           </span>
           <p className="mt-5 text-lg font-semibold">You’re booked!</p>
           <p className="text-muted-foreground mt-1 text-sm">
-            {ROOM_LABELS[booking.room]} · {format(from, 'EEE d MMM')}, {format(from, 'HH:mm')}
+            Here are the details of your booking.
           </p>
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-5 border-y border-dashed py-6">
-          <Detail label="Date">{format(from, 'EEE d MMM yyyy')}</Detail>
-          <Detail label="Time">
+        <dl className="bg-muted/60 space-y-3 rounded-xl p-4 text-sm">
+          <Row label="Room">{ROOM_LABELS[booking.room]}</Row>
+          <Row label="Date">{format(from, 'EEE d MMM yyyy')}</Row>
+          <Row label="Time">
             {format(from, 'HH:mm')}–{format(to, 'HH:mm')}
-            <span className="text-muted-foreground block text-xs font-normal">
-              {formatDuration(minutes)}
-            </span>
-          </Detail>
-          <Detail label="Class">{CLASS_TYPE_LABELS[booking.classType]}</Detail>
-          <Detail label="Shareable">{booking.shareable ? 'Yes' : 'No'}</Detail>
-        </dl>
-
-        <dl className="flex items-baseline justify-between pt-5">
-          <dt className="text-muted-foreground text-sm">Total</dt>
-          <dd className="text-2xl font-semibold tabular-nums">{formatPrice(booking.totalPrice)}</dd>
+            <span className="text-muted-foreground font-normal"> · {formatDuration(minutes)}</span>
+          </Row>
+          <Row label="Class">{CLASS_TYPE_LABELS[booking.classType]}</Row>
+          <Row label="Shareable">{booking.shareable ? 'Yes' : 'No'}</Row>
+          <div className="border-t border-dashed pt-3">
+            <Row label="Total" total>
+              {formatPrice(booking.totalPrice)}
+            </Row>
+          </div>
         </dl>
       </div>
 
