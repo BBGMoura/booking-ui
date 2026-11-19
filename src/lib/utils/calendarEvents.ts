@@ -21,9 +21,10 @@ export const MINE_COLOR = 'var(--chart-1)';
 const BUSY_ELSEWHERE_COLOR = 'var(--muted-foreground)';
 
 // Hatched, dashed and see-through so it reads as a layer over the room's grid
-// rather than a booking in it.
-const BUSY_ELSEWHERE_CLASS =
-  'border-dashed opacity-70 bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_oklab,var(--fc-event-color)_20%,transparent)_6px_12px)]';
+// rather than a booking in it. The border and background are important
+// because the registry's tile classes set their own.
+export const BUSY_ELSEWHERE_CLASS =
+  'border-dashed! border-(--fc-event-color)! opacity-70 bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_oklab,var(--fc-event-color)_20%,transparent)_6px_12px)]!';
 
 const NO_NAME = 'No name';
 
@@ -157,7 +158,8 @@ export function buildCalendarEvents(
           {
             id: `busy-${b.uid}`,
             color: BUSY_ELSEWHERE_COLOR,
-            classNames: [BUSY_ELSEWHERE_CLASS],
+            // FullCalendar v7 reads `className`; it ignores the older `classNames`.
+            className: BUSY_ELSEWHERE_CLASS,
           }
         )
       );
