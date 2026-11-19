@@ -153,6 +153,11 @@ interface CreateBookingFormProps {
    * shows the error.
    */
   onConflict: () => void;
+  /**
+   * Whether a booking is being sent. The surface around the form shouldn't
+   * close meanwhile: the booking would still be made, unseen.
+   */
+  onSubmittingChange?: (submitting: boolean) => void;
 }
 
 /**
@@ -244,12 +249,16 @@ export function CreateBookingForm({
   onPreviewChange,
   onBooked,
   onConflict,
+  onSubmittingChange,
 }: CreateBookingFormProps) {
   const [classTypes, setClassTypes] = useState<ClassType[] | null>(null);
   const [classTypesFailed, setClassTypesFailed] = useState(false);
   // Tagged with its class type, so a switch never shows the previous price.
   const [price, setPrice] = useState<{ classType: ClassType; perHour: number } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    onSubmittingChange?.(isLoading);
+  }, [isLoading, onSubmittingChange]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   // A booking the backend refused, tagged with the choices it was for, so the
   // error clears as soon as the user changes any of them.
@@ -573,7 +582,8 @@ export function CreateBookingForm({
                         <SelectItem key={time} value={String(time)}>
                           {toTime(time)}
                           <span className="text-muted-foreground">
-                            {formatDuration(time - start!)}
+                            {/* Short, so it fits the half-width field once chosen. */}
+                            {formatDuration(time - start!, { short: true })}
                           </span>
                         </SelectItem>
                       ))}

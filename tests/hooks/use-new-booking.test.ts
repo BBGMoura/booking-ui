@@ -146,6 +146,20 @@ describe('useNewBooking', () => {
     expect(result.current.schedule).toBeNull();
   });
 
+  it('won’t close while a booking is being sent', () => {
+    const { result, controller } = setup();
+    act(() => result.current.openNew());
+
+    act(() => result.current.handleSubmittingChange(true));
+    act(() => result.current.close());
+    expect(result.current.isOpen).toBe(true);
+    expect(controller.changeView).not.toHaveBeenCalled();
+
+    act(() => result.current.handleBooked({ uid: 'new' } as BookingView));
+    act(() => result.current.close());
+    expect(result.current.isOpen).toBe(false);
+  });
+
   it('shows the confirmation after booking and refreshes the calendar', () => {
     const { result, refresh } = setup();
     act(() => result.current.openNew());

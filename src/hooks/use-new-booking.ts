@@ -101,6 +101,9 @@ export function useNewBooking({
   // Set once the booking is made: the confirmation replaces the form until
   // the user closes it.
   const [confirmed, setConfirmed] = useState<BookingView | null>(null);
+  // While a booking is being sent the form can't close, or it would be made
+  // without the user ever seeing the confirmation.
+  const [submitting, setSubmitting] = useState(false);
   // The view to go back to on close, since the form switches to day view.
   const viewBeforeBooking = useRef<string | null>(null);
   const previewDay = useRef<number | null>(null);
@@ -121,18 +124,21 @@ export function useNewBooking({
   };
 
   const close = useCallback(() => {
+    if (submitting) return;
     setDraft(null);
     setPreview(null);
     setConfirmed(null);
     previewDay.current = null;
     if (viewBeforeBooking.current) controller.changeView(viewBeforeBooking.current);
     viewBeforeBooking.current = null;
-  }, [controller]);
+  }, [controller, submitting]);
 
   // The calendar stays on the booking's day behind the confirmation, with the
   // placeholder replaced by the real booking once it reloads.
   const handleBooked = useCallback(
     (booking: BookingView) => {
+      // The form unmounts for the confirmation without reporting it's done.
+      setSubmitting(false);
       setConfirmed(booking);
       setPreview(null);
       void refresh();
@@ -170,6 +176,8 @@ export function useNewBooking({
 
   return {
     isOpen: draft !== null,
+    submitting,
+    handleSubmittingChange: setSubmitting,
     draft,
     confirmed,
     schedule,

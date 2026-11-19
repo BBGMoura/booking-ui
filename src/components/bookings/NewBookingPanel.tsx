@@ -26,6 +26,7 @@ export function NewBookingPanel({ booking, sidePanel }: NewBookingPanelProps) {
       description={confirmed ? CONFIRMED_DESCRIPTION : BOOKING_DESCRIPTION}
       headerHidden={!!confirmed}
       onClose={booking.close}
+      closeDisabled={booking.submitting}
     >
       {confirmed ? (
         <BookingConfirmation booking={confirmed} onDone={booking.close} />
@@ -37,6 +38,7 @@ export function NewBookingPanel({ booking, sidePanel }: NewBookingPanelProps) {
             onPreviewChange={booking.handlePreviewChange}
             onBooked={booking.handleBooked}
             onConflict={booking.handleConflict}
+            onSubmittingChange={booking.handleSubmittingChange}
           />
         )
       )}

@@ -125,6 +125,12 @@ describe('formatDuration', () => {
   ])('formats %i minutes as %s', (minutes, text) => {
     expect(formatDuration(minutes)).toBe(text);
   });
+
+  it('shortens minutes to m when asked', () => {
+    expect(formatDuration(90, { short: true })).toBe('1 hr 30m');
+    expect(formatDuration(15, { short: true })).toBe('15m');
+    expect(formatDuration(60, { short: true })).toBe('1 hr');
+  });
 });
 
 // Wednesday 18 November 2026, 08:20.

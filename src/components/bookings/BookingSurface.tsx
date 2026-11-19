@@ -23,6 +23,8 @@ interface BookingSurfaceProps {
    */
   headerHidden?: boolean;
   onClose: () => void;
+  /** Disables the close button, e.g. while a booking is being sent. */
+  closeDisabled?: boolean;
   children: ReactNode;
 }
 
@@ -37,6 +39,7 @@ export function BookingSurface({
   description,
   headerHidden = false,
   onClose,
+  closeDisabled = false,
   children,
 }: BookingSurfaceProps) {
   if (sidePanel) {
@@ -46,6 +49,7 @@ export function BookingSurface({
         description={description}
         headerHidden={headerHidden}
         onClose={onClose}
+        closeDisabled={closeDisabled}
       >
         {children}
       </SidePanel>
@@ -76,6 +80,7 @@ function SidePanel({
   description,
   headerHidden,
   onClose,
+  closeDisabled,
   children,
 }: Omit<BookingSurfaceProps, 'sidePanel'>) {
   const panel = useRef<HTMLElement>(null);
@@ -118,6 +123,7 @@ function SidePanel({
           className="-mt-2 -mr-2 ml-auto"
           aria-label="Close"
           onClick={onClose}
+          disabled={closeDisabled}
         >
           <XIcon />
         </Button>
