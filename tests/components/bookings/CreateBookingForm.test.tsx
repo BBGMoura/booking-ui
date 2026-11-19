@@ -461,4 +461,20 @@ describe('CreateBookingForm', () => {
     expect(await screen.findByRole('option', { name: '13:30' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: '13:15' })).not.toBeInTheDocument();
   });
+
+  it.each([
+    [400, 'BOOKING_CONFLICT'],
+    [503, 'BOOKING_LOCK_TIMEOUT'],
+    [500, 'SOMETHING_ELSE'],
+  ])('clears a %s %s error once the room changes', async (status, code) => {
+    jest.mocked(createBooking).mockRejectedValue(backendError(status, code));
+    renderForm();
+    await choose('Class type', 'Private');
+    await submit();
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    await choose('Room', 'Fosse');
+
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  });
 });

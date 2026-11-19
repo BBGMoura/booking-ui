@@ -280,7 +280,13 @@ export function CreateBookingForm({
     }
   }, [draft, form]);
 
-  const choiceKey = `${room}|${date?.getTime()}|${start}|${end}|${isShareable}`;
+  const choiceKey = `${room}|${date?.getTime()}|${start}|${end}|${classType}|${isShareable}`;
+
+  // A failed booking's error is about the choices it was made with, so it
+  // clears as soon as any of them changes. (A clash is tracked in `rejection`.)
+  useEffect(() => {
+    form.clearErrors('root');
+  }, [choiceKey, form]);
 
   useEffect(() => {
     onPreviewChange?.({
