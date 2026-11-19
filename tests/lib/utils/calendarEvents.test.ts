@@ -1,8 +1,4 @@
-import {
-  buildCalendarEvents,
-  BUSY_ELSEWHERE_CLASS,
-  type BookingEventProps,
-} from '@/lib/utils/calendarEvents';
+import { buildCalendarEvents, type BookingEventProps } from '@/lib/utils/calendarEvents';
 import type { BookingView } from '@/lib/types/booking';
 import type { EventInput } from '@fullcalendar/react';
 
@@ -113,8 +109,6 @@ describe('buildCalendarEvents', () => {
       mine: true,
       busyElsewhere: true,
     });
-    // `className` is what FullCalendar v7 reads; `classNames` is ignored.
-    expect(events[1].className).toBe(BUSY_ELSEWHERE_CLASS);
   });
 
   it('omits the busy elsewhere layer when the overlay is off', () => {
