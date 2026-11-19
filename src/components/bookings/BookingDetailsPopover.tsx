@@ -72,16 +72,22 @@ export function BookingDetailsPopover({
     .filter(Boolean)
     .join(' · ');
   const status = details.status && STATUS_META[details.status];
-  const facts: { key: string; icon: LucideIcon; text: string; srLabel?: string }[] = [];
+  // `spoken` replaces `text` for screen readers where the icon carries meaning.
+  const facts: { key: string; icon: LucideIcon; text: string; spoken?: string }[] = [];
   if (details.bookerName)
-    facts.push({ key: 'name', icon: User, text: details.bookerName, srLabel: 'Booked by' });
+    facts.push({
+      key: 'name',
+      icon: User,
+      text: details.bookerName,
+      spoken: `Booked by ${details.bookerName}`,
+    });
   if (details.shareable) facts.push({ key: 'shareable', icon: Users, text: 'Shareable' });
   if (details.price)
     facts.push({
       key: 'price',
       icon: PoundSterling,
       text: details.price.toFixed(2),
-      srLabel: 'Price £',
+      spoken: `Price £${details.price.toFixed(2)}`,
     });
   if (status) facts.push({ key: 'status', icon: status.icon, text: status.label });
 
@@ -124,13 +130,13 @@ export function BookingDetailsPopover({
         </p>
         {facts.length > 0 && (
           <ul className="text-muted-foreground mt-2.5 space-y-1 text-xs">
-            {facts.map(({ key, icon: Icon, text, srLabel }) => (
+            {facts.map(({ key, icon: Icon, text, spoken }) => (
               <li key={key} className="flex items-center gap-2">
                 <Icon className="size-3.5 shrink-0" aria-hidden />
-                <span className="text-foreground/90 truncate">
-                  {srLabel && <span className="sr-only">{srLabel} </span>}
+                <span className="text-foreground/90 truncate" aria-hidden={!!spoken}>
                   {text}
                 </span>
+                {spoken && <span className="sr-only">{spoken}</span>}
               </li>
             ))}
           </ul>

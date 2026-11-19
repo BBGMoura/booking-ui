@@ -8,6 +8,7 @@ import { BookingsCalendar, type DateSpan } from '@/components/bookings/BookingsC
 import { CalendarControls } from '@/components/bookings/CalendarControls';
 import { NewBookingPanel } from '@/components/bookings/NewBookingPanel';
 import { Button } from '@/components/ui/button';
+import { useBookingDetails } from '@/hooks/use-booking-details';
 import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import { useCalendarView } from '@/hooks/use-calendar-view';
 import { useFixedHeightLayout } from '@/hooks/use-fixed-height-layout';
@@ -15,7 +16,6 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { useNewBooking } from '@/hooks/use-new-booking';
 import { useAuth } from '@/lib/context/AuthContext';
 import { USER_ROLES } from '@/lib/types/auth';
-import type { BookingDetails } from '@/lib/utils/calendarEvents';
 
 // Wide and tall enough for the booking form to sit beside the calendar rather
 // than over it.
@@ -37,13 +37,7 @@ export default function BookingsPage() {
       viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
     }
   );
-  const [selected, setSelected] = useState<{ details: BookingDetails; anchor: HTMLElement } | null>(
-    null
-  );
-  const handleBookingClick = useCallback(
-    (details: BookingDetails, anchor: HTMLElement) => setSelected({ details, anchor }),
-    []
-  );
+  const bookingDetails = useBookingDetails();
   const booking = useNewBooking({
     controller,
     room,
@@ -132,19 +126,19 @@ export default function BookingsPage() {
             onRangeChange={handleRangeChange}
             onSelect={booking.select}
             onEventChange={booking.movePreview}
-            onBookingClick={handleBookingClick}
+            onBookingClick={bookingDetails.open}
           />
         </div>
         {booking.isOpen && sidePanel && <NewBookingPanel booking={booking} sidePanel />}
       </div>
       {booking.isOpen && !sidePanel && <NewBookingPanel booking={booking} sidePanel={false} />}
-      {selected && (
+      {bookingDetails.selected && (
         <BookingDetailsPopover
-          key={selected.details.uid}
-          details={selected.details}
-          anchor={selected.anchor}
+          key={bookingDetails.selected.details.uid}
+          details={bookingDetails.selected.details}
+          anchor={bookingDetails.selected.anchor}
           isAdmin={hasRole(USER_ROLES.ADMIN)}
-          onClose={() => setSelected(null)}
+          onClose={bookingDetails.close}
           onCancelled={removeBooking}
         />
       )}

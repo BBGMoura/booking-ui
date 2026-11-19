@@ -59,6 +59,8 @@ describe('BookingDetailsPopover', () => {
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     expect(screen.getByText('Shareable')).toBeInTheDocument();
     expect(screen.getByText('12.50')).toBeInTheDocument();
+    expect(screen.getByText('Price £12.50')).toHaveClass('sr-only');
+    expect(screen.getByText('Booked by Jane Smith')).toHaveClass('sr-only');
     expect(screen.getByText('Completed')).toBeInTheDocument();
   });
 
