@@ -3,6 +3,7 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,11 @@ interface BookingSurfaceProps {
   sidePanel: boolean;
   title: string;
   description: string;
+  /**
+   * Keeps the title and description for screen readers only, for content
+   * with a heading of its own (the confirmation's "You're booked!").
+   */
+  headerHidden?: boolean;
   onClose: () => void;
   children: ReactNode;
 }
@@ -29,12 +35,18 @@ export function BookingSurface({
   sidePanel,
   title,
   description,
+  headerHidden = false,
   onClose,
   children,
 }: BookingSurfaceProps) {
   if (sidePanel) {
     return (
-      <SidePanel title={title} description={description} onClose={onClose}>
+      <SidePanel
+        title={title}
+        description={description}
+        headerHidden={headerHidden}
+        onClose={onClose}
+      >
         {children}
       </SidePanel>
     );
@@ -43,7 +55,7 @@ export function BookingSurface({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       {/* As wide as the screen on phones, centred like any other dialog. */}
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col max-sm:max-w-none max-sm:border-x-0">
-        <DialogHeader>
+        <DialogHeader className={cn(headerHidden && 'sr-only')}>
           <DialogTitle>{title}</DialogTitle>
           {/* Phones need the room for the form itself. */}
           <DialogDescription className="sr-only sm:not-sr-only">{description}</DialogDescription>
@@ -62,6 +74,7 @@ export function BookingSurface({
 function SidePanel({
   title,
   description,
+  headerHidden,
   onClose,
   children,
 }: Omit<BookingSurfaceProps, 'sidePanel'>) {
@@ -87,8 +100,8 @@ function SidePanel({
       onKeyDown={handleKeyDown}
       className="bg-card flex w-96 shrink-0 flex-col rounded-2xl border p-6 shadow-sm"
     >
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="space-y-1">
+      <div className={cn('flex items-start justify-between gap-4', !headerHidden && 'mb-6')}>
+        <div className={cn('space-y-1', headerHidden && 'sr-only')}>
           <h2
             ref={heading}
             id="booking-surface-title"
@@ -102,7 +115,7 @@ function SidePanel({
         <Button
           variant="ghost"
           size="icon"
-          className="-mt-2 -mr-2"
+          className="-mt-2 -mr-2 ml-auto"
           aria-label="Close"
           onClick={onClose}
         >

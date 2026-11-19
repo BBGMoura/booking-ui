@@ -22,12 +22,14 @@ describe('BookingConfirmation', () => {
   it('shows the saved booking with the price the backend charged', () => {
     render(<BookingConfirmation booking={saved} onDone={jest.fn()} />);
 
-    expect(row('Room')).toHaveTextContent('Fosse');
-    expect(row('Date')).toHaveTextContent('Thursday 19 November 2026');
-    expect(row('Time')).toHaveTextContent('15:00–16:15 (1 hr 15 min)');
-    expect(row('Class type')).toHaveTextContent('Private');
+    expect(screen.getByText('You’re booked!')).toBeInTheDocument();
+    expect(screen.getByText('Fosse · Thu 19 Nov, 15:00')).toBeInTheDocument();
+    expect(row('Date')).toHaveTextContent('Thu 19 Nov 2026');
+    expect(row('Time')).toHaveTextContent('15:00–16:15');
+    expect(row('Time')).toHaveTextContent('1 hr 15 min');
+    expect(row('Class')).toHaveTextContent('Private');
     expect(row('Shareable')).toHaveTextContent('Yes');
-    expect(row('Total price')).toHaveTextContent('£25.00');
+    expect(screen.getByText('Total').closest('dl')).toHaveTextContent('£25.00');
   });
 
   it('says when a booking is not shareable', () => {

@@ -24,6 +24,7 @@ export function NewBookingPanel({ booking, sidePanel }: NewBookingPanelProps) {
       sidePanel={sidePanel}
       title={confirmed ? CONFIRMED_TITLE : BOOKING_TITLE}
       description={confirmed ? CONFIRMED_DESCRIPTION : BOOKING_DESCRIPTION}
+      headerHidden={!!confirmed}
       onClose={booking.close}
     >
       {confirmed ? (
