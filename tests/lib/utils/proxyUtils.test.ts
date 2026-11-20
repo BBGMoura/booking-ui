@@ -19,8 +19,8 @@ describe('getRedirectPath', () => {
       expect(getRedirectPath('/calendar', null)).toBe('/login');
     });
 
-    it('redirects /booking-history to /login', () => {
-      expect(getRedirectPath('/booking-history', null)).toBe('/login');
+    it('redirects /my-bookings to /login', () => {
+      expect(getRedirectPath('/my-bookings', null)).toBe('/login');
     });
 
     it('redirects /profile to /login', () => {
@@ -65,8 +65,8 @@ describe('getRedirectPath', () => {
       expect(getRedirectPath('/calendar', USER_TOKEN)).toBeNull();
     });
 
-    it('allows /booking-history through', () => {
-      expect(getRedirectPath('/booking-history', USER_TOKEN)).toBeNull();
+    it('allows /my-bookings through', () => {
+      expect(getRedirectPath('/my-bookings', USER_TOKEN)).toBeNull();
     });
 
     it('allows /profile through', () => {
