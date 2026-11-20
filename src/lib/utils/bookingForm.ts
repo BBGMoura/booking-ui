@@ -17,7 +17,7 @@ export const bookingSchema = z
     start: z.number().nullable(),
     end: z.number().nullable(),
     classType: z.enum(Object.values(CLASS_TYPES) as [ClassType, ...ClassType[]], {
-      error: 'Choose a class type',
+      error: 'Choose a booking type',
     }),
     isShareable: z.boolean(),
   })

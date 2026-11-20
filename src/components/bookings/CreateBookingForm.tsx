@@ -153,7 +153,9 @@ export function CreateBookingForm({
   const { reject } = availability;
   const rootError =
     form.formState.errors.root?.message ??
-    (classTypesFailed ? 'Could not load the class types. Please close this and try again.' : null);
+    (classTypesFailed
+      ? 'Could not load the booking types. Please close this and try again.'
+      : null);
   const notice: Notice = rootError ? { tone: 'error', message: rootError } : availability.notice;
 
   async function onSubmit(values: BookingFormValues) {
@@ -211,7 +213,7 @@ export function CreateBookingForm({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="booking-class-type">Class type</FieldLabel>
+                <FieldLabel htmlFor="booking-class-type">Booking type</FieldLabel>
                 <Select
                   name={field.name}
                   value={field.value ?? ''}
@@ -224,7 +226,7 @@ export function CreateBookingForm({
                     aria-invalid={fieldState.invalid}
                     onBlur={field.onBlur}
                   >
-                    <SelectValue placeholder={classTypes ? 'Choose a class type' : 'Loading…'} />
+                    <SelectValue placeholder={classTypes ? 'Choose a booking type' : 'Loading…'} />
                   </SelectTrigger>
                   <SelectContent>
                     {(classTypes ?? []).map((type) => (
@@ -245,9 +247,9 @@ export function CreateBookingForm({
             render={({ field }) => (
               <Field orientation="horizontal">
                 <FieldContent>
-                  <FieldLabel htmlFor="booking-shareable">Shareable</FieldLabel>
+                  <FieldLabel htmlFor="booking-shareable">Shared room</FieldLabel>
                   <FieldDescription>
-                    Others can book the room at the same time, up to 3 at once.
+                    Other users can book the room at the same time (up to 3).
                   </FieldDescription>
                 </FieldContent>
                 <Switch
@@ -271,7 +273,7 @@ export function CreateBookingForm({
               {minutes === null
                 ? 'Choose a time to see the price.'
                 : pricePerHour === null
-                  ? `${formatDuration(minutes)} · choose a class type`
+                  ? `${formatDuration(minutes)} · choose a booking type`
                   : `${formatDuration(minutes)} at ${formatPrice(pricePerHour)}/hr`}
             </p>
           </div>

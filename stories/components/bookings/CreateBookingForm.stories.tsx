@@ -65,7 +65,7 @@ const meta: Meta<typeof CreateBookingForm> = {
         <BookingSurface
           sidePanel={!dialog}
           title="New booking"
-          description="Choose a room and time, then the type of class."
+          description="Choose a room and time, then the booking type."
           onClose={fn()}
         >
           <Story />
@@ -97,7 +97,7 @@ export const OverlapWarning: Story = {
   args: { schedule: [existing(at(11), at(12))] },
 };
 
-/** The only overlap is shareable: suggests turning on Shareable */
+/** The only overlap is shareable: suggests turning on Shared room */
 export const ShareableOverlap: Story = {
   args: { schedule: [existing(at(11), at(12), true)] },
 };
@@ -128,8 +128,8 @@ export const RefusedByBackend: Story = {
     );
     const canvas = within(canvasElement);
     const body = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await canvas.findByRole('combobox', { name: 'Class type' }));
-    await userEvent.click(await body.findByRole('option', { name: 'Private' }));
+    await userEvent.click(await canvas.findByRole('combobox', { name: 'Booking type' }));
+    await userEvent.click(await body.findByRole('option', { name: 'Private lesson' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Book room' }));
     await expect(await canvas.findByRole('alert')).toHaveTextContent('Overlaps a booking');
   },

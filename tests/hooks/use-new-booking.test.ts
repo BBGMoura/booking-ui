@@ -127,7 +127,7 @@ describe('useNewBooking', () => {
 
     act(() => result.current.handlePreviewChange(preview));
     expect(result.current.previewEvent?.extendedProps).toMatchObject({
-      heading: 'Group',
+      heading: 'Group class',
       detail: 'Fosse',
     });
   });

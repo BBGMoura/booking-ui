@@ -27,8 +27,8 @@ export function BookingEventContent(info: EventDisplayInfo) {
     <span className="flex min-w-0 shrink-0 items-center gap-1">
       <span className="truncate">{info.timeText}</span>
       {shareable && (
-        <Users className="size-3 shrink-0" role="img" aria-label="Shareable">
-          <title>Shareable</title>
+        <Users className="size-3 shrink-0" role="img" aria-label="Shared room">
+          <title>Shared room</title>
         </Users>
       )}
     </span>

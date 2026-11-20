@@ -134,34 +134,34 @@ describe('CreateBookingForm', () => {
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('10:00');
   });
 
-  it('offers only the class types the backend returns for the user', async () => {
+  it('offers only the booking types the backend returns for the user', async () => {
     renderForm();
-    await userEvent.click(await screen.findByRole('combobox', { name: 'Class type' }));
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Booking type' }));
 
-    expect(await screen.findByRole('option', { name: 'Private' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Group' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Private lesson' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Group class' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Practice' })).not.toBeInTheDocument();
   });
 
   it('previews the price as the hourly price times the duration', async () => {
     renderForm();
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
 
     expect(await screen.findByText('£30.00')).toBeInTheDocument();
     expect(screen.getByText('1 hr 30 min at £20.00/hr')).toBeInTheDocument();
     expect(getDanceClass).toHaveBeenCalledWith('PRIVATE');
   });
 
-  it('requires a room and a class type', async () => {
+  it('requires a room and a booking type', async () => {
     renderForm({ start, end });
-    await screen.findByRole('combobox', { name: 'Class type' });
+    await screen.findByRole('combobox', { name: 'Booking type' });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Book room' })).toBeEnabled());
     await submit();
 
     await waitFor(() =>
       expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
         'Choose a room',
-        'Choose a class type',
+        'Choose a booking type',
       ])
     );
     expect(createBooking).not.toHaveBeenCalled();
@@ -209,8 +209,8 @@ describe('CreateBookingForm', () => {
     jest.mocked(createBooking).mockResolvedValue(saved);
     const { onBooked } = renderForm();
     await choose('Room', 'Fosse');
-    await choose('Class type', 'Private');
-    await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
+    await choose('Booking type', 'Private lesson');
+    await userEvent.click(screen.getByRole('switch', { name: 'Shared room' }));
     await submit();
 
     await waitFor(() => expect(onBooked).toHaveBeenCalledWith(saved));
@@ -229,7 +229,7 @@ describe('CreateBookingForm', () => {
   ])('shows a 400 %s by the button and asks for the room to be reloaded', async (code, message) => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, code));
     const { onConflict, onBooked } = renderForm();
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
@@ -241,7 +241,7 @@ describe('CreateBookingForm', () => {
   it('says what is in the way once the reloaded schedule shows the clash', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, 'BOOKING_CONFLICT'));
     const { rerender } = renderForm();
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
     expect(await screen.findByRole('alert')).toHaveTextContent(NOT_FREE_MESSAGE);
 
@@ -257,7 +257,7 @@ describe('CreateBookingForm', () => {
       /Overlaps a booking \(11:00–12:00\)/
     );
 
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -276,13 +276,13 @@ describe('CreateBookingForm', () => {
       .mockRejectedValueOnce(backendError(503, 'BOOKING_LOCK_TIMEOUT'))
       .mockResolvedValueOnce({} as never);
     const { onBooked, onConflict } = renderForm();
-    await choose('Class type', 'Group');
-    await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
+    await choose('Booking type', 'Group class');
+    await userEvent.click(screen.getByRole('switch', { name: 'Shared room' }));
     await submit();
 
     expect(await screen.findByText(HIGH_DEMAND_MESSAGE)).toBeInTheDocument();
     expect(onConflict).not.toHaveBeenCalled();
-    expect(screen.getByRole('switch', { name: 'Shareable' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Shared room' })).toBeChecked();
 
     await submit();
 
@@ -296,7 +296,7 @@ describe('CreateBookingForm', () => {
   it('shows other errors in the form like the rest of the app', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, 'SOMETHING_ELSE'));
     const { onConflict } = renderForm();
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
 
     expect(await screen.findByText('backend message')).toBeInTheDocument();
@@ -306,7 +306,7 @@ describe('CreateBookingForm', () => {
   it('only treats BOOKING_LOCK_TIMEOUT as a lock timeout on a 503', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(500, 'BOOKING_LOCK_TIMEOUT'));
     renderForm();
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
 
     expect(await screen.findByText(/Something went wrong on our end/)).toBeInTheDocument();
@@ -318,7 +318,7 @@ describe('CreateBookingForm', () => {
       start: new Date(2026, 10, 18, 10, 0),
       end: new Date(2026, 10, 18, 10, 10),
     });
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
 
     expect(await screen.findByText(/at least 15 minutes/)).toBeInTheDocument();
@@ -327,7 +327,7 @@ describe('CreateBookingForm', () => {
 
   it('says nothing about availability until the room’s bookings have loaded', async () => {
     renderForm(dragged, null);
-    await screen.findByRole('combobox', { name: 'Class type' });
+    await screen.findByRole('combobox', { name: 'Booking type' });
 
     expect(screen.queryByText(/is free at this time/)).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
@@ -348,7 +348,7 @@ describe('CreateBookingForm', () => {
       /Overlaps a booking \(11:00–12:00\)\. Choose another time\./
     );
 
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
     await waitFor(() => expect(onBooked).toHaveBeenCalled());
   });
@@ -356,15 +356,15 @@ describe('CreateBookingForm', () => {
   it('suggests sharing when the only overlaps are shareable', async () => {
     renderForm(dragged, [booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12), true)]);
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/Turn on Shareable/);
+    expect(await screen.findByRole('status')).toHaveTextContent(/Turn on Shared room/);
 
-    await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Shared room' }));
     expect(await screen.findByText('Astaire is free at this time.')).toBeInTheDocument();
   });
 
   it('moves the room and time to a new draft and keeps the other choices', async () => {
     const { rerender } = renderForm();
-    await choose('Class type', 'Group');
+    await choose('Booking type', 'Group class');
 
     rerender({
       room: 'FOSSE',
@@ -376,7 +376,7 @@ describe('CreateBookingForm', () => {
     expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent('Fri 20 Nov');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('14:00');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('15:15');
-    expect(screen.getByRole('combobox', { name: 'Class type' })).toHaveTextContent('Group');
+    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group class');
   });
 
   it('reports the booking as it changes, for the calendar to preview', async () => {
@@ -421,23 +421,25 @@ describe('CreateBookingForm', () => {
 
   it('changes only the room for a room-only draft', async () => {
     const { rerender } = renderForm();
-    await choose('Class type', 'Group');
+    await choose('Booking type', 'Group class');
 
     rerender({ room: 'BUSSELL' });
 
     expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Bussell');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('10:00');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('11:30');
-    expect(screen.getByRole('combobox', { name: 'Class type' })).toHaveTextContent('Group');
+    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group class');
   });
 
-  it('opens with the class type and shareable choice a draft carries', async () => {
+  it('opens with the booking type and shareable choice a draft carries', async () => {
     renderForm({ ...dragged, classType: 'GROUP', isShareable: true });
 
     await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Class type' })).toHaveTextContent('Group')
+      expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent(
+        'Group class'
+      )
     );
-    expect(screen.getByRole('switch', { name: 'Shareable' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Shared room' })).toBeChecked();
   });
 
   it('rejects a time that has already passed', async () => {
@@ -446,14 +448,14 @@ describe('CreateBookingForm', () => {
       start: new Date(2026, 10, 18, 7, 0),
       end: new Date(2026, 10, 18, 8, 0),
     });
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
 
     expect(await screen.findByText('Choose a time that hasn’t passed')).toBeInTheDocument();
     expect(createBooking).not.toHaveBeenCalled();
   });
 
-  it('never shows the previous class type’s price while the new one loads', async () => {
+  it('never shows the previous booking type’s price while the new one loads', async () => {
     let resolveGroup: (value: Awaited<ReturnType<typeof getDanceClass>>) => void = () => {};
     jest
       .mocked(getDanceClass)
@@ -465,10 +467,10 @@ describe('CreateBookingForm', () => {
       })
       .mockReturnValueOnce(new Promise((resolve) => (resolveGroup = resolve)));
     renderForm();
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     expect(await screen.findByText('£30.00')).toBeInTheDocument();
 
-    await choose('Class type', 'Group');
+    await choose('Booking type', 'Group class');
     expect(screen.queryByText('£30.00')).not.toBeInTheDocument();
 
     resolveGroup({ classType: 'GROUP', active: true, pricePerHour: 10, role: 'ROLE_USER' });
@@ -491,7 +493,7 @@ describe('CreateBookingForm', () => {
   ])('clears a %s %s error once the room changes', async (status, code) => {
     jest.mocked(createBooking).mockRejectedValue(backendError(status, code));
     renderForm();
-    await choose('Class type', 'Private');
+    await choose('Booking type', 'Private lesson');
     await submit();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
 

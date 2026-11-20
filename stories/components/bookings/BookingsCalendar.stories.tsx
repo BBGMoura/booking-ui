@@ -84,8 +84,8 @@ const myBookingElsewhere = booking('mine-3', 'ASTAIRE', 'PRIVATE', at(1, 15), at
  * - Mon 13:00, your booking (orange)
  * - Tue 11:00 and Wed 15:00, shareable bookings (people icon)
  * - Tue 15:00, your booking in another room: "busy elsewhere" (grey)
- * - Thu 10:00, a new booking being made, before a class type is chosen
- * - Fri 13:00, a new booking being made, once a class type is chosen
+ * - Thu 10:00, a new booking being made, before a booking type is chosen
+ * - Fri 13:00, a new booking being made, once a booking type is chosen
  */
 export const TileStates: Story = {
   args: {

@@ -51,7 +51,7 @@ export function CalendarControls({
         pressed={showMine}
         disabled={showMineLocked}
         onPressedChange={onShowMineChange}
-        aria-label="Show mine"
+        aria-label="Show my bookings"
       >
         Show mine
       </Toggle>

@@ -50,14 +50,14 @@ beforeEach(() => {
 describe('BookingDetailsPopover', () => {
   it('shows class type and room as the title, then the time', () => {
     setup(details({ room: 'FOSSE' }));
-    expect(screen.getByText('Private · Fosse')).toBeInTheDocument();
+    expect(screen.getByText('Private lesson · Fosse')).toBeInTheDocument();
     expect(screen.getByText(/\d{2}:\d{2}–\d{2}:\d{2}/)).toBeInTheDocument();
   });
 
   it('shows the name, shareable, price and a non-default status when given', () => {
     setup(details({ bookerName: 'Jane Smith', price: 12.5, status: 'COMPLETED' }), true);
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    expect(screen.getByText('Shareable')).toBeInTheDocument();
+    expect(screen.getByText('Shared room')).toBeInTheDocument();
     expect(screen.getByText('12.50')).toBeInTheDocument();
     expect(screen.getByText('Price £12.50')).toHaveClass('sr-only');
     expect(screen.getByText('Booked by Jane Smith')).toHaveClass('sr-only');
