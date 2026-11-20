@@ -9,6 +9,7 @@ import {
   confirmPasswordReset,
   logout,
   SESSION_EXPIRED_KEY,
+  setUnauthorizedHandler,
 } from '@/lib/api/auth';
 import { LoginCredentials, RegisterData, User } from '@/lib/types/auth';
 import api from '@/lib/api/axiosInstance';
@@ -63,6 +64,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setUnauthorizedHandler(null);
   mock.reset();
   jest.clearAllMocks();
 });
@@ -123,6 +125,67 @@ describe('auth API', () => {
       await fetchCurrentUser().catch(() => {});
 
       expect(sessionStorage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+    });
+  });
+
+  describe('response interceptor: session expiry handler', () => {
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    it('calls the handler once when a request with a token gets 401', async () => {
+      const handler = jest.fn();
+      setUnauthorizedHandler(handler);
+      (Cookies.get as jest.Mock).mockReturnValue(mockToken);
+      mock.onGet('/users/me').reply(401);
+
+      void fetchCurrentUser().catch(() => {});
+      await flush();
+
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls the handler once when several requests fail together', async () => {
+      const handler = jest.fn();
+      const onRejected = jest.fn();
+      setUnauthorizedHandler(handler);
+      // The first 401 removes the cookie, as the real one would
+      let cookie: string | undefined = mockToken;
+      (Cookies.get as jest.Mock).mockImplementation(() => cookie);
+      (Cookies.remove as jest.Mock).mockImplementation(() => {
+        cookie = undefined;
+      });
+      mock.onGet('/users/me').reply(401);
+
+      for (let i = 0; i < 10; i++) void fetchCurrentUser().catch(onRejected);
+      await flush();
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(Cookies.remove).toHaveBeenCalledTimes(1);
+      expect(onRejected).not.toHaveBeenCalled();
+      (Cookies.remove as jest.Mock).mockReset();
+    });
+
+    it('does not call the handler when the login request itself gets 401', async () => {
+      const handler = jest.fn();
+      setUnauthorizedHandler(handler);
+      (Cookies.get as jest.Mock).mockReturnValue(mockToken);
+      mock.onPost('/auth/login').reply(401);
+
+      await expect(login(mockLoginCredentials)).rejects.toThrow();
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(Cookies.remove).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+    });
+
+    it('does not call the handler on 401 when there is no token', async () => {
+      const handler = jest.fn();
+      setUnauthorizedHandler(handler);
+      (Cookies.get as jest.Mock).mockReturnValue(undefined);
+      mock.onGet('/users/me').reply(401);
+
+      await expect(fetchCurrentUser()).rejects.toThrow();
+
+      expect(handler).not.toHaveBeenCalled();
     });
   });
 

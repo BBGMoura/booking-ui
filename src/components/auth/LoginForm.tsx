@@ -17,6 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { isFieldValidationError, parseApiError, setFieldErrors } from '@/lib/utils/errorUtils';
 import { toast } from 'sonner';
 import { SESSION_EXPIRED_KEY } from '@/lib/api/auth';
+import { getSafeNextPath } from '@/lib/utils/authRedirect';
 
 const loginSchema = z.object({
   email: z
@@ -84,7 +85,8 @@ export default function LoginForm() {
   async function onSubmit(values: LoginFormValues) {
     try {
       await login(values);
-      router.push('/dashboard');
+      const next = getSafeNextPath(new URLSearchParams(window.location.search).get('next'));
+      router.push(next ?? '/dashboard');
     } catch (exception) {
       handleLoginError(exception);
     }

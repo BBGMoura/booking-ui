@@ -4,6 +4,11 @@ import * as authApi from '@/lib/api/auth';
 import Cookies from 'js-cookie';
 import { User, USER_ROLES } from '@/lib/types/auth';
 
+const mockReplace = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+}));
+
 jest.mock('@/lib/api/auth');
 jest.mock('js-cookie', () => ({
   get: jest.fn(),
@@ -339,6 +344,30 @@ describe('AuthContext', () => {
       });
 
       expect(result.current.isAuthenticated).toBe(true);
+    });
+  });
+
+  describe('session expiry', () => {
+    it('clears the user and replaces the route with /login keeping the current page', async () => {
+      mockFetchCurrentUser.mockResolvedValue(mockUser);
+      (Cookies.get as jest.Mock).mockReturnValue('token');
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.user).toEqual(mockUser));
+
+      window.history.pushState({}, '', '/calendar?view=week');
+      const handler = (authApi.setUnauthorizedHandler as jest.Mock).mock.calls.at(-1)![0];
+      act(() => handler());
+
+      expect(result.current.user).toBeNull();
+      expect(mockReplace).toHaveBeenCalledWith('/login?next=%2Fcalendar%3Fview%3Dweek');
+      window.history.pushState({}, '', '/');
+    });
+
+    it('unregisters the handler on unmount', () => {
+      const { unmount } = renderHook(() => useAuth(), { wrapper });
+      unmount();
+
+      expect(authApi.setUnauthorizedHandler).toHaveBeenLastCalledWith(null);
     });
   });
 });
