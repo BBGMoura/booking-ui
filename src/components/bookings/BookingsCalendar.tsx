@@ -132,6 +132,10 @@ export function BookingsCalendar({
           highlightClass="hidden"
           snapDuration={toTime(TIME_STEP_MINUTES)}
           selectAllow={(span) => isBookableRange(span)}
+          // The same rule for moving the new booking's placeholder, so it can't
+          // be dropped into closed hours or the past. The form's time fields
+          // only offer bookable times, and can't show anything else.
+          eventAllow={(span) => isBookableRange(span)}
           select={(info) => {
             onSelect?.({ start: info.start, end: info.end });
             info.view.calendar.unselect();
