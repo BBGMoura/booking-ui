@@ -8,9 +8,15 @@ jest.mock('@/lib/api/booking', () => ({
   getMyBookingsInRange: jest.fn(),
 }));
 
-const week1 = { start: new Date('2026-11-16T00:00:00Z'), end: new Date('2026-11-23T00:00:00Z') };
-const week2 = { start: new Date('2026-11-23T00:00:00Z'), end: new Date('2026-11-30T00:00:00Z') };
-const week3 = { start: new Date('2026-11-30T00:00:00Z'), end: new Date('2026-12-07T00:00:00Z') };
+// Local midnights, as FullCalendar reports them. 16 November 2026 is a Monday.
+const day = (date: number) => new Date(2026, 10, date);
+const week1 = { start: day(16), end: day(23) };
+const week2 = { start: day(23), end: day(30) };
+const week3 = { start: day(30), end: day(37) };
+const tuesday = { start: day(17), end: day(18) };
+const wednesday = { start: day(18), end: day(19) };
+// Three days that cross from week 1 into week 2.
+const satToMon = { start: day(21), end: day(24) };
 
 const b = (uid: string, room: Room): BookingView => ({
   uid,
@@ -93,7 +99,7 @@ describe('useCalendarEvents', () => {
     expect(getMyBookingsInRange).toHaveBeenCalledTimes(requests);
   });
 
-  it('prefetches the next range once the visible one has loaded', async () => {
+  it('prefetches the next week once the visible one has loaded', async () => {
     renderHook(() => useCalendarEvents('ASTAIRE', true, week1, teacher));
     await waitFor(() => expect(roomRequestsFor(week2)).toHaveLength(4));
     expect(getMyBookingsInRange).toHaveBeenCalledWith(
@@ -102,7 +108,7 @@ describe('useCalendarEvents', () => {
     );
   });
 
-  it('shows a prefetched or visited range straight away and refreshes it in the background', async () => {
+  it('shows a prefetched or visited week straight away and refreshes it in the background', async () => {
     const { result, rerender } = renderHook(
       ({ range }) => useCalendarEvents('ASTAIRE', true, range, teacher),
       { initialProps: { range: week1 } }
@@ -167,6 +173,62 @@ describe('useCalendarEvents', () => {
     await act(() => result.current.refresh());
 
     expect(result.current.events).toHaveLength(2);
+  });
+
+  it('loads the whole week for a single day', async () => {
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, tuesday, teacher));
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
+    expect(roomRequestsFor(week1)).toHaveLength(4);
+    expect(getMyBookingsInRange).toHaveBeenCalledWith(
+      week1.start.toISOString(),
+      week1.end.toISOString()
+    );
+    expect(roomRequestsFor(tuesday)).toHaveLength(0);
+  });
+
+  it('moves between days in a loaded week without loading or fetching again', async () => {
+    const { result, rerender } = renderHook(
+      ({ range }) => useCalendarEvents('ASTAIRE', false, range, teacher),
+      { initialProps: { range: tuesday } }
+    );
+    await waitFor(() => expect(roomRequestsFor(week2)).toHaveLength(4));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const requests = jest.mocked(getRoomSchedule).mock.calls.length;
+
+    rerender({ range: wednesday });
+    expect(result.current.loading).toBe(false);
+    expect(result.current.events.map((e) => e.id)).toEqual(['ASTAIRE-booking']);
+
+    rerender({ range: week1 });
+    expect(result.current.loading).toBe(false);
+    expect(jest.mocked(getRoomSchedule).mock.calls).toHaveLength(requests);
+  });
+
+  it('loads both weeks for a range that crosses into the next week', async () => {
+    jest
+      .mocked(getRoomSchedule)
+      .mockImplementation(async (room, from) => [
+        b(`${room}-${from === week1.start.toISOString() ? 'week1' : 'week2'}`, room),
+      ]);
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, satToMon, teacher));
+    expect(result.current.loading).toBe(true);
+    await waitFor(() =>
+      expect(result.current.events.map((e) => e.id)).toEqual(['ASTAIRE-week1', 'ASTAIRE-week2'])
+    );
+    // The prefetch follows the last of the weeks on screen.
+    await waitFor(() => expect(roomRequestsFor(week3)).toHaveLength(4));
+  });
+
+  it('refresh refetches every week on screen', async () => {
+    const { result } = renderHook(() => useCalendarEvents('ASTAIRE', false, satToMon, teacher));
+    await waitFor(() => expect(result.current.events).toHaveLength(2));
+    const week1Requests = roomRequestsFor(week1).length;
+    const week2Requests = roomRequestsFor(week2).length;
+
+    await act(() => result.current.refresh());
+
+    expect(roomRequestsFor(week1)).toHaveLength(week1Requests + 4);
+    expect(roomRequestsFor(week2)).toHaveLength(week2Requests + 4);
   });
 
   it('refresh reports an error if the refetch fails', async () => {
