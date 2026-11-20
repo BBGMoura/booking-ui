@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
@@ -11,10 +11,18 @@ jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
 const mockCancel = jest.mocked(cancelBooking);
 
+// The bookings below start on 1 Nov 2026 at 10:00 UTC.
+const BEFORE_START = new Date('2026-10-01T09:00:00Z').getTime();
+const AFTER_START = new Date('2026-11-01T10:05:00Z').getTime();
+let mockNow: jest.SpyInstance<number>;
+
 beforeEach(() => {
   mockCancel.mockReset();
   jest.mocked(toast.success).mockReset();
+  mockNow = jest.spyOn(Date, 'now').mockReturnValue(BEFORE_START);
 });
+
+afterEach(() => mockNow.mockRestore());
 
 const booking = (over: Partial<BookingView> = {}): BookingView => ({
   uid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
@@ -69,6 +77,27 @@ describe('BookingCard', () => {
     expect(screen.queryByRole('button', { name: 'Cancel booking' })).not.toBeInTheDocument();
   });
 
+  it('offers no Cancel button once the booking has started', () => {
+    mockNow.mockReturnValue(AFTER_START);
+    render(<BookingCard booking={booking()} onCancelled={jest.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Cancel booking' })).not.toBeInTheDocument();
+  });
+
+  it('refuses to cancel if the booking starts while the confirmation is open', async () => {
+    const onCancelled = jest.fn();
+    render(<BookingCard booking={booking()} onCancelled={onCancelled} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
+    mockNow.mockReturnValue(AFTER_START);
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      "This booking has started, so it can't be cancelled."
+    );
+    expect(mockCancel).not.toHaveBeenCalled();
+    expect(onCancelled).not.toHaveBeenCalled();
+  });
+
   it('asks for confirmation, then cancels and tells the caller', async () => {
     mockCancel.mockResolvedValue(undefined);
     const onCancelled = jest.fn();
@@ -83,6 +112,8 @@ describe('BookingCard', () => {
     expect(mockCancel).toHaveBeenCalledWith('a1b2c3d4-e5f6-7890-abcd-ef1234567890');
     expect(onCancelled).toHaveBeenCalledWith('a1b2c3d4-e5f6-7890-abcd-ef1234567890');
     expect(toast.success).toHaveBeenCalledWith('Booking cancelled');
+    // The buttons are gone, so focus stays on the card rather than the page top.
+    expect(screen.getByRole('article')).toHaveFocus();
   });
 
   it('goes back without cancelling when the user keeps the booking', async () => {
@@ -106,12 +137,16 @@ describe('BookingCard', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to connect');
     expect(onCancelled).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Keep' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('disables the buttons while the cancel is in flight', async () => {
     let resolve!: () => void;
     mockCancel.mockReturnValue(new Promise<void>((r) => (resolve = r)));
-    render(<BookingCard booking={booking()} onCancelled={jest.fn()} />);
+    const onCancelled = jest.fn();
+    render(<BookingCard booking={booking()} onCancelled={onCancelled} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
     await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }));
@@ -119,6 +154,8 @@ describe('BookingCard', () => {
     expect(screen.getByRole('button', { name: 'Yes, cancel' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Keep' })).toBeDisabled();
     expect(mockCancel).toHaveBeenCalledTimes(1);
-    resolve();
+
+    await act(async () => resolve());
+    expect(onCancelled).toHaveBeenCalledTimes(1);
   });
 });

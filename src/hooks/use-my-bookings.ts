@@ -8,25 +8,39 @@ export type BookingsTab = 'upcoming' | 'past';
 export const MY_BOOKINGS_PAGE_SIZE = 10;
 
 /**
- * One page of the user's own bookings for a tab. "Now" is worked out here and
- * held for the life of the hook, so paging through a tab doesn't shift items
- * between pages as the clock moves.
+ * One page of the user's own bookings for a tab.
+ *
+ * "Now" is worked out here and held while the user pages through, so items
+ * don't shift between pages as the clock moves. It moves on, and the page is
+ * reloaded quietly, when the user comes back to the browser tab: that's when
+ * bookings that have started since need to move from Upcoming to Past, and
+ * when a cancellation made elsewhere (by an admin) should show.
+ *
+ * Unlike the Room calendar there's no timed poll: only the user (and rarely an
+ * admin) changes these bookings, so a refresh on return is enough.
  */
 export function useMyBookings(tab: BookingsTab) {
-  const [now] = useState(() => new Date().toISOString());
+  const [now, setNow] = useState(() => new Date().toISOString());
   const [pageIndex, setPageIndex] = useState(0);
   const [data, setData] = useState<Page<BookingView> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
   const requestId = useRef(0);
+  // A refresh on return leaves the list as it is until the new page arrives,
+  // and keeps it if the refresh fails; the next return tries again.
+  const quiet = useRef(false);
 
   useEffect(() => {
     const id = ++requestId.current;
-    // Resetting loading/error as a request starts is what this effect is for.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    setError(null);
+    const background = quiet.current;
+    quiet.current = false;
+    if (!background) {
+      // Resetting loading/error as a request starts is what this effect is for.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(true);
+      setError(null);
+    }
     getBookings({
       ...(tab === 'upcoming' ? { dateFrom: now, order: 'ASC' } : { dateTo: now, order: 'DESC' }),
       page: pageIndex,
@@ -34,15 +48,35 @@ export function useMyBookings(tab: BookingsTab) {
     })
       .then((result) => {
         if (id !== requestId.current) return;
+        // Bookings moving to Past can leave the user on a page that no longer
+        // exists; go to the last one that does.
+        if (result.content.length === 0 && pageIndex > 0) {
+          setPageIndex(Math.max(0, result.page.totalPages - 1));
+          return;
+        }
         setData(result);
         setLoading(false);
       })
       .catch((e) => {
-        if (id !== requestId.current) return;
+        if (id !== requestId.current || background) return;
         setError(parseApiError(e));
         setLoading(false);
       });
   }, [tab, now, pageIndex, attempt]);
+
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      quiet.current = true;
+      setNow(new Date().toISOString());
+    };
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    window.addEventListener('focus', refreshIfVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+      window.removeEventListener('focus', refreshIfVisible);
+    };
+  }, []);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 

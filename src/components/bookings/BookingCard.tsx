@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -39,11 +39,21 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
   const from = new Date(booking.dateFrom);
   const to = new Date(booking.dateTo);
   const cancelled = booking.status === 'CANCELLED';
+  const articleRef = useRef<HTMLElement>(null);
   // The year only earns space when it isn't this one, which mostly happens in Past.
   const otherYear = from.getFullYear() !== new Date().getFullYear();
 
+  // The backend lets a booking be cancelled at any time, so the "not once it
+  // has started" rule lives here, as in the calendar's booking details. It's
+  // checked again on confirm because the page can sit open past the start.
+  const canCancel = !!onCancelled && !cancelled && from.getTime() > Date.now();
+
   async function confirmCancel() {
     if (cancelling) return;
+    if (from.getTime() <= Date.now()) {
+      setError("This booking has started, so it can't be cancelled.");
+      return;
+    }
     setCancelling(true);
     setError(null);
     try {
@@ -51,6 +61,9 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
       toast.success('Booking cancelled');
       setConfirming(false);
       onCancelled?.(booking.uid);
+      // The buttons go once the booking is cancelled, so keep keyboard and
+      // screen reader users on this card instead of dropping to the page top.
+      articleRef.current?.focus();
     } catch (e) {
       setError(parseApiError(e));
     } finally {
@@ -60,8 +73,13 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
 
   return (
     <article
+      ref={articleRef}
+      tabIndex={-1}
       aria-label={`${fullDateFormat.format(from)}, ${timeFormat.format(from)} to ${timeFormat.format(to)}`}
-      className={cn('bg-card rounded-xl border p-4 shadow-xs', cancelled && 'bg-muted/40')}
+      className={cn(
+        'bg-card rounded-xl border p-4 shadow-xs outline-none',
+        cancelled && 'bg-muted/40'
+      )}
     >
       <div className="flex gap-4">
         <div
@@ -115,7 +133,7 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
               <span className="font-sans">Ref </span>
               {booking.uid}
             </p>
-            {onCancelled && !cancelled && (
+            {canCancel && (
               <div className="-my-1 -mr-2 ml-auto">
                 {confirming ? (
                   <div className="flex flex-wrap items-center justify-end gap-2">
@@ -125,7 +143,10 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
                         variant="ghost"
                         size="sm"
                         disabled={cancelling}
-                        onClick={() => setConfirming(false)}
+                        onClick={() => {
+                          setConfirming(false);
+                          setError(null);
+                        }}
                       >
                         Keep
                       </Button>

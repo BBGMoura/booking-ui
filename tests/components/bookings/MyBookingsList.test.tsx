@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosError } from 'axios';
 import { MyBookingsList } from '@/components/bookings/MyBookingsList';
@@ -28,7 +28,21 @@ const page = (content: BookingView[], number = 0, totalPages = 1): Page<BookingV
 
 const mockGet = jest.mocked(getBookings);
 
-beforeEach(() => mockGet.mockReset());
+let mockNow: jest.SpyInstance<number>;
+
+beforeEach(() => {
+  mockGet.mockReset();
+  // Before the fixtures' 1 Nov 2026 start, so upcoming bookings can be cancelled.
+  mockNow = jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-01T09:00:00Z').getTime());
+});
+
+afterEach(() => mockNow.mockRestore());
+
+function returnToTab() {
+  act(() => {
+    fireEvent(document, new Event('visibilitychange'));
+  });
+}
 
 describe('MyBookingsList', () => {
   it('requests upcoming bookings soonest first, 10 per page', async () => {
@@ -135,6 +149,59 @@ describe('MyBookingsList', () => {
 
     expect(await screen.findByText('No past bookings')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Book a room' })).not.toBeInTheDocument();
+  });
+
+  it('reloads quietly with a new "now" when the user comes back to the tab', async () => {
+    mockGet.mockResolvedValueOnce(page([booking('b1')]));
+    render(<MyBookingsList tab="upcoming" />);
+    await screen.findByText('Bussell');
+
+    let resolve!: (p: Page<BookingView>) => void;
+    mockGet.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    await new Promise((r) => setTimeout(r, 5));
+    returnToTab();
+
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(mockGet.mock.calls[1][0]!.dateFrom).not.toBe(mockGet.mock.calls[0][0]!.dateFrom);
+    // The list stays as it is, not dimmed, while the reload is in flight.
+    expect(screen.getByRole('list')).not.toHaveAttribute('aria-busy', 'true');
+
+    await act(async () => resolve(page([booking('b2', { room: 'FOSSE' })])));
+    expect(screen.getByText('Fosse')).toBeInTheDocument();
+    expect(screen.queryByText('Bussell')).not.toBeInTheDocument();
+  });
+
+  it('keeps the list when a reload on return fails', async () => {
+    mockGet.mockResolvedValueOnce(page([booking('b1')]));
+    render(<MyBookingsList tab="upcoming" />);
+    await screen.findByText('Bussell');
+
+    mockGet.mockRejectedValueOnce(new AxiosError('Network Error'));
+    returnToTab();
+    await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
+
+    expect(screen.getByText('Bussell')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('goes to the last page when the current one has emptied', async () => {
+    mockGet.mockResolvedValueOnce(page([booking('b1')], 0, 3));
+    render(<MyBookingsList tab="upcoming" />);
+    await screen.findByText('Page 1 of 3');
+    mockGet.mockResolvedValueOnce(page([booking('b2')], 1, 3));
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText('Page 2 of 3');
+    mockGet.mockResolvedValueOnce(page([booking('b3')], 2, 3));
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText('Page 3 of 3');
+
+    // Bookings have moved to Past since, so there are now only 2 pages.
+    mockGet.mockResolvedValueOnce(page([], 2, 2));
+    mockGet.mockResolvedValueOnce(page([booking('b2')], 1, 2));
+    returnToTab();
+
+    await screen.findByText('Page 2 of 2');
+    expect(mockGet.mock.calls.at(-1)![0]).toMatchObject({ page: 1 });
   });
 
   it('shows the error and retries', async () => {
