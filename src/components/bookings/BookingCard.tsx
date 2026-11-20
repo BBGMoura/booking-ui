@@ -67,7 +67,7 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
         <div
           aria-hidden
           className={cn(
-            'bg-primary text-primary-foreground flex w-16 shrink-0 flex-col items-center justify-center rounded-lg py-2 leading-none',
+            'bg-primary text-primary-foreground flex w-16 shrink-0 flex-col items-center justify-center self-start rounded-lg py-2 leading-none',
             cancelled && 'bg-muted text-muted-foreground'
           )}
         >
