@@ -2,7 +2,7 @@ import { mainNavItems, adminNavItems, pageTitles } from '@/lib/config/nav';
 
 describe('nav config', () => {
   describe('mainNavItems', () => {
-    it('includes Dashboard, Room calendar and Booking History', () => {
+    it('includes Dashboard, Room Calendar and Booking History', () => {
       const urls = mainNavItems.map((item) => item.url);
 
       expect(urls).toContain('/dashboard');

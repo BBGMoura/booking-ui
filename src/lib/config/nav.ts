@@ -9,7 +9,7 @@ export interface NavItem {
 
 export const mainNavItems: NavItem[] = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Room calendar', url: '/calendar', icon: CalendarDays },
+  { title: 'Room Calendar', url: '/calendar', icon: CalendarDays },
   { title: 'Booking History', url: '/booking-history', icon: History },
 ];
 
