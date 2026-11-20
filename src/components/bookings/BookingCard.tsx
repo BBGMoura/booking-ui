@@ -64,16 +64,16 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
       className={cn('bg-card rounded-xl border p-4 shadow-xs', cancelled && 'bg-muted/40')}
     >
       <div className="flex gap-4">
-        {/* The calendar colours the user's own bookings with chart-1, so the
-            same colour here ties this list back to the calendar. */}
         <div
           aria-hidden
           className={cn(
-            'bg-chart-1/15 text-chart-1 flex w-16 shrink-0 flex-col items-center justify-center rounded-lg py-2 leading-none',
+            'bg-primary text-primary-foreground flex w-16 shrink-0 flex-col items-center justify-center rounded-lg py-2 leading-none',
             cancelled && 'bg-muted text-muted-foreground'
           )}
         >
-          <span className="text-xs font-medium uppercase">{weekdayFormat.format(from)}</span>
+          <span className="text-xs font-medium uppercase opacity-80">
+            {weekdayFormat.format(from)}
+          </span>
           <span className="my-1 text-2xl font-semibold tabular-nums">{dayFormat.format(from)}</span>
           <span className="text-xs font-medium uppercase">
             {monthFormat.format(from)}
@@ -110,10 +110,54 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
               </Badge>
             )}
           </div>
-          <p className="text-muted-foreground font-mono text-xs break-all">
-            <span className="font-sans">Ref </span>
-            {booking.uid}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <p className="text-muted-foreground font-mono text-xs">
+              <span className="font-sans">Ref </span>
+              {/* The first block of the UUID is enough to tell bookings apart
+                  when someone reads it out; the full one is on hover. */}
+              <span title={booking.uid}>{booking.uid.slice(0, 8).toUpperCase()}</span>
+            </p>
+            {onCancelled && !cancelled && (
+              <div className="-my-1 -mr-2 ml-auto">
+                {confirming ? (
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <p className="text-sm">Cancel this booking? This can&apos;t be undone.</p>
+                    <div className="flex gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={cancelling}
+                        onClick={() => setConfirming(false)}
+                      >
+                        Keep
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={cancelling}
+                        onClick={confirmCancel}
+                        autoFocus
+                      >
+                        Yes, cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    // "Cancel" alone could read as "close this" to a screen reader.
+                    aria-label="Cancel booking"
+                    onClick={() => setConfirming(true)}
+                  >
+                    <Trash2 aria-hidden />
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -121,50 +165,6 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
         <p role="alert" className="text-destructive mt-3 text-sm">
           {error}
         </p>
-      )}
-      {onCancelled && !cancelled && (
-        // Laid out like the calendar's booking details: a quiet action under a
-        // divider, confirmed in place.
-        <div className="mt-3 border-t pt-2">
-          {confirming ? (
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <p className="text-sm">Cancel this booking? This can&apos;t be undone.</p>
-              <div className="flex gap-1.5">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={cancelling}
-                  onClick={() => setConfirming(false)}
-                >
-                  Keep
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={cancelling}
-                  onClick={confirmCancel}
-                  autoFocus
-                >
-                  Yes, cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-destructive"
-                // "Cancel" alone could read as "close this" to a screen reader.
-                aria-label="Cancel booking"
-                onClick={() => setConfirming(true)}
-              >
-                <Trash2 aria-hidden />
-                Cancel
-              </Button>
-            </div>
-          )}
-        </div>
       )}
     </article>
   );

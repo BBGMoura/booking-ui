@@ -30,7 +30,7 @@ const booking = (over: Partial<BookingView> = {}): BookingView => ({
 });
 
 describe('BookingCard', () => {
-  it('shows the date, time, room, booking type, price and reference without expanding', () => {
+  it('shows the date, time, room, booking type, price and short reference without expanding', () => {
     render(<BookingCard booking={booking()} />);
 
     expect(
@@ -40,7 +40,10 @@ describe('BookingCard', () => {
     expect(screen.getByText('Astaire')).toBeInTheDocument();
     expect(screen.getByText('Private lesson')).toBeInTheDocument();
     expect(screen.getByText('£20.00')).toBeInTheDocument();
-    expect(screen.getByText('a1b2c3d4-e5f6-7890-abcd-ef1234567890')).toBeInTheDocument();
+    expect(screen.getByText('A1B2C3D4')).toHaveAttribute(
+      'title',
+      'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+    );
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
