@@ -4,6 +4,8 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 
 export const WEEK_VIEW = 'timeGridWeek';
 export const DAY_VIEW = 'timeGridDay';
+/** Three days side by side, on phones only. A custom view defined in BookingsCalendar. */
+export const MULTI_DAY_VIEW = 'timeGridMultiDay';
 
 // The same width the sidebar collapses at (MOBILE_BREAKPOINT in use-mobile.ts,
 // 768px, as a max-width query).
@@ -13,7 +15,8 @@ export const MOBILE_QUERY = '(max-width: 767px)';
  * Makes the calendar open on the day view on phones, where seven day columns
  * don't fit, and on the week view elsewhere. Crossing the breakpoint (rotating
  * a tablet, resizing a window) switches the view to match; within a size the
- * user's own choice of view is left alone.
+ * user's own choice of view is left alone. Going wide while on the multi-day
+ * view (which only exists on phones) lands on the week view.
  */
 export function useResponsiveCalendarView(controller: CalendarController) {
   const isMobile = useMediaQuery(MOBILE_QUERY);

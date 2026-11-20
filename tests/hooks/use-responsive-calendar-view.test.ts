@@ -53,3 +53,14 @@ describe('useResponsiveCalendarView', () => {
     expect(controller.changeView).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('useResponsiveCalendarView on the multi-day view', () => {
+  it('switches to the week view when the screen becomes wide', () => {
+    matches = true;
+    const controller = makeController();
+    renderHook(() => useResponsiveCalendarView(controller));
+    setMobile(false);
+    expect(controller.changeView).toHaveBeenCalledTimes(1);
+    expect(controller.changeView).toHaveBeenLastCalledWith('timeGridWeek');
+  });
+});

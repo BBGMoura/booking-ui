@@ -5,7 +5,20 @@ import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
 type Span = { start: Date; end: Date };
 type Allow = (span: Span) => boolean;
 
-type ViewProps = { selectAllow: Allow; eventAllow: Allow; eventResizableFromStart?: boolean };
+type ViewProps = {
+  selectAllow: Allow;
+  eventAllow: Allow;
+  eventResizableFromStart?: boolean;
+  views?: Record<string, unknown>;
+  buttons?: Record<string, { text: string }>;
+};
+
+let mockIsMobile = false;
+jest.mock('@/hooks/use-media-query', () => ({ useMediaQuery: () => mockIsMobile }));
+
+const mockToolbarProps: { current: { availableViews: string[] } } = {
+  current: { availableViews: [] },
+};
 
 const mockViewProps: { current: ViewProps } = {
   current: { selectAllow: () => true, eventAllow: () => true },
@@ -25,7 +38,10 @@ jest.mock('@fullcalendar/react/list', () => ({}));
 jest.mock('@fullcalendar/react/timegrid', () => ({}));
 
 jest.mock('@/components/bookings/BookingsCalendarToolbar', () => ({
-  BookingsCalendarToolbar: () => null,
+  BookingsCalendarToolbar: (props: { availableViews: string[] }) => {
+    mockToolbarProps.current = props;
+    return null;
+  },
 }));
 
 const renderCalendar = () => {
@@ -66,5 +82,42 @@ describe.each(['selectAllow', 'eventAllow'] as const)('BookingsCalendar %s', (ru
 describe('BookingsCalendar placeholder', () => {
   it('can be resized from its start as well as its end', () => {
     expect(renderCalendar().eventResizableFromStart).toBe(true);
+  });
+});
+
+describe('BookingsCalendar multi-day view', () => {
+  afterEach(() => {
+    mockIsMobile = false;
+  });
+
+  it('offers Week, Multi-day and Day on phones, with a 3-day view moving a day at a time', () => {
+    mockIsMobile = true;
+    const props = renderCalendar();
+    expect(mockToolbarProps.current.availableViews).toEqual([
+      'timeGridWeek',
+      'timeGridMultiDay',
+      'timeGridDay',
+    ]);
+    expect(props.views?.timeGridMultiDay).toMatchObject({
+      type: 'timeGrid',
+      duration: { days: 3 },
+      dateIncrement: { days: 1 },
+      dayHeaderFormat: { weekday: 'short', day: 'numeric' },
+    });
+    expect(props.buttons?.timeGridMultiDay.text).toBe('Multi-day');
+  });
+
+  it('keeps the multi-day view registered on wide screens so leaving it does not error', () => {
+    const props = renderCalendar();
+    expect(props.views?.timeGridMultiDay).toMatchObject({
+      type: 'timeGrid',
+      duration: { days: 3 },
+    });
+    expect(props.views?.timeGridWeek).toBeUndefined();
+  });
+
+  it('offers only Week and Day on wide screens', () => {
+    renderCalendar();
+    expect(mockToolbarProps.current.availableViews).toEqual(['timeGridWeek', 'timeGridDay']);
   });
 });

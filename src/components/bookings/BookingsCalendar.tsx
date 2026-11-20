@@ -16,6 +16,7 @@ import {
   useResponsiveCalendarView,
   WEEK_VIEW,
   DAY_VIEW,
+  MULTI_DAY_VIEW,
 } from '@/hooks/use-responsive-calendar-view';
 import { cn } from '@/lib/utils';
 import { isBookableRange, OPENING_HOURS_BY_DAY, TIME_STEP_MINUTES } from '@/lib/utils/bookingTime';
@@ -28,10 +29,15 @@ import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const plugins = [timeGridPlugin, listPlugin, interactionPlugin];
 
-const AVAILABLE_VIEWS = [WEEK_VIEW, DAY_VIEW];
+const WIDE_VIEWS = [WEEK_VIEW, DAY_VIEW];
+// The multi-day view only fits phones, so it is only offered there.
+const MOBILE_VIEWS = [WEEK_VIEW, MULTI_DAY_VIEW, DAY_VIEW];
+
+// FullCalendar ignores a per-view buttonText, so the tab label is set here.
+const BUTTONS = { [MULTI_DAY_VIEW]: { text: 'Multi-day' } };
 
 // Phone columns are too narrow for the default header (weekday only), so the
-// week view also shows each day's number.
+// week and multi-day views also show each day's number.
 const MOBILE_WEEK_HEADER_FORMAT = { weekday: 'short', day: 'numeric' } as const;
 
 // Mirrors the backend's `schedule` config, which isn't exposed over the API.
@@ -106,16 +112,27 @@ export function BookingsCalendar({
       <BookingsCalendarToolbar
         className="border-b p-4 sm:p-5"
         controller={controller}
-        availableViews={AVAILABLE_VIEWS}
+        availableViews={isMobile ? MOBILE_VIEWS : WIDE_VIEWS}
       />
       <div className="min-h-0 grow">
         <EventCalendarViews
           controller={controller}
           height={height}
           initialView={initialView}
-          views={
-            isMobile ? { timeGridWeek: { dayHeaderFormat: MOBILE_WEEK_HEADER_FORMAT } } : undefined
-          }
+          views={{
+            ...(isMobile && { timeGridWeek: { dayHeaderFormat: MOBILE_WEEK_HEADER_FORMAT } }),
+            // Three days that move along one day at a time, as in Apple Calendar.
+            // Always registered, even though only phones offer the tab: when the
+            // screen goes wide the calendar is still on this view for one render
+            // before it switches to the week view, and an unknown view errors.
+            [MULTI_DAY_VIEW]: {
+              type: 'timeGrid',
+              duration: { days: 3 },
+              dateIncrement: { days: 1 },
+              dayHeaderFormat: MOBILE_WEEK_HEADER_FORMAT,
+            },
+          }}
+          buttons={BUTTONS}
           navLinkDayClick="timeGridDay"
           navLinkWeekClick="timeGridWeek"
           plugins={plugins}
