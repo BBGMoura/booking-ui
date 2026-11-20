@@ -1,13 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosError } from 'axios';
+import { CreateBookingForm } from '@/components/bookings/CreateBookingForm';
+import type { BookingDraft } from '@/lib/utils/bookingForm';
 import {
-  type BookingDraft,
-  CreateBookingForm,
   HIGH_DEMAND_MESSAGE,
   NOT_FREE_MESSAGE,
   SHAREABLE_FULL_MESSAGE,
-} from '@/components/bookings/CreateBookingForm';
+} from '@/lib/utils/bookingMessages';
 import { BOOKING_CHECK_DELAY_MS } from '@/hooks/use-booking-check';
 import { createBooking, validateBooking } from '@/lib/api/booking';
 import type { BookingView } from '@/lib/types/booking';
