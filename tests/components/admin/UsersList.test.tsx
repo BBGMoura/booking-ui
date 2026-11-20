@@ -49,16 +49,16 @@ describe('UsersList', () => {
     );
     render(<UsersList />);
 
-    const rows = await screen.findAllByRole('row');
-    expect(within(rows[1]).getByText('Admin')).toBeInTheDocument();
-    expect(within(rows[1]).getByText('Active')).toBeInTheDocument();
-    expect(within(rows[1]).getByRole('link', { name: 'Jane Cooper' })).toHaveAttribute(
+    const rows = await screen.findAllByRole('listitem');
+    expect(within(rows[0]).getByText('Admin')).toBeInTheDocument();
+    expect(within(rows[0]).getByText('Active')).toBeInTheDocument();
+    expect(within(rows[0]).getByRole('link', { name: 'Jane Cooper' })).toHaveAttribute(
       'href',
       '/admin/users/u1'
     );
-    expect(within(rows[2]).queryByText('Admin')).not.toBeInTheDocument();
-    expect(within(rows[2]).getByText('Disabled')).toBeInTheDocument();
-    expect(within(rows[3]).getByText('Invited')).toBeInTheDocument();
+    expect(within(rows[1]).queryByText('Admin')).not.toBeInTheDocument();
+    expect(within(rows[1]).getByText('Disabled')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('Invited')).toBeInTheDocument();
   });
 
   it('shows a message when a search has no results', async () => {

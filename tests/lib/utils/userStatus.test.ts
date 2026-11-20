@@ -1,4 +1,4 @@
-import { getUserDisplayName, getUserStatus } from '@/lib/utils/userStatus';
+import { getUserDisplayName, getUserInitials, getUserStatus } from '@/lib/utils/userStatus';
 
 describe('getUserStatus', () => {
   it('is Invited when there is no first or last name', () => {
@@ -27,6 +27,20 @@ describe('getUserDisplayName', () => {
   it('shows the email for an invited user', () => {
     expect(getUserDisplayName({ firstName: null, lastName: null, email: 'j@example.com' })).toBe(
       'j@example.com'
+    );
+  });
+});
+
+describe('getUserInitials', () => {
+  it('uses the first letters of the first and last name', () => {
+    expect(getUserInitials({ firstName: 'jane', lastName: 'Cooper', email: 'j@example.com' })).toBe(
+      'JC'
+    );
+  });
+
+  it('uses the email for an invited user', () => {
+    expect(getUserInitials({ firstName: null, lastName: null, email: 'new@example.com' })).toBe(
+      'N'
     );
   });
 });

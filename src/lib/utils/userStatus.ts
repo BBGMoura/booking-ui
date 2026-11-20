@@ -20,3 +20,13 @@ export function getUserDisplayName(
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
   return name || user.email || '—';
 }
+
+/** Up to two letters for the avatar: first and last initial, or the email's first letter. */
+export function getUserInitials(
+  user: Pick<UserProfile, 'firstName' | 'lastName' | 'email'>
+): string {
+  const initials = [user.firstName, user.lastName]
+    .map((part) => part?.trim().charAt(0) ?? '')
+    .join('');
+  return (initials || user.email.charAt(0)).toUpperCase();
+}
