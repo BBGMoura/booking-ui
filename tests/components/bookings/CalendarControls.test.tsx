@@ -27,6 +27,11 @@ describe('CalendarControls', () => {
     expect(screen.getByRole('button', { name: 'Show my bookings' })).toBeInTheDocument();
   });
 
+  it('shows a short visible label but keeps the full name for screen readers', () => {
+    setup();
+    expect(screen.getByRole('button', { name: 'Show my bookings' })).toHaveTextContent('Mine');
+  });
+
   it('disables the overlay toggle while locked', () => {
     setup();
     expect(screen.getByRole('button', { name: 'Show my bookings' })).toBeDisabled();
