@@ -22,7 +22,8 @@ import { cn } from '@/lib/utils';
 const TAG = 'shrink-0 rounded-md border px-1.5 py-px text-[11px] font-medium';
 
 const STATUS_TAG: Record<UserStatus, string> = {
-  Active: 'bg-primary/5 text-primary',
+  Active:
+    'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
   Invited:
     'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300',
   Disabled: 'border-destructive/20 bg-destructive/5 text-destructive',
