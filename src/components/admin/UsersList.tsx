@@ -19,10 +19,13 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
-const STATUS_DOT: Record<UserStatus, string> = {
-  Invited: 'bg-amber-500',
-  Active: 'bg-emerald-500',
-  Disabled: 'bg-destructive',
+const TAG = 'shrink-0 rounded-md border px-1.5 py-px text-[11px] font-medium';
+
+const STATUS_TAG: Record<UserStatus, string> = {
+  Active: 'bg-primary/5 text-primary',
+  Invited:
+    'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300',
+  Disabled: 'border-destructive/20 bg-destructive/5 text-destructive',
 };
 
 /** Admin › Users: search, status and invite. */
@@ -185,9 +188,7 @@ function UserRow({ user }: { user: UserProfile }) {
             {name}
           </Link>
           {user.role === USER_ROLES.ADMIN && (
-            <span className="bg-primary/5 text-primary shrink-0 rounded-md border px-1.5 py-px text-[11px] font-medium">
-              Admin
-            </span>
+            <span className={cn(TAG, 'bg-primary/5 text-primary')}>Admin</span>
           )}
         </div>
         {showEmail && <p className="text-muted-foreground truncate text-sm">{user.email}</p>}
@@ -197,10 +198,9 @@ function UserRow({ user }: { user: UserProfile }) {
         {user.phoneNumber || '—'}
       </span>
 
-      <span className="inline-flex shrink-0 items-center gap-1.5 text-sm sm:w-24">
-        <span className={cn('size-1.5 rounded-full', STATUS_DOT[status])} aria-hidden />
-        {status}
-      </span>
+      <div className="flex shrink-0 sm:w-20">
+        <span className={cn(TAG, STATUS_TAG[status])}>{status}</span>
+      </div>
     </li>
   );
 }
