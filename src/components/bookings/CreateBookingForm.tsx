@@ -2,14 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { BookingClassFields } from '@/components/bookings/BookingClassFields';
+import { Controller, useForm } from 'react-hook-form';
 import { BookingNotice, type Notice } from '@/components/bookings/BookingNotice';
-import { BookingPriceSummary } from '@/components/bookings/BookingPriceSummary';
 import { BookingTimeFields } from '@/components/bookings/BookingTimeFields';
 import { Button } from '@/components/ui/button';
-import { FieldGroup } from '@/components/ui/field';
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { useBookingAvailability } from '@/hooks/use-booking-availability';
 import { useBookingFormData } from '@/hooks/use-booking-form-data';
 import { createBooking } from '@/lib/api/booking';
@@ -22,7 +35,8 @@ import {
   draftValues,
 } from '@/lib/utils/bookingForm';
 import { HIGH_DEMAND_MESSAGE } from '@/lib/utils/bookingMessages';
-import { atMinutes, toOffsetDateTime } from '@/lib/utils/bookingTime';
+import { atMinutes, formatDuration, formatPrice, toOffsetDateTime } from '@/lib/utils/bookingTime';
+import { CLASS_TYPE_LABELS } from '@/lib/utils/calendarEvents';
 import {
   getApiErrorInfo,
   isFieldValidationError,
@@ -177,6 +191,7 @@ export function CreateBookingForm({
 
   const hasTime = !!date && start != null && end != null && end > start;
   const minutes = hasTime ? end - start : null;
+  const total = minutes !== null && pricePerHour !== null ? (pricePerHour * minutes) / 60 : null;
 
   return (
     // Only the fields scroll: the notice and the button stay in view below
@@ -192,10 +207,79 @@ export function CreateBookingForm({
       <div className="-mx-6 min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-1">
         <FieldGroup className="gap-4">
           <BookingTimeFields form={form} disabled={isLoading} />
-          <BookingClassFields control={form.control} classTypes={classTypes} disabled={isLoading} />
+          <Controller
+            name="classType"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="booking-class-type">Class type</FieldLabel>
+                <Select
+                  name={field.name}
+                  value={field.value ?? ''}
+                  onValueChange={field.onChange}
+                  disabled={isLoading || !classTypes}
+                >
+                  <SelectTrigger
+                    id="booking-class-type"
+                    className="w-full"
+                    aria-invalid={fieldState.invalid}
+                    onBlur={field.onBlur}
+                  >
+                    <SelectValue placeholder={classTypes ? 'Choose a class type' : 'Loading…'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(classTypes ?? []).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {CLASS_TYPE_LABELS[type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+
+          <Controller
+            name="isShareable"
+            control={form.control}
+            render={({ field }) => (
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel htmlFor="booking-shareable">Shareable</FieldLabel>
+                  <FieldDescription>
+                    Others can book the room at the same time, up to 3 at once.
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  id="booking-shareable"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isLoading}
+                />
+              </Field>
+            )}
+          />
         </FieldGroup>
 
-        <BookingPriceSummary minutes={minutes} pricePerHour={pricePerHour} />
+        <div
+          className="bg-muted/50 flex items-center justify-between gap-4 rounded-lg border px-4 py-3 text-sm"
+          aria-live="polite"
+        >
+          <div className="min-w-0">
+            <p className="font-medium">Estimated price</p>
+            <p className="text-muted-foreground">
+              {minutes === null
+                ? 'Choose a time to see the price.'
+                : pricePerHour === null
+                  ? `${formatDuration(minutes)} · choose a class type`
+                  : `${formatDuration(minutes)} at ${formatPrice(pricePerHour)}/hr`}
+            </p>
+          </div>
+          <p className="text-base font-semibold tabular-nums">
+            {total === null ? '—' : formatPrice(total)}
+          </p>
+        </div>
       </div>
 
       <div className="-mx-6 mt-4 space-y-3 border-t px-6 pt-4">
