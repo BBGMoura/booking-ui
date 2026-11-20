@@ -32,12 +32,12 @@ beforeEach(() => {
 
 describe('NavMain', () => {
   describe('main nav items', () => {
-    it('renders Dashboard, Room Calendar and My bookings', () => {
+    it('renders Dashboard, Room Calendar and My Bookings', () => {
       render(<NavMain isAdmin={false} />);
 
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
       expect(screen.getByText('Room Calendar')).toBeInTheDocument();
-      expect(screen.getByText('My bookings')).toBeInTheDocument();
+      expect(screen.getByText('My Bookings')).toBeInTheDocument();
     });
 
     it('renders the Main group label', () => {

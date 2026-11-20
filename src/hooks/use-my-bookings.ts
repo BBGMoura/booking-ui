@@ -46,5 +46,21 @@ export function useMyBookings(tab: BookingsTab) {
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
-  return { data, error, loading, pageIndex, setPageIndex, retry };
+  // Updated in place rather than reloaded, so the card stays where it was.
+  const markCancelled = useCallback(
+    (uid: string) =>
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              content: current.content.map((b) =>
+                b.uid === uid ? { ...b, status: 'CANCELLED' } : b
+              ),
+            }
+          : current
+      ),
+    []
+  );
+
+  return { data, error, loading, pageIndex, setPageIndex, retry, markCancelled };
 }

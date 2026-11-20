@@ -2,10 +2,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosError } from 'axios';
 import { MyBookingsList } from '@/components/bookings/MyBookingsList';
-import { getBookings } from '@/lib/api/booking';
+import { cancelBooking, getBookings } from '@/lib/api/booking';
 import type { BookingView, Page } from '@/lib/types/booking';
 
-jest.mock('@/lib/api/booking', () => ({ getBookings: jest.fn() }));
+jest.mock('@/lib/api/booking', () => ({ getBookings: jest.fn(), cancelBooking: jest.fn() }));
+jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
 const booking = (uid: string, over: Partial<BookingView> = {}): BookingView => ({
   uid,
@@ -34,7 +35,7 @@ describe('MyBookingsList', () => {
     mockGet.mockResolvedValue(page([booking('b1')]));
     render(<MyBookingsList tab="upcoming" />);
 
-    await screen.findByText('Bussell · Practice');
+    await screen.findByText('Bussell');
 
     const params = mockGet.mock.calls[0][0]!;
     expect(params).toEqual({
@@ -51,7 +52,7 @@ describe('MyBookingsList', () => {
     mockGet.mockResolvedValue(page([booking('b1')]));
     render(<MyBookingsList tab="past" />);
 
-    await screen.findByText('Bussell · Practice');
+    await screen.findByText('Bussell');
 
     const params = mockGet.mock.calls[0][0]!;
     expect(params).toMatchObject({ order: 'DESC', page: 0, size: 10 });
@@ -64,6 +65,30 @@ describe('MyBookingsList', () => {
     render(<MyBookingsList tab="upcoming" />);
 
     expect(await screen.findByText('Cancelled')).toBeInTheDocument();
+  });
+
+  it('offers Cancel on upcoming bookings and marks a cancelled one in place', async () => {
+    mockGet.mockResolvedValue(page([booking('b1'), booking('b2', { room: 'FOSSE' })]));
+    jest.mocked(cancelBooking).mockResolvedValue(undefined);
+    render(<MyBookingsList tab="upcoming" />);
+    await screen.findByText('Bussell');
+
+    const [first] = screen.getAllByRole('button', { name: 'Cancel booking' });
+    await userEvent.click(first);
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }));
+
+    expect(await screen.findByText('Cancelled')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Cancel booking' })).toHaveLength(1);
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    expect(mockGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no Cancel button on past bookings', async () => {
+    mockGet.mockResolvedValue(page([booking('b1')]));
+    render(<MyBookingsList tab="past" />);
+    await screen.findByText('Bussell');
+
+    expect(screen.queryByRole('button', { name: 'Cancel booking' })).not.toBeInTheDocument();
   });
 
   it('pages forward and back', async () => {
@@ -121,7 +146,7 @@ describe('MyBookingsList', () => {
     mockGet.mockResolvedValueOnce(page([booking('b1')]));
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
-    await waitFor(() => expect(screen.getByText('Bussell · Practice')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Bussell')).toBeInTheDocument());
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

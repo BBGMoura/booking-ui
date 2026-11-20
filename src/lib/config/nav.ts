@@ -10,7 +10,7 @@ export interface NavItem {
 export const mainNavItems: NavItem[] = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Room Calendar', url: '/calendar', icon: CalendarDays },
-  { title: 'My bookings', url: '/my-bookings', icon: CalendarCheck },
+  { title: 'My Bookings', url: '/my-bookings', icon: CalendarCheck },
 ];
 
 export const adminNavItems: NavItem[] = [

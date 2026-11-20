@@ -11,9 +11,10 @@ const EMPTY_TEXT: Record<BookingsTab, string> = {
   past: 'No past bookings',
 };
 
-/** One tab of My bookings: the user's own bookings, 10 to a page. */
+/** One tab of My Bookings: the user's own bookings, 10 to a page. */
 export function MyBookingsList({ tab }: { tab: BookingsTab }) {
-  const { data, error, loading, pageIndex, setPageIndex, retry } = useMyBookings(tab);
+  const { data, error, loading, pageIndex, setPageIndex, retry, markCancelled } =
+    useMyBookings(tab);
 
   if (error) {
     return (
@@ -30,7 +31,7 @@ export function MyBookingsList({ tab }: { tab: BookingsTab }) {
     return (
       <div className="space-y-3" aria-busy="true" aria-label="Loading bookings">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-24 w-full" />
+          <Skeleton key={i} className="h-28 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -56,7 +57,11 @@ export function MyBookingsList({ tab }: { tab: BookingsTab }) {
       <ul className={loading ? 'space-y-3 opacity-60' : 'space-y-3'} aria-busy={loading}>
         {data.content.map((booking) => (
           <li key={booking.uid}>
-            <BookingCard booking={booking} />
+            <BookingCard
+              booking={booking}
+              // Past bookings have already started, and those can't be cancelled.
+              onCancelled={tab === 'upcoming' ? markCancelled : undefined}
+            />
           </li>
         ))}
       </ul>
