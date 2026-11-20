@@ -16,6 +16,8 @@ interface RangeData {
 }
 
 const ALL_ROOMS = Object.values(ROOMS);
+/** How often the weeks on screen are refetched while the calendar is in view. */
+export const POLL_INTERVAL_MS = 30_000;
 
 // Matches the calendar's `firstDay={1}`, so the week view always needs exactly
 // one loaded week.
@@ -99,6 +101,14 @@ export interface UseCalendarEventsOptions {
  * it's refreshed in the background. The week after the visible range is prefetched
  * so the "next" button is instant too.
  *
+ * The weeks on screen are also refreshed quietly, with the grid left as it is
+ * until the new data arrives: every {@link POLL_INTERVAL_MS} while the tab is
+ * visible, and straight away when the tab becomes visible or focused again.
+ * Polling carries on while the booking form is open: on wide screens the
+ * calendar stays in view beside it, and the form checks clashes against this
+ * same data, so a booking someone else makes shows up while the user is still
+ * choosing.
+ *
  * The user's own bookings are needed even with a room selected: they identify
  * which of the room's bookings are yours, since the schedule doesn't say who
  * made a booking for teachers.
@@ -173,6 +183,27 @@ export function useCalendarEvents(
     } catch {
       setError('Could not load bookings.');
     }
+  }, [weeks]);
+
+  const refreshRef = useRef(refresh);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+
+  useEffect(() => {
+    if (weeks.length === 0) return;
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') void refreshRef.current();
+    };
+    // Back to the tab: catch up now rather than waiting for the next poll.
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    window.addEventListener('focus', refreshIfVisible);
+    const timer = setInterval(refreshIfVisible, POLL_INTERVAL_MS);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+      window.removeEventListener('focus', refreshIfVisible);
+      clearInterval(timer);
+    };
   }, [weeks]);
 
   const data = useMemo(() => dataFor(loaded, weeks), [loaded, weeks]);

@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
+import { POLL_INTERVAL_MS, useCalendarEvents, type DateRange } from '@/hooks/use-calendar-events';
 import type { BookingView, Room } from '@/lib/types/booking';
 import { getMyBookingsInRange, getRoomSchedule } from '@/lib/api/booking';
 
@@ -239,5 +239,110 @@ describe('useCalendarEvents', () => {
     await act(() => result.current.refresh());
 
     expect(result.current.error).toBe('Could not load bookings.');
+  });
+
+  describe('refreshing in the background', () => {
+    const setVisibility = (state: 'visible' | 'hidden') =>
+      jest.spyOn(document, 'visibilityState', 'get').mockReturnValue(state);
+
+    beforeEach(() =>
+      jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] })
+    );
+    afterEach(() => {
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+    });
+
+    async function loadWeek() {
+      const hook = renderHook(() => useCalendarEvents('ASTAIRE', false, week1, teacher));
+      await waitFor(() => expect(hook.result.current.events).toHaveLength(1));
+      await act(async () => {}); // let the prefetch finish
+      return hook;
+    }
+
+    const visibleRequests = () => roomRequestsFor(week1).length;
+
+    it('polls the whole visible week and swaps the new data in without a loading state', async () => {
+      const { result } = await loadWeek();
+      const before = visibleRequests();
+      jest
+        .mocked(getRoomSchedule)
+        .mockImplementation(async (room) => [b(`${room}-1`, room), b(`${room}-2`, room)]);
+
+      await act(() => jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS));
+
+      expect(visibleRequests() - before).toBe(4);
+      expect(getMyBookingsInRange).toHaveBeenLastCalledWith(
+        week1.start.toISOString(),
+        week1.end.toISOString()
+      );
+      expect(result.current.events).toHaveLength(2);
+      expect(result.current.loading).toBe(false);
+    });
+
+    it('keeps polling on every interval', async () => {
+      await loadWeek();
+      const before = visibleRequests();
+
+      await act(() => jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3));
+
+      expect(visibleRequests() - before).toBe(12);
+    });
+
+    it('in the day view, polls the whole week and keeps the same timer across days', async () => {
+      const { result, rerender } = renderHook(
+        ({ range }) => useCalendarEvents('ASTAIRE', false, range, teacher),
+        { initialProps: { range: tuesday } }
+      );
+      await waitFor(() => expect(result.current.events).toHaveLength(1));
+      await act(async () => {});
+      const before = visibleRequests();
+
+      // Moving to another day in the same week partway through doesn't restart the interval.
+      await act(() => jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS / 2));
+      rerender({ range: wednesday });
+      await act(() => jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS / 2));
+
+      expect(visibleRequests() - before).toBe(4);
+      expect(roomRequestsFor(wednesday)).toHaveLength(0);
+    });
+
+    it('does not poll while the tab is hidden', async () => {
+      await loadWeek();
+      const before = visibleRequests();
+      setVisibility('hidden');
+
+      await act(() => jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3));
+
+      expect(visibleRequests()).toBe(before);
+    });
+
+    it('refreshes when the tab becomes visible or regains focus', async () => {
+      await loadWeek();
+      const before = visibleRequests();
+      setVisibility('visible');
+
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      expect(visibleRequests() - before).toBe(4);
+
+      await act(async () => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      expect(visibleRequests() - before).toBe(8);
+    });
+
+    it('does not refresh on visibilitychange when the tab is hidden', async () => {
+      await loadWeek();
+      const before = visibleRequests();
+      setVisibility('hidden');
+
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+
+      expect(visibleRequests()).toBe(before);
+    });
   });
 });

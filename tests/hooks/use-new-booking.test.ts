@@ -82,6 +82,18 @@ describe('useNewBooking', () => {
     expect(controller.changeView).toHaveBeenCalledWith('timeGridWeek');
   });
 
+  it('refreshes the calendar as the form opens, but not when it only moves', () => {
+    const { result, refresh } = setup();
+
+    act(() => result.current.openNew());
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    act(() =>
+      result.current.select({ start: new Date(2026, 10, 19, 9), end: new Date(2026, 10, 19, 10) })
+    );
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
   it('follows the form: shows its room, and its day in day view', () => {
     const { result, controller, showRoom } = setup();
     act(() => result.current.openNew());

@@ -48,6 +48,14 @@ export default function BookingsPage() {
     sidePanel,
   });
 
+  const handleCancelled = useCallback(
+    (uid: string) => {
+      removeBooking(uid);
+      void refresh();
+    },
+    [removeBooking, refresh]
+  );
+
   // Keeps the same object while the range is unchanged, since a new one makes
   // the bookings load again.
   const handleRangeChange = useCallback(
@@ -141,7 +149,7 @@ export default function BookingsPage() {
           anchor={bookingDetails.selected.anchor}
           isAdmin={hasRole(USER_ROLES.ADMIN)}
           onClose={bookingDetails.close}
-          onCancelled={removeBooking}
+          onCancelled={handleCancelled}
         />
       )}
     </div>
