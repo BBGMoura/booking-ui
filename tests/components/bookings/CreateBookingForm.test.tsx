@@ -8,12 +8,11 @@ import {
   NOT_FREE_MESSAGE,
   SHAREABLE_FULL_MESSAGE,
 } from '@/lib/utils/bookingMessages';
-import { BOOKING_CHECK_DELAY_MS } from '@/hooks/use-booking-check';
-import { createBooking, validateBooking } from '@/lib/api/booking';
+import { createBooking } from '@/lib/api/booking';
 import type { BookingView } from '@/lib/types/booking';
 import { getClassTypes, getDanceClass } from '@/lib/api/danceClass';
 
-jest.mock('@/lib/api/booking', () => ({ createBooking: jest.fn(), validateBooking: jest.fn() }));
+jest.mock('@/lib/api/booking', () => ({ createBooking: jest.fn() }));
 jest.mock('@/lib/api/danceClass', () => ({ getClassTypes: jest.fn(), getDanceClass: jest.fn() }));
 
 // 2026-11-18 is a Wednesday, 2026-11-22 a Sunday.
@@ -111,7 +110,6 @@ beforeEach(() => {
     .mocked(createBooking)
     .mockReset()
     .mockResolvedValue({} as never);
-  jest.mocked(validateBooking).mockReset().mockResolvedValue();
 });
 
 afterEach(() => {
@@ -253,21 +251,13 @@ describe('CreateBookingForm', () => {
   });
 
   it('turns the overlap warning into an error once the backend refuses, until the time changes', async () => {
-    jest
-      .mocked(validateBooking)
-      .mockImplementation(async (data) =>
-        data.dateFrom.startsWith('2026-11-18T10:00')
-          ? Promise.reject(backendError(400, 'BOOKING_CONFLICT'))
-          : undefined
-      );
     jest.mocked(createBooking).mockRejectedValue(backendError(400, 'BOOKING_CONFLICT'));
     renderForm(dragged, [booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12))]);
-    await choose('Class type', 'Private');
-    expect(await screen.findByText(/Overlaps a booking \(11:00–12:00\)/)).toHaveAttribute(
-      'role',
-      'status'
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /Overlaps a booking \(11:00–12:00\)/
     );
 
+    await choose('Class type', 'Private');
     await submit();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -335,114 +325,38 @@ describe('CreateBookingForm', () => {
     expect(createBooking).not.toHaveBeenCalled();
   });
 
-  it('doesn’t ask the backend until there is a class type to check', async () => {
-    renderForm();
+  it('says nothing about availability until the room’s bookings have loaded', async () => {
+    renderForm(dragged, null);
     await screen.findByRole('combobox', { name: 'Class type' });
-    await new Promise((resolve) => setTimeout(resolve, BOOKING_CHECK_DELAY_MS + 50));
 
-    expect(validateBooking).not.toHaveBeenCalled();
     expect(screen.queryByText(/is free at this time/)).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('doesn’t ask the backend about a time the form itself rejects', async () => {
-    renderForm({
-      room: 'ASTAIRE',
-      classType: 'PRIVATE',
-      start: new Date(2026, 10, 18, 10, 0),
-      end: new Date(2026, 10, 18, 10, 10),
-    });
-    await screen.findByRole('combobox', { name: 'Class type' });
-    await new Promise((resolve) => setTimeout(resolve, BOOKING_CHECK_DELAY_MS + 50));
-
-    expect(validateBooking).not.toHaveBeenCalled();
-  });
-
-  it('asks the backend with the booking as it would be sent, then says the room is free', async () => {
+  it('says when the room is free at the chosen time', async () => {
     renderForm(dragged, [booked(new Date(2026, 10, 18, 12), new Date(2026, 10, 18, 13))]);
-    await choose('Class type', 'Private');
 
-    expect(await screen.findByText('Checking Astaire is free…')).toBeInTheDocument();
     expect(await screen.findByText('Astaire is free at this time.')).toBeInTheDocument();
-    expect(validateBooking).toHaveBeenCalledTimes(1);
-    expect(validateBooking).toHaveBeenCalledWith({
-      room: 'ASTAIRE',
-      classType: 'PRIVATE',
-      isShareable: false,
-      dateFrom: expect.stringMatching(/^2026-11-18T10:00:00(Z|[+-]\d{2}:\d{2})$/),
-      dateTo: expect.stringMatching(/^2026-11-18T11:30:00(Z|[+-]\d{2}:\d{2})$/),
-    });
   });
 
-  it('warns about a clash the backend reports but still lets the user book', async () => {
-    jest.mocked(validateBooking).mockRejectedValue(backendError(400, 'BOOKING_CONFLICT'));
+  it('warns about an overlapping booking but still lets the user book', async () => {
     const { onBooked } = renderForm(dragged, [
       booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12)),
     ]);
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /Overlaps a booking \(11:00–12:00\)\. Choose another time\./
+    );
+
     await choose('Class type', 'Private');
-
-    expect(
-      await screen.findByText(/Overlaps a booking \(11:00–12:00\)\. Choose another time\./)
-    ).toHaveAttribute('role', 'status');
-
     await submit();
     await waitFor(() => expect(onBooked).toHaveBeenCalled());
   });
 
-  it('trusts the backend over the schedule: no warning when it accepts an overlap', async () => {
-    renderForm(dragged, [booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12))]);
-    await choose('Class type', 'Private');
-
-    expect(await screen.findByText('Astaire is free at this time.')).toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-  });
-
-  it('warns in general terms when the schedule doesn’t show the clash yet', async () => {
-    jest.mocked(validateBooking).mockRejectedValue(backendError(400, 'BOOKING_CONFLICT'));
-    renderForm(dragged, null);
-    await choose('Class type', 'Private');
-
-    expect(await screen.findByText(NOT_FREE_MESSAGE)).toHaveAttribute('role', 'status');
-  });
-
-  it('warns when the shareable limit is reached', async () => {
-    jest.mocked(validateBooking).mockRejectedValue(backendError(400, 'BOOKING_SHAREABLE_LIMIT'));
-    renderForm({ ...dragged, isShareable: true });
-    await choose('Class type', 'Private');
-
-    expect(await screen.findByText(SHAREABLE_FULL_MESSAGE)).toHaveAttribute('role', 'status');
-  });
-
-  it('shows the backend’s message for any other rule it says is broken', async () => {
-    jest.mocked(validateBooking).mockRejectedValue(backendError(400, 'BOOKING_TIME_INVALID'));
-    renderForm();
-    await choose('Class type', 'Private');
-
-    expect(await screen.findByText('backend message')).toHaveAttribute('role', 'status');
-  });
-
-  it('says nothing about availability when the check itself fails', async () => {
-    jest.mocked(validateBooking).mockRejectedValue(backendError(500, 'SOMETHING_ELSE'));
-    renderForm();
-    await choose('Class type', 'Private');
-    await waitFor(() => expect(validateBooking).toHaveBeenCalled());
-
-    await waitFor(() => expect(screen.queryByText(/Checking Astaire/)).not.toBeInTheDocument());
-    expect(screen.queryByText(/is free at this time/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Book room' })).toBeEnabled();
-  });
-
   it('suggests sharing when the only overlaps are shareable', async () => {
-    jest
-      .mocked(validateBooking)
-      .mockImplementation(async (data) =>
-        data.isShareable ? undefined : Promise.reject(backendError(400, 'BOOKING_CONFLICT'))
-      );
     renderForm(dragged, [booked(new Date(2026, 10, 18, 11), new Date(2026, 10, 18, 12), true)]);
-    await choose('Class type', 'Private');
 
-    expect(await screen.findByText(/Turn on Shareable/)).toHaveAttribute('role', 'status');
+    expect(await screen.findByRole('status')).toHaveTextContent(/Turn on Shareable/);
 
     await userEvent.click(screen.getByRole('switch', { name: 'Shareable' }));
     expect(await screen.findByText('Astaire is free at this time.')).toBeInTheDocument();

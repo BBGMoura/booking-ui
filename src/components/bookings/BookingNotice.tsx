@@ -1,5 +1,4 @@
 import { CircleCheckIcon, CircleXIcon, TriangleAlertIcon } from 'lucide-react';
-import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import type { Room } from '@/lib/types/booking';
 import { ROOM_LABELS } from '@/lib/utils/calendarEvents';
@@ -7,7 +6,6 @@ import { ROOM_LABELS } from '@/lib/utils/calendarEvents';
 export type Notice =
   | { tone: 'error' | 'warning'; message: string }
   | { tone: 'free'; room: Room }
-  | { tone: 'checking'; room: Room }
   | null;
 
 const NOTICE_STYLES = {
@@ -18,19 +16,10 @@ const NOTICE_STYLES = {
 
 /**
  * The line above the buttons: an error once a booking has failed, a warning
- * while the backend says the time clashes (it still decides when the booking
- * is made), that it's checking, or that the room is free.
+ * while the time clashes (the backend still decides), or that the room is free.
  */
 export function BookingNotice({ notice }: { notice: Notice }) {
   if (!notice) return null;
-  if (notice.tone === 'checking') {
-    return (
-      <p className="text-muted-foreground flex gap-2 text-sm">
-        <Spinner className="mt-0.5 size-4 shrink-0" />
-        Checking {ROOM_LABELS[notice.room]} is free…
-      </p>
-    );
-  }
   if (notice.tone === 'free') {
     return (
       <p className="text-muted-foreground flex gap-2 text-sm">

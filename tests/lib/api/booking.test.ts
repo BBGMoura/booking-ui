@@ -5,7 +5,6 @@ import {
   getBookings,
   getBookingByUid,
   createBooking,
-  validateBooking,
   cancelBooking,
   cancelBookingAsAdmin,
 } from '@/lib/api/booking';
@@ -160,36 +159,6 @@ describe('booking API', () => {
       });
 
       await expect(createBooking(createData)).rejects.toThrow();
-    });
-  });
-
-  describe('validateBooking()', () => {
-    const data: CreateBookingData = {
-      room: 'ASTAIRE',
-      classType: 'PRIVATE',
-      isShareable: true,
-      dateFrom: '2026-11-01T10:00:00Z',
-      dateTo: '2026-11-01T11:00:00Z',
-    };
-
-    it('posts the booking data to the validate endpoint and resolves on 204', async () => {
-      mock.onPost('/bookings/validate').reply(204);
-
-      await expect(validateBooking(data)).resolves.toBeUndefined();
-
-      expect(JSON.parse(mock.history.post[0].data)).toEqual(data);
-    });
-
-    it('rejects with the backend error when the booking would be refused', async () => {
-      mock.onPost('/bookings/validate').reply(400, {
-        status: 400,
-        error: 'BOOKING_SHAREABLE_LIMIT',
-        message: 'Timeslot is unavailable.',
-      });
-
-      await expect(validateBooking(data)).rejects.toMatchObject({
-        response: { status: 400, data: { error: 'BOOKING_SHAREABLE_LIMIT' } },
-      });
     });
   });
 

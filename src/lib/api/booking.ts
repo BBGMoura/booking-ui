@@ -46,16 +46,6 @@ export async function createBooking(data: CreateBookingData): Promise<BookingVie
   return response;
 }
 
-/**
- * Asks the backend whether it would accept the booking, without making it.
- * Resolves if it would; otherwise rejects with the same error `createBooking`
- * would (e.g. a 400 `BOOKING_CONFLICT`). Nothing is held: a later create can
- * still be refused if someone books in between.
- */
-export async function validateBooking(data: CreateBookingData): Promise<void> {
-  await api.post('/bookings/validate', data);
-}
-
 export async function cancelBooking(bookingUid: string): Promise<void> {
   await api.delete(`/bookings/${bookingUid}`);
 }

@@ -52,9 +52,9 @@ interface CreateBookingFormProps {
    */
   draft: BookingDraft;
   /**
-   * The chosen room's bookings around the chosen day, to say which ones are in
-   * the way when the backend reports a clash; null while they're loading. The
-   * calendar loads them anyway, so the form doesn't fetch its own copy.
+   * The chosen room's bookings around the chosen day, to warn about clashes
+   * before submitting; null while they're loading. The calendar loads them
+   * anyway, so the form doesn't fetch its own copy.
    */
   schedule: BookingView[] | null;
   /** Called whenever any choice changes. */
@@ -77,9 +77,9 @@ interface CreateBookingFormProps {
 /**
  * Books a room. Opened from a range picked on the calendar (which fills in the
  * room and time) or from the "New booking" button; everything can be changed
- * here. It asks the backend whether the booking would be accepted as the
- * choices change, so most conflicts show before submitting. Mount it only
- * while it's open: it loads its options on mount.
+ * here. It checks the room's bookings for clashes as the time changes, so most
+ * conflicts show before submitting. Mount it only while it's open: it loads
+ * its options on mount.
  */
 export function CreateBookingForm({
   draft,
@@ -146,7 +146,6 @@ export function CreateBookingForm({
     date,
     start,
     end,
-    classType,
     isShareable,
     schedule,
     choiceKey,
