@@ -218,17 +218,13 @@ describe('useCalendarEvents', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    it('does not poll while paused, and polls again once resumed', async () => {
-      const { result } = await loadWeek();
+    it('keeps polling on every interval', async () => {
+      await loadWeek();
       const before = visibleRequests();
 
-      act(() => result.current.setPollingPaused(true));
       await act(() => jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3));
-      expect(visibleRequests()).toBe(before);
 
-      act(() => result.current.setPollingPaused(false));
-      await act(() => jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS));
-      expect(visibleRequests()).toBeGreaterThan(before);
+      expect(visibleRequests() - before).toBe(12);
     });
 
     it('does not poll while the tab is hidden', async () => {

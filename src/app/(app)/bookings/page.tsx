@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useCalendarController } from '@fullcalendar/react';
 import { PlusIcon } from 'lucide-react';
 import { BookingDetailsPopover } from '@/components/bookings/BookingDetailsPopover';
@@ -28,11 +28,15 @@ export default function BookingsPage() {
   const fixedHeight = useFixedHeightLayout();
   const { user, hasRole } = useAuth();
   const [range, setRange] = useState<DateRange | null>(null);
-  const { events, schedules, loading, error, refresh, removeBooking, setPollingPaused } =
-    useCalendarEvents(room, showMine, range, {
+  const { events, schedules, loading, error, refresh, removeBooking } = useCalendarEvents(
+    room,
+    showMine,
+    range,
+    {
       showBooker: hasRole(USER_ROLES.ADMIN),
       viewerName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
-    });
+    }
+  );
   const bookingDetails = useBookingDetails();
   const booking = useNewBooking({
     controller,
@@ -44,7 +48,6 @@ export default function BookingsPage() {
     sidePanel,
   });
 
-  useEffect(() => setPollingPaused(booking.isOpen), [booking.isOpen, setPollingPaused]);
   const handleCancelled = useCallback(
     (uid: string) => {
       removeBooking(uid);
