@@ -111,11 +111,9 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <p className="text-muted-foreground font-mono text-xs">
+            <p className="text-muted-foreground min-w-0 font-mono text-xs break-all">
               <span className="font-sans">Ref </span>
-              {/* The first block of the UUID is enough to tell bookings apart
-                  when someone reads it out; the full one is on hover. */}
-              <span title={booking.uid}>{booking.uid.slice(0, 8).toUpperCase()}</span>
+              {booking.uid}
             </p>
             {onCancelled && !cancelled && (
               <div className="-my-1 -mr-2 ml-auto">
