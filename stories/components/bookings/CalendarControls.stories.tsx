@@ -18,7 +18,7 @@ const meta: Meta<typeof CalendarControls> = {
 export default meta;
 type Story = StoryObj<typeof CalendarControls>;
 
-/** No room picked: only the user's own bookings can be shown, so "Mine" is locked on */
+/** No room picked: only the user's own bookings can be shown, so "Show mine" is locked on */
 export const NoRoom: Story = {
   args: {
     room: null,

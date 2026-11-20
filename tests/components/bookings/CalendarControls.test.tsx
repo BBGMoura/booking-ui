@@ -29,7 +29,7 @@ describe('CalendarControls', () => {
 
   it('shows a short visible label but keeps the full name for screen readers', () => {
     setup();
-    expect(screen.getByRole('button', { name: 'Show my bookings' })).toHaveTextContent('Mine');
+    expect(screen.getByRole('button', { name: 'Show my bookings' })).toHaveTextContent('Show mine');
   });
 
   it('disables the overlay toggle while locked', () => {

@@ -53,7 +53,7 @@ export function CalendarControls({
         onPressedChange={onShowMineChange}
         aria-label="Show my bookings"
       >
-        Mine
+        Show mine
       </Toggle>
     </div>
   );
