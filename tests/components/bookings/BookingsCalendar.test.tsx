@@ -107,6 +107,15 @@ describe('BookingsCalendar multi-day view', () => {
     expect(props.buttons?.timeGridMultiDay.text).toBe('Multi-day');
   });
 
+  it('keeps the multi-day view registered on wide screens so leaving it does not error', () => {
+    const props = renderCalendar();
+    expect(props.views?.timeGridMultiDay).toMatchObject({
+      type: 'timeGrid',
+      duration: { days: 3 },
+    });
+    expect(props.views?.timeGridWeek).toBeUndefined();
+  });
+
   it('offers only Week and Day on wide screens', () => {
     renderCalendar();
     expect(mockToolbarProps.current.availableViews).toEqual(['timeGridWeek', 'timeGridDay']);

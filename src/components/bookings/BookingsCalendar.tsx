@@ -119,20 +119,19 @@ export function BookingsCalendar({
           controller={controller}
           height={height}
           initialView={initialView}
-          views={
-            isMobile
-              ? {
-                  timeGridWeek: { dayHeaderFormat: MOBILE_WEEK_HEADER_FORMAT },
-                  // Three days that move along one day at a time, as in Apple Calendar.
-                  [MULTI_DAY_VIEW]: {
-                    type: 'timeGrid',
-                    duration: { days: 3 },
-                    dateIncrement: { days: 1 },
-                    dayHeaderFormat: MOBILE_WEEK_HEADER_FORMAT,
-                  },
-                }
-              : undefined
-          }
+          views={{
+            ...(isMobile && { timeGridWeek: { dayHeaderFormat: MOBILE_WEEK_HEADER_FORMAT } }),
+            // Three days that move along one day at a time, as in Apple Calendar.
+            // Always registered, even though only phones offer the tab: when the
+            // screen goes wide the calendar is still on this view for one render
+            // before it switches to the week view, and an unknown view errors.
+            [MULTI_DAY_VIEW]: {
+              type: 'timeGrid',
+              duration: { days: 3 },
+              dateIncrement: { days: 1 },
+              dayHeaderFormat: MOBILE_WEEK_HEADER_FORMAT,
+            },
+          }}
           buttons={BUTTONS}
           navLinkDayClick="timeGridDay"
           navLinkWeekClick="timeGridWeek"
