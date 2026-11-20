@@ -1,15 +1,18 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   login as loginApi,
   logout as logoutApi,
   register as registerApi,
   fetchCurrentUser,
+  setUnauthorizedHandler,
   TOKEN_KEY,
 } from '@/lib/api/auth';
 import type { User, LoginCredentials, RegisterData, UserRole } from '@/lib/types/auth';
 import Cookies from 'js-cookie';
+import { buildLoginPath } from '@/lib/utils/authRedirect';
 
 /**
  * AuthContext value provided to the entire app.
@@ -47,6 +50,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialising, setIsInitialising] = useState(true);
+  const router = useRouter();
+
+  // When the session expires, drop the user and go to /login, keeping the current page as `next`.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      setIsInitialising(false);
+      router.replace(buildLoginPath(window.location.pathname + window.location.search));
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [router]);
 
   useEffect(() => {
     async function initialise() {

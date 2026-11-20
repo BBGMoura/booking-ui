@@ -155,6 +155,40 @@ describe('LoginForm', () => {
       });
     });
 
+    it('redirects to the page in ?next after login', async () => {
+      window.history.pushState({}, '', '/login?next=%2Fcalendar%3Fview%3Dweek');
+      const mockLogin = jest.fn().mockResolvedValue(undefined);
+      mockUseAuth({ login: mockLogin });
+
+      render(<LoginForm />);
+
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/calendar?view=week');
+      });
+      window.history.pushState({}, '', '/');
+    });
+
+    it('ignores a ?next that points to another site', async () => {
+      window.history.pushState({}, '', '/login?next=%2F%2Fevil.example.com');
+      const mockLogin = jest.fn().mockResolvedValue(undefined);
+      mockUseAuth({ login: mockLogin });
+
+      render(<LoginForm />);
+
+      await userEvent.type(screen.getByLabelText('Email'), validEmail);
+      await userEvent.type(screen.getByLabelText('Password'), validPassword);
+      await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/dashboard');
+      });
+      window.history.pushState({}, '', '/');
+    });
+
     it('redirects to /dashboard on successful login', async () => {
       const mockLogin = jest.fn().mockResolvedValue(undefined);
       mockUseAuth({ login: mockLogin });
