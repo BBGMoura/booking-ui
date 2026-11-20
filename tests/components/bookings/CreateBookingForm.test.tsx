@@ -397,6 +397,28 @@ describe('CreateBookingForm', () => {
     );
   });
 
+  it('keeps the time when a draft moves the booking earlier by more than its length', async () => {
+    const { rerender, onPreviewChange } = renderForm({
+      room: 'ASTAIRE',
+      start: new Date(2026, 10, 18, 14, 0),
+      end: new Date(2026, 10, 18, 15, 0),
+    });
+
+    rerender({
+      room: 'ASTAIRE',
+      start: new Date(2026, 10, 18, 11, 0),
+      end: new Date(2026, 10, 18, 12, 0),
+    });
+
+    expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('11:00');
+    expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('12:00');
+    await waitFor(() =>
+      expect(onPreviewChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ start: 11 * 60, end: 12 * 60 })
+      )
+    );
+  });
+
   it('changes only the room for a room-only draft', async () => {
     const { rerender } = renderForm();
     await choose('Class type', 'Group');

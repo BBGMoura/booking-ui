@@ -148,7 +148,10 @@ export function BookingTimeFields({ form, disabled: isLoading }: BookingTimeFiel
                 key={field.value == null ? 'empty' : 'chosen'}
                 name={field.name}
                 value={field.value == null ? '' : String(field.value)}
-                onValueChange={(value) => changeStart(Number(value))}
+                // Radix reports '' when the value isn't one of the options, which
+                // happens for a moment when the calendar moves the booking. That
+                // isn't the user clearing it, and Number('') would make it midnight.
+                onValueChange={(value) => value && changeStart(Number(value))}
                 disabled={isLoading || !date}
               >
                 <SelectTrigger
@@ -185,7 +188,9 @@ export function BookingTimeFields({ form, disabled: isLoading }: BookingTimeFiel
                 key={field.value == null ? 'empty' : 'chosen'}
                 name={field.name}
                 value={field.value == null ? '' : String(field.value)}
-                onValueChange={(value) => field.onChange(Number(value))}
+                // As for Start: when the booking is dragged earlier by more than
+                // its length, the new end isn't offered until the new start is.
+                onValueChange={(value) => value && field.onChange(Number(value))}
                 disabled={isLoading || start == null}
               >
                 <SelectTrigger
