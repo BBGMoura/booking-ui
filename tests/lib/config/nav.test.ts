@@ -2,11 +2,11 @@ import { mainNavItems, adminNavItems, pageTitles } from '@/lib/config/nav';
 
 describe('nav config', () => {
   describe('mainNavItems', () => {
-    it('includes Dashboard, Bookings and Booking History', () => {
+    it('includes Dashboard, Room calendar and Booking History', () => {
       const urls = mainNavItems.map((item) => item.url);
 
       expect(urls).toContain('/dashboard');
-      expect(urls).toContain('/bookings');
+      expect(urls).toContain('/calendar');
       expect(urls).toContain('/booking-history');
     });
 
@@ -20,11 +20,11 @@ describe('nav config', () => {
   });
 
   describe('adminNavItems', () => {
-    it('includes Users, Rooms and Classes', () => {
+    it('includes Users and Classes', () => {
       const urls = adminNavItems.map((item) => item.url);
 
       expect(urls).toContain('/admin/users');
-      expect(urls).toContain('/admin/rooms');
+      expect(urls).not.toContain('/admin/rooms');
       expect(urls).toContain('/admin/classes');
     });
 

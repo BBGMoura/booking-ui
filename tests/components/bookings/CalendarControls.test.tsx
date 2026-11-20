@@ -24,12 +24,12 @@ describe('CalendarControls', () => {
     ['Astaire', 'Bussell', 'Alex Moore', 'Fosse'].forEach((name) =>
       expect(screen.getByRole('radio', { name })).toBeInTheDocument()
     );
-    expect(screen.getByRole('button', { name: 'Show mine' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show my bookings' })).toBeInTheDocument();
   });
 
   it('disables the overlay toggle while locked', () => {
     setup();
-    expect(screen.getByRole('button', { name: 'Show mine' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Show my bookings' })).toBeDisabled();
   });
 
   it('selects a room on click', async () => {
@@ -46,7 +46,7 @@ describe('CalendarControls', () => {
 
   it('toggles the overlay when unlocked', async () => {
     const { onShowMineChange } = setup({ room: 'ASTAIRE', showMineLocked: false });
-    await userEvent.click(screen.getByRole('button', { name: 'Show mine' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show my bookings' }));
     expect(onShowMineChange).toHaveBeenCalledWith(false);
   });
 });

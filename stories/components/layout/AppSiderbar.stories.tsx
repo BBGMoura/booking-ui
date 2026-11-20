@@ -67,7 +67,7 @@ export const Default: Story = {
   render: () => <SidebarWrapper />,
 };
 
-/** Admin user — Admin section with Users, Rooms and Classes visible */
+/** Admin user — Admin section with Users and Classes visible */
 export const Admin: Story = {
   render: () => <SidebarWrapper isAdmin />,
 };
@@ -77,7 +77,7 @@ export const ActiveBookings: Story = {
   parameters: {
     nextjs: {
       appDirectory: true,
-      navigation: { pathname: '/bookings' },
+      navigation: { pathname: '/calendar' },
     },
   },
   render: () => <SidebarWrapper />,

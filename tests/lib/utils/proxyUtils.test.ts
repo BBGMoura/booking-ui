@@ -15,8 +15,8 @@ describe('getRedirectPath', () => {
       expect(getRedirectPath('/dashboard', null)).toBe('/login');
     });
 
-    it('redirects /bookings to /login', () => {
-      expect(getRedirectPath('/bookings', null)).toBe('/login');
+    it('redirects /calendar to /login', () => {
+      expect(getRedirectPath('/calendar', null)).toBe('/login');
     });
 
     it('redirects /booking-history to /login', () => {
@@ -61,8 +61,8 @@ describe('getRedirectPath', () => {
       expect(getRedirectPath('/dashboard', USER_TOKEN)).toBeNull();
     });
 
-    it('allows /bookings through', () => {
-      expect(getRedirectPath('/bookings', USER_TOKEN)).toBeNull();
+    it('allows /calendar through', () => {
+      expect(getRedirectPath('/calendar', USER_TOKEN)).toBeNull();
     });
 
     it('allows /booking-history through', () => {
@@ -81,8 +81,8 @@ describe('getRedirectPath', () => {
       expect(getRedirectPath('/admin/users', USER_TOKEN)).toBe('/dashboard');
     });
 
-    it('redirects /admin/rooms to /dashboard', () => {
-      expect(getRedirectPath('/admin/rooms', USER_TOKEN)).toBe('/dashboard');
+    it('redirects /admin/classes to /dashboard', () => {
+      expect(getRedirectPath('/admin/classes', USER_TOKEN)).toBe('/dashboard');
     });
   });
 
@@ -105,10 +105,6 @@ describe('getRedirectPath', () => {
 
     it('allows /admin/users through', () => {
       expect(getRedirectPath('/admin/users', ADMIN_TOKEN)).toBeNull();
-    });
-
-    it('allows /admin/rooms through', () => {
-      expect(getRedirectPath('/admin/rooms', ADMIN_TOKEN)).toBeNull();
     });
 
     it('allows /admin/classes through', () => {

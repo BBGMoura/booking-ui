@@ -6,7 +6,7 @@ import { CreateBookingForm } from '@/components/bookings/CreateBookingForm';
 import type { useNewBooking } from '@/hooks/use-new-booking';
 
 const BOOKING_TITLE = 'New booking';
-const BOOKING_DESCRIPTION = 'Choose a room and time, then the type of class.';
+const BOOKING_DESCRIPTION = 'Choose a room and time, then the booking type.';
 const CONFIRMED_TITLE = 'Booking confirmed';
 const CONFIRMED_DESCRIPTION = 'Here are the details of your booking.';
 

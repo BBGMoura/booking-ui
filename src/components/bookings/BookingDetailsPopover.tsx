@@ -81,7 +81,7 @@ export function BookingDetailsPopover({
       text: details.bookerName,
       spoken: `Booked by ${details.bookerName}`,
     });
-  if (details.shareable) facts.push({ key: 'shareable', icon: Users, text: 'Shareable' });
+  if (details.shareable) facts.push({ key: 'shareable', icon: Users, text: 'Shared room' });
   if (details.price)
     facts.push({
       key: 'price',

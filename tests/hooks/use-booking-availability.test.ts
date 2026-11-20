@@ -59,7 +59,7 @@ describe('useBookingAvailability', () => {
       useBookingAvailability({ ...options, schedule: [booked(11, 12, true)] })
     );
 
-    expect(result.current.notice).toMatchObject({ message: /Turn on Shareable/ });
+    expect(result.current.notice).toMatchObject({ message: /Turn on Shared room/ });
   });
 
   it('shows a refused booking as an error until the choices change', () => {

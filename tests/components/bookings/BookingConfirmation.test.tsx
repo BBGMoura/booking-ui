@@ -26,15 +26,15 @@ describe('BookingConfirmation', () => {
     expect(row('Room')).toHaveTextContent('Fosse');
     expect(row('Date')).toHaveTextContent('Thu 19 Nov 2026');
     expect(row('Time')).toHaveTextContent('15:00–16:15 · 1 hr 15 min');
-    expect(row('Class')).toHaveTextContent('Private');
-    expect(row('Shareable')).toHaveTextContent('Yes');
+    expect(row('Booking type')).toHaveTextContent('Private lesson');
+    expect(row('Shared room')).toHaveTextContent('Yes');
     expect(row('Total')).toHaveTextContent('£25.00');
   });
 
   it('says when a booking is not shareable', () => {
     render(<BookingConfirmation booking={{ ...saved, shareable: false }} onDone={jest.fn()} />);
 
-    expect(row('Shareable')).toHaveTextContent('No');
+    expect(row('Shared room')).toHaveTextContent('No');
   });
 
   it('closes on Done', async () => {

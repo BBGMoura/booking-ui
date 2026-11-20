@@ -26,8 +26,8 @@ describe('buildCalendarEvents', () => {
     const events = buildCalendarEvents(null, true, [], mine, teacher);
     expect(events.map((e) => e.id)).toEqual(['a', 'b']);
     expect(events.map((e) => [props(e).heading, props(e).detail])).toEqual([
-      ['Astaire', 'Private'],
-      ['Alex Moore', 'Group'],
+      ['Astaire', 'Private lesson'],
+      ['Alex Moore', 'Group class'],
     ]);
   });
 
@@ -38,25 +38,28 @@ describe('buildCalendarEvents', () => {
       viewerName: 'Tess Teacher',
     });
     expect(events.map((e) => [e.id, props(e).mine, props(e).heading, props(e).detail])).toEqual([
-      ['a', true, 'Private', 'Tess Teacher'],
-      ['x', false, 'Private', undefined],
+      ['a', true, 'Private lesson', 'Tess Teacher'],
+      ['x', false, 'Private lesson', undefined],
     ]);
-    expect(events.map((e) => e.title)).toEqual(['Private · Tess Teacher · yours', 'Private']);
+    expect(events.map((e) => e.title)).toEqual([
+      'Private lesson · Tess Teacher · yours',
+      'Private lesson',
+    ]);
   });
 
   it("doesn't show teachers who made other people's bookings", () => {
     const other = booking('x', 'ASTAIRE', { firstName: 'Jane', lastName: 'Smith' });
     const [event] = buildCalendarEvents('ASTAIRE', false, [other], [], teacher);
-    expect(props(event).heading).toBe('Private');
+    expect(props(event).heading).toBe('Private lesson');
     expect(props(event).detail).toBeUndefined();
-    expect(event.title).toBe('Private');
+    expect(event.title).toBe('Private lesson');
   });
 
   it('shows admins the class type, then who made each booking', () => {
     const other = booking('x', 'ASTAIRE', { firstName: 'Jane', lastName: 'Smith' });
     const [event] = buildCalendarEvents('ASTAIRE', false, [other], [], admin);
-    expect([props(event).heading, props(event).detail]).toEqual(['Private', 'Jane Smith']);
-    expect(event.title).toBe('Private · Jane Smith');
+    expect([props(event).heading, props(event).detail]).toEqual(['Private lesson', 'Jane Smith']);
+    expect(event.title).toBe('Private lesson · Jane Smith');
   });
 
   it('falls back when the booker has no name', () => {
@@ -96,7 +99,7 @@ describe('buildCalendarEvents', () => {
     const [event] = buildCalendarEvents('ASTAIRE', false, [summary], [], teacher);
     expect(event.start).toBe('2026-11-18T12:00:00Z');
     expect(event.end).toBe('2026-11-18T13:00:00Z');
-    expect(props(event).heading).toBe('Group');
+    expect(props(event).heading).toBe('Group class');
   });
 
   it('adds my bookings in other rooms as busy elsewhere when the overlay is on', () => {
@@ -106,7 +109,7 @@ describe('buildCalendarEvents', () => {
     expect(props(events[1])).toEqual({
       heading: 'Busy · Fosse',
       details: expect.objectContaining({ uid: 'b', room: 'FOSSE', price: 20, cancellable: true }),
-      detail: 'Private',
+      detail: 'Private lesson',
       shareable: true,
       mine: true,
       busyElsewhere: true,

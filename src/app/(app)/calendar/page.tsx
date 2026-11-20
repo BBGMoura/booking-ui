@@ -21,7 +21,7 @@ import { USER_ROLES } from '@/lib/types/auth';
 // than over it.
 const SIDE_PANEL_QUERY = '(min-width: 1024px) and (min-height: 600px)';
 
-export default function BookingsPage() {
+export default function CalendarPage() {
   const { room, showMine, showMineLocked, selectRoom, showRoom, setShowMine } = useCalendarView();
   const controller = useCalendarController();
   const sidePanel = useMediaQuery(SIDE_PANEL_QUERY);

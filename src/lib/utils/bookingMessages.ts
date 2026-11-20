@@ -5,7 +5,7 @@ import { endOf, startOf, type BookingWithEitherDates } from '@/lib/utils/calenda
 
 export const NOT_FREE_MESSAGE =
   'This time overlaps another booking in the room. Choose another time.';
-export const SHAREABLE_FULL_MESSAGE = `This time already has ${MAX_SHAREABLE_BOOKINGS} shareable bookings. Choose another time.`;
+export const SHAREABLE_FULL_MESSAGE = `This time already has ${MAX_SHAREABLE_BOOKINGS} shared room bookings. Choose another time.`;
 export const HIGH_DEMAND_MESSAGE = 'We are experiencing high demand. Please try again.';
 
 const formatRange = (b: BookingView) =>
@@ -17,7 +17,7 @@ export function conflictMessage(conflict: BookingConflict, isShareable: boolean)
   const [first, ...rest] = conflict.bookings;
   const more = rest.length > 0 ? ` and ${rest.length} more` : '';
   if (!isShareable && conflict.bookings.every((b) => b.shareable)) {
-    return `Overlaps a shareable booking (${formatRange(first)})${more}. Turn on Shareable to share the room, or choose another time.`;
+    return `Overlaps a shared room booking (${formatRange(first)})${more}. Turn on Shared room to let others book at the same time, or choose another time.`;
   }
   return `Overlaps a booking (${formatRange(first)})${more}. Choose another time.`;
 }

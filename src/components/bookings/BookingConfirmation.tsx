@@ -67,8 +67,8 @@ export function BookingConfirmation({ booking, onDone }: BookingConfirmationProp
             {format(from, 'HH:mm')}–{format(to, 'HH:mm')}
             <span className="text-muted-foreground font-normal"> · {formatDuration(minutes)}</span>
           </Row>
-          <Row label="Class">{CLASS_TYPE_LABELS[booking.classType]}</Row>
-          <Row label="Shareable">{booking.shareable ? 'Yes' : 'No'}</Row>
+          <Row label="Booking type">{CLASS_TYPE_LABELS[booking.classType]}</Row>
+          <Row label="Shared room">{booking.shareable ? 'Yes' : 'No'}</Row>
           <div className="border-t border-dashed pt-3">
             <Row label="Total" total>
               {formatPrice(booking.totalPrice)}

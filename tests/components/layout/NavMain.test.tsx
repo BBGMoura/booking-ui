@@ -32,11 +32,11 @@ beforeEach(() => {
 
 describe('NavMain', () => {
   describe('main nav items', () => {
-    it('renders Dashboard, Bookings and Booking History', () => {
+    it('renders Dashboard, Room calendar and Booking History', () => {
       render(<NavMain isAdmin={false} />);
 
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
-      expect(screen.getByText('Bookings')).toBeInTheDocument();
+      expect(screen.getByText('Room calendar')).toBeInTheDocument();
       expect(screen.getByText('Booking History')).toBeInTheDocument();
     });
 
@@ -48,11 +48,10 @@ describe('NavMain', () => {
   });
 
   describe('admin nav items', () => {
-    it('renders Users, Rooms and Classes when isAdmin is true', () => {
+    it('renders Users and Classes when isAdmin is true', () => {
       render(<NavMain isAdmin={true} />);
 
       expect(screen.getByText('Users')).toBeInTheDocument();
-      expect(screen.getByText('Rooms')).toBeInTheDocument();
       expect(screen.getByText('Classes')).toBeInTheDocument();
     });
 
@@ -79,16 +78,16 @@ describe('NavMain', () => {
 
   describe('active state', () => {
     it('marks the current route as active', () => {
-      mockPathname.mockReturnValue('/bookings');
+      mockPathname.mockReturnValue('/calendar');
 
       render(<NavMain isAdmin={false} />);
 
-      const bookingsLink = screen.getByRole('link', { name: /bookings/i });
-      expect(bookingsLink.closest('[data-active]')).toHaveAttribute('data-active', 'true');
+      const calendarLink = screen.getByRole('link', { name: /room calendar/i });
+      expect(calendarLink.closest('[data-active]')).toHaveAttribute('data-active', 'true');
     });
 
     it('does not mark other routes as active', () => {
-      mockPathname.mockReturnValue('/bookings');
+      mockPathname.mockReturnValue('/calendar');
 
       render(<NavMain isAdmin={false} />);
 
