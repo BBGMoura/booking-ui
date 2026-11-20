@@ -1,0 +1,168 @@
+'use client';
+
+import { z } from 'zod';
+import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircleIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { inviteUser } from '@/lib/api/user';
+import { USER_ROLES } from '@/lib/types/auth';
+import {
+  getApiErrorInfo,
+  isFieldValidationError,
+  parseApiError,
+  setFieldErrors,
+} from '@/lib/utils/errorUtils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+
+// The same email rule as registration.
+const inviteSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+  role: z.enum([USER_ROLES.USER, USER_ROLES.ADMIN]),
+});
+
+type InviteFormValues = z.infer<typeof inviteSchema>;
+
+const ROLE_OPTIONS = [
+  { value: USER_ROLES.USER, label: 'User' },
+  { value: USER_ROLES.ADMIN, label: 'Admin' },
+] as const;
+
+interface InviteUserDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onInvited: () => void;
+}
+
+/** Dialog for inviting someone by email, as a User or an Admin. */
+export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDialogProps) {
+  const form = useForm<InviteFormValues>({
+    resolver: zodResolver(inviteSchema),
+    mode: 'onTouched',
+    defaultValues: { email: '', role: USER_ROLES.USER },
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const rootError = form.formState.errors.root?.message;
+
+  function handleOpenChange(next: boolean) {
+    if (submitting) return;
+    if (!next) form.reset();
+    onOpenChange(next);
+  }
+
+  async function onSubmit(values: InviteFormValues) {
+    setSubmitting(true);
+    try {
+      await inviteUser({ email: values.email, role: values.role });
+      toast.success(`Invite sent to ${values.email}`);
+      form.reset();
+      onOpenChange(false);
+      onInvited();
+    } catch (exception) {
+      if (isFieldValidationError(exception)) {
+        setFieldErrors(exception.response!.data.details, form.setError, ['email', 'role']);
+      } else if (getApiErrorInfo(exception).status === 400) {
+        // e.g. "User with email … is already invited."
+        form.setError('email', { type: 'server', message: parseApiError(exception) });
+      } else {
+        form.setError('root', { message: parseApiError(exception) });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Invite user</DialogTitle>
+          <DialogDescription>
+            They&apos;ll get an email asking them to register for the Booking Portal.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          {rootError && (
+            <Alert variant="destructive">
+              <AlertCircleIcon />
+              <AlertDescription>{rootError}</AlertDescription>
+            </Alert>
+          )}
+
+          <Controller
+            name="email"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="invite-email">Email</FieldLabel>
+                <Input
+                  {...field}
+                  id="invite-email"
+                  type="email"
+                  placeholder="jane@example.com"
+                  autoComplete="off"
+                  disabled={submitting}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+
+          <Controller
+            name="role"
+            control={form.control}
+            render={({ field }) => (
+              <fieldset className="space-y-2" disabled={submitting}>
+                <legend className="text-sm font-medium">Role</legend>
+                <div className="flex gap-4">
+                  {ROLE_OPTIONS.map((option) => (
+                    <label key={option.value} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name={field.name}
+                        value={option.value}
+                        checked={field.value === option.value}
+                        onChange={() => field.onChange(option.value)}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+          />
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Spinner />
+                  Sending...
+                </>
+              ) : (
+                'Send invite'
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

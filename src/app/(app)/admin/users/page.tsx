@@ -1,3 +1,5 @@
+import { UsersList } from '@/components/admin/UsersList';
+
 export default function UsersPage() {
-  return <div>Users</div>;
+  return <UsersList />;
 }
