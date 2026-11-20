@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, UserPlus, Users } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 import { useAdminUsers } from '@/hooks/use-admin-users';
 import { USER_ROLES } from '@/lib/types/auth';
 import type { UserProfile } from '@/lib/types/user';
@@ -32,52 +32,36 @@ export function UsersList() {
   const [inviteOpen, setInviteOpen] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <section className="bg-card text-card-foreground rounded-2xl border shadow-sm">
-        <header className="flex items-center gap-4 px-5 pt-5 pb-4 sm:px-6">
-          <span className="bg-background flex size-11 shrink-0 items-center justify-center rounded-full border shadow-xs">
-            <Users className="text-muted-foreground size-5" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <h2 className="font-medium">Users</h2>
-            <p className="text-muted-foreground text-sm">
-              Everyone who can sign in to the Booking Portal.
-            </p>
-          </div>
-        </header>
-
-        <div className="mx-5 border-t border-dashed sm:mx-6" />
-
-        <div className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:px-6">
-          <div className="relative flex-1">
-            <Search
-              className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4"
-              aria-hidden
-            />
-            <Input
-              type="search"
-              aria-label="Search users"
-              placeholder="Search by name or email"
-              className="pl-8"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Button variant="outline" onClick={() => setInviteOpen(true)}>
-            <UserPlus aria-hidden />
-            Invite user
-          </Button>
+    <div className="mx-auto w-full max-w-3xl space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search
+            className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            aria-label="Search users"
+            placeholder="Search by name or email"
+            className="pl-8"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
+        <Button variant="outline" onClick={() => setInviteOpen(true)}>
+          <UserPlus aria-hidden />
+          Invite user
+        </Button>
+      </div>
 
-        <UsersContent
-          data={data}
-          error={error}
-          loading={loading}
-          activeSearch={activeSearch}
-          setPageIndex={setPageIndex}
-          retry={reload}
-        />
-      </section>
+      <UsersContent
+        data={data}
+        error={error}
+        loading={loading}
+        activeSearch={activeSearch}
+        setPageIndex={setPageIndex}
+        retry={reload}
+      />
 
       <InviteUserDialog open={inviteOpen} onOpenChange={setInviteOpen} onInvited={reload} />
     </div>
@@ -99,7 +83,7 @@ function UsersContent({
 }: UsersContentProps) {
   if (error) {
     return (
-      <div role="alert" className="flex flex-col items-start gap-3 px-6 pb-6">
+      <div role="alert" className="flex flex-col items-start gap-3 py-6">
         <p className="text-destructive text-sm">{error}</p>
         <Button variant="outline" onClick={retry}>
           Try again
@@ -110,7 +94,7 @@ function UsersContent({
 
   if (!data) {
     return (
-      <div className="space-y-1 px-3 pb-3 sm:px-4" aria-busy="true" aria-label="Loading users">
+      <div className="space-y-1" aria-busy="true" aria-label="Loading users">
         {[0, 1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center gap-3 px-2 py-3">
             <Skeleton className="size-10 rounded-full" />
@@ -126,7 +110,7 @@ function UsersContent({
 
   if (data.content.length === 0) {
     return (
-      <p className="text-muted-foreground px-6 pt-6 pb-12 text-center text-sm">
+      <p className="text-muted-foreground py-12 text-center text-sm">
         {activeSearch ? `No users match '${activeSearch}'` : 'No users yet'}
       </p>
     );
@@ -135,14 +119,14 @@ function UsersContent({
   const { number, totalPages, totalElements } = data.page;
 
   return (
-    <>
-      <h3 className="px-5 pb-1 text-sm font-medium sm:px-6">
+    <div className="space-y-2">
+      <h2 className="text-muted-foreground text-sm font-medium">
         {totalElements} {totalElements === 1 ? 'user' : 'users'}
-      </h3>
+      </h2>
       <ul
         aria-label="Users"
         aria-busy={loading}
-        className={cn('px-3 pb-3 transition-opacity sm:px-4', loading && 'opacity-60')}
+        className={cn('-mx-2 transition-opacity', loading && 'opacity-60')}
       >
         {data.content.map((user) => (
           <UserRow key={user.uid} user={user} />
@@ -151,7 +135,7 @@ function UsersContent({
       {totalPages > 1 && (
         <nav
           aria-label="Pagination"
-          className="mx-5 flex items-center justify-between border-t border-dashed py-4 sm:mx-6"
+          className="flex items-center justify-between border-t border-dashed pt-4"
         >
           <Button
             variant="outline"
@@ -174,7 +158,7 @@ function UsersContent({
           </Button>
         </nav>
       )}
-    </>
+    </div>
   );
 }
 
