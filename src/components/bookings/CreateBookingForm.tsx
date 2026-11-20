@@ -27,6 +27,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { useBookingCheck } from '@/hooks/use-booking-check';
 import { createBooking } from '@/lib/api/booking';
 import { getClassTypes, getDanceClass } from '@/lib/api/danceClass';
 import {
@@ -36,11 +37,7 @@ import {
   type ClassType,
   type Room,
 } from '@/lib/types/booking';
-import {
-  findConflict,
-  MAX_SHAREABLE_BOOKINGS,
-  type BookingConflict,
-} from '@/lib/utils/bookingConflicts';
+import { overlappingBookings } from '@/lib/utils/bookingOverlaps';
 import {
   atMinutes,
   defaultBookingSlot,
@@ -66,6 +63,9 @@ import {
   parseApiError,
   setFieldErrors,
 } from '@/lib/utils/errorUtils';
+
+// Only for the message: the backend enforces the limit.
+const MAX_SHAREABLE_BOOKINGS = 3;
 
 export const NOT_FREE_MESSAGE =
   'This time overlaps another booking in the room. Choose another time.';
@@ -138,9 +138,9 @@ interface CreateBookingFormProps {
    */
   draft: BookingDraft;
   /**
-   * The chosen room's bookings around the chosen day, to warn about clashes
-   * before submitting; null while they're loading. The calendar loads them
-   * anyway, so the form doesn't fetch its own copy.
+   * The chosen room's bookings around the chosen day, to say which ones are in
+   * the way when the backend reports a clash; null while they're loading. The
+   * calendar loads them anyway, so the form doesn't fetch its own copy.
    */
   schedule: BookingView[] | null;
   /** Called whenever any choice changes. */
@@ -192,17 +192,41 @@ const upcomingStartTimes = (day: Date, now = new Date()) =>
 const formatRange = (b: BookingView) =>
   `${format(new Date(startOf(b as BookingWithEitherDates)!), 'HH:mm')}–${format(new Date(endOf(b as BookingWithEitherDates)!), 'HH:mm')}`;
 
-function conflictMessage(conflict: BookingConflict, isShareable: boolean): string {
-  if (conflict.code === 'BOOKING_SHAREABLE_LIMIT') return SHAREABLE_FULL_MESSAGE;
-  const [first, ...rest] = conflict.bookings;
+/**
+ * What to tell the user about a booking the backend refuses (or would refuse)
+ * with `code`. For a clash it names the bookings in the way when the schedule
+ * shows them, falling back to a general message when it doesn't (yet).
+ *
+ * @param overlapping the room's bookings overlapping the chosen time, or null
+ *     while the schedule is loading
+ * @param fallback what to say for a code with no message of its own here
+ */
+function refusalMessage(
+  code: string,
+  overlapping: BookingView[] | null,
+  isShareable: boolean,
+  fallback: string
+): string {
+  if (code === 'BOOKING_SHAREABLE_LIMIT') return SHAREABLE_FULL_MESSAGE;
+  if (code !== 'BOOKING_CONFLICT') return fallback;
+  if (!overlapping?.length) return NOT_FREE_MESSAGE;
+  // A booking that isn't shareable is in the way of any other; shareable ones
+  // only block a booking that isn't shareable.
+  const exclusive = overlapping.filter((b) => !b.shareable);
+  const inTheWay = exclusive.length > 0 ? exclusive : overlapping;
+  const [first, ...rest] = inTheWay;
   const more = rest.length > 0 ? ` and ${rest.length} more` : '';
-  if (!isShareable && conflict.bookings.every((b) => b.shareable)) {
+  if (!isShareable && exclusive.length === 0) {
     return `Overlaps a shareable booking (${formatRange(first)})${more}. Turn on Shareable to share the room, or choose another time.`;
   }
   return `Overlaps a booking (${formatRange(first)})${more}. Choose another time.`;
 }
 
-type Notice = { tone: 'error' | 'warning'; message: string } | { tone: 'free'; room: Room } | null;
+type Notice =
+  | { tone: 'error' | 'warning'; message: string }
+  | { tone: 'free'; room: Room }
+  | { tone: 'checking'; room: Room }
+  | null;
 
 const NOTICE_STYLES = {
   error: 'border-destructive/40 bg-card text-destructive',
@@ -212,10 +236,19 @@ const NOTICE_STYLES = {
 
 /**
  * The line above the buttons: an error once a booking has failed, a warning
- * while the time clashes (the backend still decides), or that the room is free.
+ * while the backend says the time clashes (it still decides when the booking
+ * is made), that it's checking, or that the room is free.
  */
 function BookingNotice({ notice }: { notice: Notice }) {
   if (!notice) return null;
+  if (notice.tone === 'checking') {
+    return (
+      <p className="text-muted-foreground flex gap-2 text-sm">
+        <Spinner className="mt-0.5 size-4 shrink-0" />
+        Checking {ROOM_LABELS[notice.room]} is free…
+      </p>
+    );
+  }
   if (notice.tone === 'free') {
     return (
       <p className="text-muted-foreground flex gap-2 text-sm">
@@ -239,9 +272,9 @@ function BookingNotice({ notice }: { notice: Notice }) {
 /**
  * Books a room. Opened from a range picked on the calendar (which fills in the
  * room and time) or from the "New booking" button; everything can be changed
- * here. It checks the room's bookings for clashes as the time changes, so most
- * conflicts show before submitting. Mount it only while it's open: it loads
- * its options on mount.
+ * here. It asks the backend whether the booking would be accepted as the
+ * choices change, so most conflicts show before submitting. Mount it only
+ * while it's open: it loads its options on mount.
  */
 export function CreateBookingForm({
   draft,
@@ -262,7 +295,11 @@ export function CreateBookingForm({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   // A booking the backend refused, tagged with the choices it was for, so the
   // error clears as soon as the user changes any of them.
-  const [rejection, setRejection] = useState<{ key: string; message: string } | null>(null);
+  const [rejection, setRejection] = useState<{
+    key: string;
+    code: string;
+    message: string;
+  } | null>(null);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -362,16 +399,29 @@ export function CreateBookingForm({
   }
 
   const hasTime = !!date && start != null && end != null && end > start;
-  const localConflict =
-    schedule && room && hasTime
-      ? findConflict(schedule, {
-          start: atMinutes(date, start),
-          end: atMinutes(date, end),
+  const from = hasTime ? atMinutes(date, start) : null;
+  const to = hasTime ? atMinutes(date, end) : null;
+  // Only ask about a booking the form itself would send: the schema already
+  // explains anything else next to the field.
+  const checkable =
+    room && classType && from && to && from >= new Date() && !validateBookingTime(from, to);
+  const check = useBookingCheck(
+    checkable
+      ? {
+          room,
+          classType,
           isShareable,
-        })
-      : null;
-  const clash = localConflict && conflictMessage(localConflict, isShareable);
-  const rejected = rejection?.key === choiceKey ? rejection.message : null;
+          dateFrom: toOffsetDateTime(from),
+          dateTo: toOffsetDateTime(to),
+        }
+      : null
+  );
+  const overlapping =
+    schedule && from && to ? overlappingBookings(schedule, { start: from, end: to }) : null;
+  const refusal = (code: string, fallback: string) =>
+    refusalMessage(code, overlapping, isShareable, fallback);
+
+  const rejected = rejection?.key === choiceKey ? rejection : null;
   const rootError =
     form.formState.errors.root?.message ??
     (classTypesFailed ? 'Could not load the class types. Please close this and try again.' : null);
@@ -379,12 +429,14 @@ export function CreateBookingForm({
     ? { tone: 'error', message: rootError }
     : rejected
       ? // The reloaded schedule says what's in the way, when it shows the clash.
-        { tone: 'error', message: clash ?? rejected }
-      : clash
-        ? { tone: 'warning', message: clash }
-        : schedule && hasTime && room
+        { tone: 'error', message: refusal(rejected.code, rejected.message) }
+      : check?.state === 'refused'
+        ? { tone: 'warning', message: refusal(check.code, check.message) }
+        : room && check?.state === 'free'
           ? { tone: 'free', room }
-          : null;
+          : room && check?.state === 'checking'
+            ? { tone: 'checking', room }
+            : null;
 
   async function onSubmit(values: BookingFormValues) {
     setIsLoading(true);
@@ -407,6 +459,7 @@ export function CreateBookingForm({
         // can say what's in the way.
         setRejection({
           key: choiceKey,
+          code,
           message: code === 'BOOKING_CONFLICT' ? NOT_FREE_MESSAGE : SHAREABLE_FULL_MESSAGE,
         });
         onConflict();
