@@ -82,8 +82,10 @@ export default function BookingsPage() {
     // height and the calendar scrolls inside its card, keeping the toolbar and
     // day headers in view. Otherwise (phones) the calendar is full height and
     // the whole page scrolls, since a viewport-high grid would be too short.
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
+    // On phones the calendar fills the page: the negative margin cancels the
+    // layout's padding (p-10), and the controls and error put back their own.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 max-md:-m-10">
+      <div className="flex items-start justify-between gap-3 max-md:px-4 max-md:pt-4">
         <CalendarControls
           room={room}
           showMine={showMine}
@@ -111,12 +113,12 @@ export default function BookingsPage() {
         <PlusIcon />
       </Button>
       {error && (
-        <p role="alert" className="text-destructive text-sm">
+        <p role="alert" className="text-destructive text-sm max-md:px-4">
           {error}
         </p>
       )}
       <div className="flex min-h-0 flex-1 gap-4">
-        <div className="bg-card relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border shadow-sm">
+        <div className="bg-card relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border shadow-sm max-md:rounded-none max-md:border-x-0 max-md:shadow-none">
           {loading && (
             // A thin bar rather than a spinner over the grid, so a quick load
             // doesn't flash anything big.

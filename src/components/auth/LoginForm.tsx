@@ -91,7 +91,10 @@ export default function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card
+      data-mobile-fill
+      className="w-full max-w-md max-md:max-w-none max-md:rounded-none max-md:border-x-0 max-md:shadow-none"
+    >
       <CardHeader className="flex flex-col items-center pt-8 text-center">
         {/* TODO Update with logo in future ticket */}
         <img

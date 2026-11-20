@@ -12,6 +12,11 @@ import { BookingEventContent } from '@/components/bookings/BookingEventContent';
 import { BookingsCalendarToolbar } from '@/components/bookings/BookingsCalendarToolbar';
 import { EventCalendarCloseIcon } from '@/components/event-calendar-icons';
 import { EventCalendarViews } from '@/components/ui/event-calendar-views';
+import {
+  useResponsiveCalendarView,
+  WEEK_VIEW,
+  DAY_VIEW,
+} from '@/hooks/use-responsive-calendar-view';
 import { cn } from '@/lib/utils';
 import { isBookableRange, OPENING_HOURS_BY_DAY, TIME_STEP_MINUTES } from '@/lib/utils/bookingTime';
 import {
@@ -23,7 +28,11 @@ import { initialScrollTime, toTime } from '@/lib/utils/calendarUtils';
 
 const plugins = [timeGridPlugin, listPlugin, interactionPlugin];
 
-const AVAILABLE_VIEWS = ['timeGridWeek', 'timeGridDay'];
+const AVAILABLE_VIEWS = [WEEK_VIEW, DAY_VIEW];
+
+// Phone columns are too narrow for the default header (weekday only), so the
+// week view also shows each day's number.
+const MOBILE_WEEK_HEADER_FORMAT = { weekday: 'short', day: 'numeric' } as const;
 
 // Mirrors the backend's `schedule` config, which isn't exposed over the API.
 // Per-day closed time is shaded via businessHours.
@@ -89,6 +98,7 @@ export function BookingsCalendar({
 }: BookingsCalendarProps) {
   const ownController = useCalendarController();
   const controller = outsideController ?? ownController;
+  const { isMobile, initialView } = useResponsiveCalendarView(controller);
   const [scrollTime] = useState(() => initialScrollTime(new Date(), GRID_START_MINUTES));
 
   return (
@@ -102,7 +112,10 @@ export function BookingsCalendar({
         <EventCalendarViews
           controller={controller}
           height={height}
-          initialView={AVAILABLE_VIEWS[0]}
+          initialView={initialView}
+          views={
+            isMobile ? { timeGridWeek: { dayHeaderFormat: MOBILE_WEEK_HEADER_FORMAT } } : undefined
+          }
           navLinkDayClick="timeGridDay"
           navLinkWeekClick="timeGridWeek"
           plugins={plugins}
