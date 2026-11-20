@@ -5,12 +5,14 @@ import { BookingsCalendar } from '@/components/bookings/BookingsCalendar';
 type Span = { start: Date; end: Date };
 type Allow = (span: Span) => boolean;
 
-const mockViewProps: { current: { selectAllow: Allow; eventAllow: Allow } } = {
+type ViewProps = { selectAllow: Allow; eventAllow: Allow; eventResizableFromStart?: boolean };
+
+const mockViewProps: { current: ViewProps } = {
   current: { selectAllow: () => true, eventAllow: () => true },
 };
 
 jest.mock('@/components/ui/event-calendar-views', () => ({
-  EventCalendarViews: (props: { selectAllow: Allow; eventAllow: Allow }) => {
+  EventCalendarViews: (props: ViewProps) => {
     mockViewProps.current = props;
     return null;
   },
@@ -58,5 +60,11 @@ describe.each(['selectAllow', 'eventAllow'] as const)('BookingsCalendar %s', (ru
     const start = new Date(2000, 0, 3, 10);
     const end = new Date(2000, 0, 3, 11);
     expect(renderCalendar()[rule]({ start, end })).toBe(false);
+  });
+});
+
+describe('BookingsCalendar placeholder', () => {
+  it('can be resized from its start as well as its end', () => {
+    expect(renderCalendar().eventResizableFromStart).toBe(true);
   });
 });
