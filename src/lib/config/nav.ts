@@ -1,4 +1,4 @@
-import { CalendarDays, LayoutDashboard, History, Users, Music } from 'lucide-react';
+import { CalendarDays, LayoutDashboard, CalendarCheck, Users, Music } from 'lucide-react';
 import { type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -10,7 +10,7 @@ export interface NavItem {
 export const mainNavItems: NavItem[] = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Room Calendar', url: '/calendar', icon: CalendarDays },
-  { title: 'Booking History', url: '/booking-history', icon: History },
+  { title: 'My Bookings', url: '/my-bookings', icon: CalendarCheck },
 ];
 
 export const adminNavItems: NavItem[] = [

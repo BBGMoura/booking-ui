@@ -2,7 +2,7 @@
 
 const PUBLIC_ROUTES = ['/login', '/register'];
 
-const PROTECTED_ROUTES = ['/dashboard', '/calendar', '/booking-history', '/profile', '/admin'];
+const PROTECTED_ROUTES = ['/dashboard', '/calendar', '/my-bookings', '/profile', '/admin'];
 
 /**
  * Decodes the payload of a JWT token without verifying the signature.
