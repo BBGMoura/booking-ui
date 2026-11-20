@@ -16,6 +16,8 @@ interface RangeData {
 
 const ALL_ROOMS = Object.values(ROOMS);
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** How often the visible range is refetched while the calendar is in view. */
+export const POLL_INTERVAL_MS = 30_000;
 
 const keyOf = (range: DateRange) => `${range.start.toISOString()}|${range.end.toISOString()}`;
 
@@ -65,6 +67,11 @@ export interface UseCalendarEventsOptions {
  * Loaded ranges are kept for the session: going back to one shows it straight
  * away while it's refreshed in the background. The range after the visible one
  * is prefetched so the "next" button is instant too.
+ *
+ * The visible range is also refreshed quietly, with the grid left as it is
+ * until the new data arrives: every {@link POLL_INTERVAL_MS} while the tab is
+ * visible and polling isn't paused (see `setPollingPaused`), and straight away
+ * when the tab becomes visible or focused again.
  *
  * The user's own bookings are needed even with a room selected: they identify
  * which of the room's bookings are yours, since the schedule doesn't say who
@@ -131,6 +138,29 @@ export function useCalendarEvents(
     }
   }, [range]);
 
+  // Polling pauses while the booking form is open, since it refetches on open.
+  const [pollingPaused, setPollingPaused] = useState(false);
+  const refreshRef = useRef(refresh);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!key) return;
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') void refreshRef.current();
+    };
+    // Back to the tab: catch up now rather than waiting for the next poll.
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    window.addEventListener('focus', refreshIfVisible);
+    const timer = pollingPaused ? undefined : setInterval(refreshIfVisible, POLL_INTERVAL_MS);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+      window.removeEventListener('focus', refreshIfVisible);
+      clearInterval(timer);
+    };
+  }, [key, pollingPaused]);
+
   const data = key ? loaded.get(key) : undefined;
   const events: EventInput[] = useMemo(
     () =>
@@ -172,5 +202,7 @@ export function useCalendarEvents(
     loading: !!range && !data && !error,
     error,
     refresh,
+    /** Stops (true) or resumes (false) the regular refresh; focus refreshes still happen. */
+    setPollingPaused,
   };
 }
