@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import type { CalendarController, EventInput } from '@fullcalendar/react';
 import { startOfDay } from 'date-fns';
 import type { DateSpan } from '@/components/bookings/BookingsCalendar';
-import type { BookingDraft, BookingPreview } from '@/components/bookings/CreateBookingForm';
+import type { BookingDraft, BookingPreview } from '@/lib/utils/bookingForm';
 import type { DateRange } from '@/hooks/use-calendar-events';
 import type { BookingView, Room } from '@/lib/types/booking';
 import { atMinutes } from '@/lib/utils/bookingTime';

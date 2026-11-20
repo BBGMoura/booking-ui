@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import type { CalendarController } from '@fullcalendar/react';
-import type { BookingPreview } from '@/components/bookings/CreateBookingForm';
+import type { BookingPreview } from '@/lib/utils/bookingForm';
 import { PREVIEW_EVENT_ID, suggestedDay, useNewBooking } from '@/hooks/use-new-booking';
 import type { BookingView, Room } from '@/lib/types/booking';
 
