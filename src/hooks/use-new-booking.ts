@@ -117,7 +117,12 @@ export function useNewBooking({
   }
 
   const open = (next: BookingDraft) => {
-    if (!draft) viewBeforeBooking.current = controller.view?.type ?? null;
+    if (!draft) {
+      viewBeforeBooking.current = controller.view?.type ?? null;
+      // Whatever was loaded when the page mounted may be out of date, so
+      // reload the week (the form checks clashes against it) as it opens.
+      void refresh();
+    }
     // Picking a new range from the confirmation starts the next booking.
     setConfirmed(null);
     setDraft(next);
