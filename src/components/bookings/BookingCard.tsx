@@ -61,99 +61,111 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
   return (
     <article
       aria-label={`${fullDateFormat.format(from)}, ${timeFormat.format(from)} to ${timeFormat.format(to)}`}
-      className={cn(
-        'bg-card flex gap-4 rounded-xl border p-4 shadow-xs',
-        cancelled && 'bg-muted/40'
-      )}
+      className={cn('bg-card rounded-xl border p-4 shadow-xs', cancelled && 'bg-muted/40')}
     >
-      <div
-        aria-hidden
-        className={cn(
-          'bg-primary/10 text-primary flex w-16 shrink-0 flex-col items-center justify-center rounded-lg py-2 leading-none',
-          cancelled && 'bg-muted text-muted-foreground'
-        )}
-      >
-        <span className="text-xs font-medium uppercase">{weekdayFormat.format(from)}</span>
-        <span className="my-1 text-2xl font-semibold tabular-nums">{dayFormat.format(from)}</span>
-        <span className="text-xs font-medium uppercase">
-          {monthFormat.format(from)}
-          {otherYear && ` ${from.getFullYear()}`}
-        </span>
-      </div>
-
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <div className="flex items-start justify-between gap-3">
-          <p
-            className={cn(
-              'font-semibold tabular-nums',
-              cancelled && 'text-muted-foreground line-through'
-            )}
-          >
-            {timeFormat.format(from)}–{timeFormat.format(to)}
-          </p>
-          <p className="text-sm font-medium tabular-nums">
-            <span className="sr-only">Price </span>£{booking.totalPrice.toFixed(2)}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span>{ROOM_LABELS[booking.room]}</span>
-          <Badge variant="outline">{CLASS_TYPE_LABELS[booking.classType]}</Badge>
-          {booking.shareable && (
-            <Badge variant="secondary">
-              <Users aria-hidden />
-              Shared room
-            </Badge>
+      <div className="flex gap-4">
+        {/* The calendar colours the user's own bookings with chart-1, so the
+            same colour here ties this list back to the calendar. */}
+        <div
+          aria-hidden
+          className={cn(
+            'bg-chart-1/15 text-chart-1 flex w-16 shrink-0 flex-col items-center justify-center rounded-lg py-2 leading-none',
+            cancelled && 'bg-muted text-muted-foreground'
           )}
-          {cancelled && <Badge variant="destructive">Cancelled</Badge>}
+        >
+          <span className="text-xs font-medium uppercase">{weekdayFormat.format(from)}</span>
+          <span className="my-1 text-2xl font-semibold tabular-nums">{dayFormat.format(from)}</span>
+          <span className="text-xs font-medium uppercase">
+            {monthFormat.format(from)}
+            {otherYear && ` ${from.getFullYear()}`}
+          </span>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <p className="text-muted-foreground min-w-0 font-mono text-xs break-all">
+
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex items-start justify-between gap-3">
+            <p
+              className={cn(
+                'font-semibold tabular-nums',
+                cancelled && 'text-muted-foreground line-through'
+              )}
+            >
+              {timeFormat.format(from)}–{timeFormat.format(to)}
+            </p>
+            <p className="text-sm font-medium tabular-nums">
+              <span className="sr-only">Price </span>£{booking.totalPrice.toFixed(2)}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span>{ROOM_LABELS[booking.room]}</span>
+            <Badge variant="secondary">{CLASS_TYPE_LABELS[booking.classType]}</Badge>
+            {booking.shareable && (
+              <Badge variant="secondary">
+                <Users aria-hidden />
+                Shared room
+              </Badge>
+            )}
+            {cancelled && (
+              <Badge variant="outline" className="border-destructive/40 text-destructive">
+                Cancelled
+              </Badge>
+            )}
+          </div>
+          <p className="text-muted-foreground font-mono text-xs break-all">
             <span className="font-sans">Ref </span>
             {booking.uid}
           </p>
-          {onCancelled && !cancelled && (
-            <div className="-mr-2 ml-auto">
-              {confirming ? (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <p className="text-sm">Cancel this booking? This can&apos;t be undone.</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={cancelling}
-                    onClick={() => setConfirming(false)}
-                  >
-                    Keep
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={cancelling}
-                    onClick={confirmCancel}
-                    autoFocus
-                  >
-                    Yes, cancel
-                  </Button>
-                </div>
-              ) : (
+        </div>
+      </div>
+
+      {error && (
+        <p role="alert" className="text-destructive mt-3 text-sm">
+          {error}
+        </p>
+      )}
+      {onCancelled && !cancelled && (
+        // Laid out like the calendar's booking details: a quiet action under a
+        // divider, confirmed in place.
+        <div className="mt-3 border-t pt-2">
+          {confirming ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <p className="text-sm">Cancel this booking? This can&apos;t be undone.</p>
+              <div className="flex gap-1.5">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-muted-foreground hover:text-destructive"
-                  onClick={() => setConfirming(true)}
+                  disabled={cancelling}
+                  onClick={() => setConfirming(false)}
                 >
-                  <Trash2 aria-hidden />
-                  Cancel booking
+                  Keep
                 </Button>
-              )}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={cancelling}
+                  onClick={confirmCancel}
+                  autoFocus
+                >
+                  Yes, cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-destructive"
+                // "Cancel" alone could read as "close this" to a screen reader.
+                aria-label="Cancel booking"
+                onClick={() => setConfirming(true)}
+              >
+                <Trash2 aria-hidden />
+                Cancel
+              </Button>
             </div>
           )}
         </div>
-        {error && (
-          <p role="alert" className="text-destructive text-sm">
-            {error}
-          </p>
-        )}
-      </div>
+      )}
     </article>
   );
 }
