@@ -145,6 +145,12 @@ export function BookingsCalendar({
           highlightClass="hidden"
           snapDuration={toTime(TIME_STEP_MINUTES)}
           selectAllow={(span) => isBookableRange(span)}
+          // Moving or resizing the placeholder follows the same rule as dragging out a
+          // new range; a drop into closed hours or the past snaps back.
+          eventAllow={(span) => isBookableRange(span)}
+          // Either edge of the placeholder can be dragged, so its start can move
+          // earlier without moving the whole booking.
+          eventResizableFromStart
           select={(info) => {
             onSelect?.({ start: info.start, end: info.end });
             info.view.calendar.unselect();
