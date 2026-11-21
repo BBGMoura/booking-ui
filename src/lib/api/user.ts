@@ -29,3 +29,13 @@ export async function getUsers(params: GetUsersParams = {}): Promise<Page<UserPr
 export async function inviteUser(request: InviteUserRequest): Promise<void> {
   await api.post('/admin/users/invite', request);
 }
+
+export async function getUser(userUid: string): Promise<UserProfile> {
+  const { data } = await api.get<UserProfile>(`/admin/users/${userUid}`);
+  return data;
+}
+
+/** Disabling also cancels all of the user's bookings on the backend. */
+export async function setUserEnabled(userUid: string, enabled: boolean): Promise<void> {
+  await api.patch(`/admin/users/${userUid}`, { enabled });
+}
