@@ -26,12 +26,12 @@ describe('nav config', () => {
   });
 
   describe('adminNavItems', () => {
-    it('includes Users and Classes', () => {
+    it('includes Users and Room rates', () => {
       const urls = adminNavItems.map((item) => item.url);
 
       expect(urls).toContain('/admin/users');
       expect(urls).not.toContain('/admin/rooms');
-      expect(urls).toContain('/admin/classes');
+      expect(urls).toContain('/admin/rates');
     });
 
     it('every item has a title, url and icon', () => {

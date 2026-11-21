@@ -133,13 +133,15 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
               <FieldLabel htmlFor="invite-admin" className="border-dashed">
                 <Field orientation="horizontal">
                   <FieldContent className="gap-1">
-                    <FieldTitle>Admin</FieldTitle>
-                    <FieldDescription>
+                    <FieldTitle id="invite-admin-label">Admin</FieldTitle>
+                    <FieldDescription id="invite-admin-hint">
                       Can manage users, room rates and everyone&apos;s bookings.
                     </FieldDescription>
                   </FieldContent>
                   <Switch
                     id="invite-admin"
+                    aria-labelledby="invite-admin-label"
+                    aria-describedby="invite-admin-hint"
                     checked={field.value === USER_ROLES.ADMIN}
                     onCheckedChange={(checked) =>
                       field.onChange(checked ? USER_ROLES.ADMIN : USER_ROLES.USER)

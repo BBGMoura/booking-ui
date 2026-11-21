@@ -48,11 +48,11 @@ describe('NavMain', () => {
   });
 
   describe('admin nav items', () => {
-    it('renders Users and Classes when isAdmin is true', () => {
+    it('renders Users and Room rates when isAdmin is true', () => {
       render(<NavMain isAdmin={true} />);
 
       expect(screen.getByText('Users')).toBeInTheDocument();
-      expect(screen.getByText('Classes')).toBeInTheDocument();
+      expect(screen.getByText('Room rates')).toBeInTheDocument();
     });
 
     it('renders the Manage group label when isAdmin is true', () => {
@@ -66,7 +66,7 @@ describe('NavMain', () => {
 
       expect(screen.queryByText('Users')).not.toBeInTheDocument();
       expect(screen.queryByText('Rooms')).not.toBeInTheDocument();
-      expect(screen.queryByText('Classes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Room rates')).not.toBeInTheDocument();
     });
 
     it('does not render the Manage group label when isAdmin is false', () => {

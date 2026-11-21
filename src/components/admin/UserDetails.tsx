@@ -30,13 +30,20 @@ const STATUS_TEXT: Record<UserStatus, string> = {
 };
 
 /** Admin › Users › one user: their details, and Disable or Enable. */
-export function UserDetails({ userUid }: { userUid: string }) {
+export function UserDetails({
+  userUid,
+  backHref = '/admin/users',
+}: {
+  userUid: string;
+  /** Where "← Users" goes: the users list, with its search and page when known. */
+  backHref?: string;
+}) {
   const { user, error, notFound, reload } = useAdminUser(userUid);
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/admin/users">
+        <Link href={backHref}>
           <ArrowLeft aria-hidden />
           Users
         </Link>
@@ -68,8 +75,9 @@ function UserCard({ user, onChanged }: { user: UserProfile; onChanged: () => voi
   const name = getUserDisplayName(user);
   const invited = status === 'Invited';
   // Disabling yourself would lock you out and cancel your own bookings. The
-  // backend doesn't stop it, so the button simply isn't offered.
-  const isMe = me?.uid === user.uid;
+  // backend doesn't stop it, so the button simply isn't offered, and not
+  // before the logged-in user has loaded and we know who "you" are.
+  const canDisable = !!me && me.uid !== user.uid;
 
   async function enable() {
     setEnabling(true);
@@ -100,7 +108,7 @@ function UserCard({ user, onChanged }: { user: UserProfile; onChanged: () => voi
           </div>
           <p className={cn('text-sm', STATUS_TEXT[status])}>{invited ? 'Invite sent' : status}</p>
         </div>
-        {status === 'Active' && !isMe && (
+        {status === 'Active' && canDisable && (
           <Button
             variant="outline"
             size="sm"

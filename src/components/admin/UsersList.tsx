@@ -31,7 +31,7 @@ const STATUS_TEXT: Record<UserStatus, string> = {
 
 /** Admin › Users: search, status and invite. */
 export function UsersList() {
-  const { search, setSearch, activeSearch, data, error, loading, setPageIndex, reload } =
+  const { listQuery, search, setSearch, activeSearch, data, error, loading, setPageIndex, reload } =
     useAdminUsers();
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -64,6 +64,7 @@ export function UsersList() {
         loading={loading}
         activeSearch={activeSearch}
         setPageIndex={setPageIndex}
+        listQuery={listQuery}
         retry={reload}
       />
 
@@ -74,7 +75,7 @@ export function UsersList() {
 
 type UsersContentProps = Pick<
   ReturnType<typeof useAdminUsers>,
-  'data' | 'error' | 'loading' | 'activeSearch' | 'setPageIndex'
+  'data' | 'error' | 'loading' | 'activeSearch' | 'setPageIndex' | 'listQuery'
 > & { retry: () => void };
 
 function UsersContent({
@@ -83,6 +84,7 @@ function UsersContent({
   loading,
   activeSearch,
   setPageIndex,
+  listQuery,
   retry,
 }: UsersContentProps) {
   if (error) {
@@ -134,7 +136,7 @@ function UsersContent({
         )}
       >
         {data.content.map((user) => (
-          <UserCard key={user.uid} user={user} />
+          <UserCard key={user.uid} user={user} listQuery={listQuery} />
         ))}
       </ul>
       {totalPages > 1 && (
@@ -167,7 +169,7 @@ function UsersContent({
   );
 }
 
-function UserCard({ user }: { user: UserProfile }) {
+function UserCard({ user, listQuery }: { user: UserProfile; listQuery: string }) {
   const status = getUserStatus(user);
   const name = getUserDisplayName(user);
   // An invited user has no name yet, so their email stands in for it.
@@ -198,7 +200,11 @@ function UserCard({ user }: { user: UserProfile }) {
       <div className="flex items-center justify-between border-t border-dashed px-4 py-2 sm:px-5 sm:py-3">
         <span className={cn('text-sm', STATUS_TEXT[status])}>{status}</span>
         <Button asChild variant="outline" size="sm">
-          <Link href={`/admin/users/${user.uid}`} aria-label={`View ${name}`}>
+          <Link
+            // Carries the list's search and page, so "← Users" can return to them.
+            href={`/admin/users/${user.uid}${listQuery ? `?from=${encodeURIComponent(listQuery)}` : ''}`}
+            aria-label={`View ${name}`}
+          >
             View
           </Link>
         </Button>

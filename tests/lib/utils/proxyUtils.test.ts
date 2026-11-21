@@ -81,8 +81,8 @@ describe('getRedirectPath', () => {
       expect(getRedirectPath('/admin/users', USER_TOKEN)).toBe('/dashboard');
     });
 
-    it('redirects /admin/classes to /dashboard', () => {
-      expect(getRedirectPath('/admin/classes', USER_TOKEN)).toBe('/dashboard');
+    it('redirects /admin/rates to /dashboard', () => {
+      expect(getRedirectPath('/admin/rates', USER_TOKEN)).toBe('/dashboard');
     });
   });
 
@@ -107,8 +107,8 @@ describe('getRedirectPath', () => {
       expect(getRedirectPath('/admin/users', ADMIN_TOKEN)).toBeNull();
     });
 
-    it('allows /admin/classes through', () => {
-      expect(getRedirectPath('/admin/classes', ADMIN_TOKEN)).toBeNull();
+    it('allows /admin/rates through', () => {
+      expect(getRedirectPath('/admin/rates', ADMIN_TOKEN)).toBeNull();
     });
   });
 

@@ -3,6 +3,14 @@ import { useAdminUsers } from '@/hooks/use-admin-users';
 import { getUsers } from '@/lib/api/user';
 
 jest.mock('@/lib/api/user', () => ({ getUsers: jest.fn() }));
+let mockSearch = '';
+const mockReplace = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+  usePathname: () => '/admin/users',
+  useSearchParams: () => new URLSearchParams(mockSearch),
+}));
+
 const mockGetUsers = jest.mocked(getUsers);
 
 const page = (number = 0) => ({
@@ -11,6 +19,8 @@ const page = (number = 0) => ({
 });
 
 beforeEach(() => {
+  mockSearch = '';
+  mockReplace.mockReset();
   jest.useFakeTimers();
   mockGetUsers.mockReset();
   mockGetUsers.mockResolvedValue(page());
@@ -54,5 +64,33 @@ describe('useAdminUsers', () => {
       jest.advanceTimersByTime(300);
     });
     expect(mockGetUsers).toHaveBeenLastCalledWith({ page: 0, size: 10, search: 'cooper' });
+  });
+
+  it('starts from the search and page in the URL', async () => {
+    mockSearch = 'search=jane&page=2';
+    const { result } = renderHook(() => useAdminUsers());
+    await act(async () => {});
+
+    expect(result.current.search).toBe('jane');
+    expect(mockGetUsers).toHaveBeenCalledWith({ page: 1, size: 10, search: 'jane' });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('keeps the search and page in the URL', async () => {
+    const { result } = renderHook(() => useAdminUsers());
+    await act(async () => {});
+
+    act(() => result.current.setSearch('jane'));
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(mockReplace).toHaveBeenLastCalledWith('/admin/users?search=jane', { scroll: false });
+    expect(result.current.listQuery).toBe('search=jane');
+
+    act(() => result.current.setPageIndex(1));
+    await act(async () => {});
+    expect(mockReplace).toHaveBeenLastCalledWith('/admin/users?search=jane&page=2', {
+      scroll: false,
+    });
   });
 });

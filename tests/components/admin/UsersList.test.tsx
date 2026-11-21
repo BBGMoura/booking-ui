@@ -5,6 +5,14 @@ import { getUsers } from '@/lib/api/user';
 import type { UserProfile } from '@/lib/types/user';
 
 jest.mock('@/lib/api/user', () => ({ getUsers: jest.fn(), inviteUser: jest.fn() }));
+let mockSearch = '';
+const mockReplace = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+  usePathname: () => '/admin/users',
+  useSearchParams: () => new URLSearchParams(mockSearch),
+}));
+
 const mockGetUsers = jest.mocked(getUsers);
 
 const user = (over: Partial<UserProfile> = {}): UserProfile => ({
@@ -23,7 +31,10 @@ const pageOf = (content: UserProfile[], totalPages = 1) => ({
   page: { size: 10, number: 0, totalElements: content.length, totalPages },
 });
 
-beforeEach(() => mockGetUsers.mockReset());
+beforeEach(() => {
+  mockSearch = '';
+  mockGetUsers.mockReset();
+});
 
 describe('UsersList', () => {
   it('lists users with Admin badge, status, and a link to the details page', async () => {
@@ -89,5 +100,16 @@ describe('UsersList', () => {
     mockGetUsers.mockResolvedValue(pageOf([]));
     render(<UsersList />);
     expect(await screen.findByText('No users yet')).toBeInTheDocument();
+  });
+
+  it("links View to the user's page with the list's search, for the way back", async () => {
+    mockSearch = 'search=jane';
+    mockGetUsers.mockResolvedValue(pageOf([user()]));
+    render(<UsersList />);
+
+    expect(await screen.findByRole('link', { name: 'View Jane Cooper' })).toHaveAttribute(
+      'href',
+      '/admin/users/u1?from=search%3Djane'
+    );
   });
 });

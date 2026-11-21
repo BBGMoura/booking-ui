@@ -8,7 +8,8 @@ import type { UserProfile } from '@/lib/types/user';
 
 jest.mock('@/lib/api/user', () => ({ getUser: jest.fn(), setUserEnabled: jest.fn() }));
 jest.mock('@/lib/api/booking', () => ({ getUserBookings: jest.fn() }));
-jest.mock('@/lib/context/AuthContext', () => ({ useAuth: () => ({ user: { uid: 'me' } }) }));
+let mockMe: { uid: string } | null = { uid: 'me' };
+jest.mock('@/lib/context/AuthContext', () => ({ useAuth: () => ({ user: mockMe }) }));
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
 const mockGetUser = jest.mocked(getUser);
@@ -26,6 +27,7 @@ const profile = (over: Partial<UserProfile> = {}): UserProfile => ({
 });
 
 beforeEach(() => {
+  mockMe = { uid: 'me' };
   mockGetUser.mockReset();
   mockSetEnabled.mockReset();
 });
@@ -55,6 +57,15 @@ describe('UserDetails', () => {
 
     await screen.findByRole('heading', { name: 'Jane Smith' });
     expect(screen.getByText('Admin')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument();
+  });
+
+  it('hides Disable until the logged-in user is known', async () => {
+    mockMe = null;
+    mockGetUser.mockResolvedValue(profile());
+    render(<UserDetails userUid="u2" />);
+
+    await screen.findByRole('heading', { name: 'Jane Smith' });
     expect(screen.queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument();
   });
 
@@ -89,5 +100,15 @@ describe('UserDetails', () => {
     render(<UserDetails userUid="nope" />);
 
     expect(await screen.findByText('User not found')).toBeInTheDocument();
+  });
+
+  it('links back to the users list with the search it came from', async () => {
+    mockGetUser.mockResolvedValue(profile());
+    render(<UserDetails userUid="u2" backHref="/admin/users?search=jane" />);
+
+    expect(await screen.findByRole('link', { name: 'Users' })).toHaveAttribute(
+      'href',
+      '/admin/users?search=jane'
+    );
   });
 });

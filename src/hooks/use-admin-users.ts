@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getUsers } from '@/lib/api/user';
 import type { Page } from '@/lib/types/booking';
 import type { UserProfile } from '@/lib/types/user';
@@ -11,13 +12,26 @@ export const USER_SEARCH_DELAY_MS = 300;
 /**
  * One page of users for the admin Users page, filtered by the search text.
  * The request waits for the admin to stop typing, and a new search starts on page 1.
+ *
+ * The search and page are kept in the URL (`?search=jane&page=2`), so coming
+ * back from a user's details page, or reloading, shows the same list.
  */
 export function useAdminUsers() {
-  const [search, setSearch] = useState('');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [initial] = useState(() => readListQuery(searchParams));
+  const [search, setSearch] = useState(initial.search);
   const debouncedSearch = useDebouncedValue(search.trim(), USER_SEARCH_DELAY_MS);
   // The page is remembered with the search it was chosen for, so a new search shows page 1.
-  const [pageState, setPageState] = useState({ search: '', index: 0 });
+  const [pageState, setPageState] = useState(initial);
   const pageIndex = pageState.search === debouncedSearch ? pageState.index : 0;
+  const listQuery = toListQuery(debouncedSearch, pageIndex);
+
+  useEffect(() => {
+    if (listQuery === searchParams.toString()) return;
+    router.replace(listQuery ? `${pathname}?${listQuery}` : pathname, { scroll: false });
+  }, [listQuery, pathname, router, searchParams]);
   const [data, setData] = useState<Page<UserProfile> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +68,7 @@ export function useAdminUsers() {
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
 
   return {
+    listQuery,
     search,
     setSearch,
     activeSearch: debouncedSearch,
@@ -64,4 +79,20 @@ export function useAdminUsers() {
     setPageIndex,
     reload,
   };
+}
+
+function readListQuery(params: URLSearchParams): { search: string; index: number } {
+  const page = Number(params.get('page'));
+  return {
+    search: (params.get('search') ?? '').trim(),
+    index: Number.isInteger(page) && page > 1 ? page - 1 : 0,
+  };
+}
+
+/** The list's search and page as a query string; empty for the first page of everyone. */
+export function toListQuery(search: string, pageIndex: number): string {
+  const query = new URLSearchParams();
+  if (search) query.set('search', search);
+  if (pageIndex > 0) query.set('page', String(pageIndex + 1));
+  return query.toString();
 }
