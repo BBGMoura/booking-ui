@@ -2,6 +2,7 @@ import {
   buildRateRequest,
   formatPrice,
   mergeRoomRates,
+  nextPriceInput,
   validatePrice,
 } from '@/lib/utils/roomRates';
 import type { DanceClass } from '@/lib/types/danceClass';
@@ -46,6 +47,25 @@ describe('validatePrice', () => {
       expect(validatePrice(v)).not.toBeNull();
     }
   );
+});
+
+describe('nextPriceInput', () => {
+  it.each([
+    ['', '1', '1'],
+    ['1', '12.', '12.'],
+    ['12.5', '12.50', '12.50'],
+    ['', '£20', '20'],
+    ['', ' 1 5 ', '15'],
+    ['12', '12a', '12'],
+    ['', 'abc', ''],
+    ['999', '9999', '999'],
+    ['1.25', '1.255', '1.25'],
+    ['1.2', '1.2.', '1.2'],
+    ['', '-5', ''],
+    ['', '1e3', ''],
+  ])('from %p, typing %p gives %p', (current, typed, expected) => {
+    expect(nextPriceInput(current, typed)).toBe(expected);
+  });
 });
 
 describe('buildRateRequest', () => {

@@ -5,7 +5,12 @@ import { toast } from 'sonner';
 import { setDanceClass } from '@/lib/api/danceClass';
 import { USER_ROLES } from '@/lib/types/auth';
 import { parseApiError } from '@/lib/utils/errorUtils';
-import { buildRateRequest, validatePrice, type RoomRateRow } from '@/lib/utils/roomRates';
+import {
+  buildRateRequest,
+  nextPriceInput,
+  validatePrice,
+  type RoomRateRow,
+} from '@/lib/utils/roomRates';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -87,8 +92,9 @@ export function SetRateDialog({ row, open, onOpenChange, onSaved }: SetRateDialo
               autoComplete="off"
               value={price}
               onChange={(e) => {
-                setPrice(e.target.value);
-                if (priceError) setPriceError(validatePrice(e.target.value));
+                const next = nextPriceInput(price, e.target.value);
+                setPrice(next);
+                if (priceError) setPriceError(validatePrice(next));
               }}
               disabled={submitting}
               aria-invalid={!!priceError}

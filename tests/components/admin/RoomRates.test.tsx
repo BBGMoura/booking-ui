@@ -60,10 +60,21 @@ describe('RoomRatesList', () => {
     it('rejects an invalid price without calling the API', async () => {
       render(<RoomRatesList />);
       await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Closed' }));
-      await userEvent.type(screen.getByLabelText('Price per hour'), '1000');
+      await userEvent.type(screen.getByLabelText('Price per hour'), '12.');
       await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
       expect(await screen.findByText(/from £0.00 to £999.99/)).toBeInTheDocument();
       expect(mockSet).not.toHaveBeenCalled();
+    });
+
+    it('ignores letters and digits past a valid price', async () => {
+      render(<RoomRatesList />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Closed' }));
+      const input = screen.getByLabelText('Price per hour');
+      await userEvent.type(input, 'ab1c2.5x67');
+      expect(input).toHaveValue('12.56');
+      await userEvent.clear(input);
+      await userEvent.type(input, '1000');
+      expect(input).toHaveValue('100');
     });
 
     it('requires a price', async () => {
