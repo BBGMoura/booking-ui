@@ -134,7 +134,9 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
                 <Field orientation="horizontal">
                   <FieldContent className="gap-1">
                     <FieldTitle>Admin</FieldTitle>
-                    <FieldDescription>Can also use everything under Manage.</FieldDescription>
+                    <FieldDescription>
+                      Can manage users, room rates and everyone&apos;s bookings.
+                    </FieldDescription>
                   </FieldContent>
                   <Switch
                     id="invite-admin"
