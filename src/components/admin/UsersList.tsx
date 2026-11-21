@@ -21,13 +21,12 @@ import { cn } from '@/lib/utils';
 
 const TAG = 'shrink-0 rounded-md border px-1.5 py-px text-[11px] font-medium';
 
-// Filled with no border so a status never looks like the View button beside it.
-// Only Disabled is coloured: it's the one status an admin needs to notice.
-const STATUS_PILL = 'rounded-full px-2.5 py-0.5 text-xs font-medium';
-const STATUS_TAG: Record<UserStatus, string> = {
-  Active: 'bg-muted text-foreground',
-  Invited: 'bg-muted text-muted-foreground',
-  Disabled: 'bg-destructive/10 text-destructive',
+// Plain text rather than a badge, so View is the only thing on the card that
+// looks clickable. Only Disabled is coloured: it's the one an admin needs to notice.
+const STATUS_TEXT: Record<UserStatus, string> = {
+  Active: 'text-muted-foreground',
+  Invited: 'text-muted-foreground',
+  Disabled: 'text-destructive',
 };
 
 /** Admin › Users: search, status and invite. */
@@ -175,27 +174,29 @@ function UserCard({ user }: { user: UserProfile }) {
   const invited = name === user.email;
 
   return (
-    <li className="bg-card flex flex-col items-center gap-4 rounded-2xl border p-6 text-center shadow-xs">
-      <Avatar className="size-16">
-        <AvatarFallback className="text-foreground text-lg font-medium">
-          {getUserInitials(user)}
-        </AvatarFallback>
-      </Avatar>
+    <li className="bg-card flex flex-col overflow-hidden rounded-2xl border text-center shadow-xs">
+      <div className="flex flex-1 flex-col items-center gap-4 p-6">
+        <Avatar className="size-16">
+          <AvatarFallback className="text-foreground text-lg font-medium">
+            {getUserInitials(user)}
+          </AvatarFallback>
+        </Avatar>
 
-      <div className="w-full min-w-0 space-y-0.5">
-        <div className="flex items-center justify-center gap-2">
-          <p className="truncate font-medium">{name}</p>
-          {user.role === USER_ROLES.ADMIN && (
-            <span className={cn(TAG, 'text-muted-foreground')}>Admin</span>
-          )}
+        <div className="w-full min-w-0 space-y-0.5">
+          <div className="flex items-center justify-center gap-2">
+            <p className="truncate font-medium">{name}</p>
+            {user.role === USER_ROLES.ADMIN && (
+              <span className={cn(TAG, 'text-muted-foreground')}>Admin</span>
+            )}
+          </div>
+          <p className="text-muted-foreground truncate text-sm">
+            {invited ? 'Invite sent' : user.email}
+          </p>
         </div>
-        <p className="text-muted-foreground truncate text-sm">
-          {invited ? 'Invite sent' : user.email}
-        </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className={cn(STATUS_PILL, STATUS_TAG[status])}>{status}</span>
+      <div className="flex items-center justify-between border-t border-dashed px-5 py-3">
+        <span className={cn('text-sm', STATUS_TEXT[status])}>{status}</span>
         <Button asChild variant="outline" size="sm">
           <Link href={`/admin/users/${user.uid}`} aria-label={`View ${name}`}>
             View
