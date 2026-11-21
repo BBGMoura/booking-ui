@@ -1,5 +1,11 @@
 import MockAdapter from 'axios-mock-adapter';
-import { getClassTypes, getDanceClass } from '@/lib/api/danceClass';
+import {
+  deactivateDanceClass,
+  getActiveDanceClasses,
+  getClassTypes,
+  getDanceClass,
+  setDanceClass,
+} from '@/lib/api/danceClass';
 import type { DanceClass } from '@/lib/types/danceClass';
 import api from '@/lib/api/axiosInstance';
 
@@ -56,5 +62,25 @@ describe('danceClass API', () => {
 
       expect(result).toEqual(mockDanceClass);
     });
+  });
+});
+
+describe('room rate admin API', () => {
+  it('lists active rates', async () => {
+    mock.onGet('/admin/dance-classes').reply(200, [mockDanceClass]);
+    expect(await getActiveDanceClasses()).toEqual([mockDanceClass]);
+  });
+
+  it('posts a new rate', async () => {
+    const body = { classType: 'PRIVATE', pricePerHour: 20, role: 'ROLE_USER' } as const;
+    mock.onPost('/admin/dance-classes').reply(201, mockDanceClass);
+    await setDanceClass(body);
+    expect(JSON.parse(mock.history.post[0].data)).toEqual(body);
+  });
+
+  it('deletes a rate by booking type', async () => {
+    mock.onDelete('/admin/dance-classes/PRACTICE').reply(204);
+    await deactivateDanceClass('PRACTICE');
+    expect(mock.history.delete[0].url).toBe('/admin/dance-classes/PRACTICE');
   });
 });

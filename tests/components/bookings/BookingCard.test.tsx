@@ -46,7 +46,7 @@ describe('BookingCard', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('10:00–11:00')).toBeInTheDocument();
     expect(screen.getByText('Astaire')).toBeInTheDocument();
-    expect(screen.getByText('Private lesson')).toBeInTheDocument();
+    expect(screen.getByText('Private')).toBeInTheDocument();
     expect(screen.getByText('£20.00')).toBeInTheDocument();
     expect(screen.getByText('a1b2c3d4-e5f6-7890-abcd-ef1234567890')).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

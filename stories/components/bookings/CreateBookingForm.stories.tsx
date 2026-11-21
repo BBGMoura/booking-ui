@@ -129,7 +129,7 @@ export const RefusedByBackend: Story = {
     const canvas = within(canvasElement);
     const body = within(canvasElement.ownerDocument.body);
     await userEvent.click(await canvas.findByRole('combobox', { name: 'Booking type' }));
-    await userEvent.click(await body.findByRole('option', { name: 'Private lesson' }));
+    await userEvent.click(await body.findByRole('option', { name: 'Private' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Book room' }));
     await expect(await canvas.findByRole('alert')).toHaveTextContent('Overlaps a booking');
   },

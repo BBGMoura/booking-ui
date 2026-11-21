@@ -26,7 +26,7 @@ describe('BookingConfirmation', () => {
     expect(row('Room')).toHaveTextContent('Fosse');
     expect(row('Date')).toHaveTextContent('Thu 19 Nov 2026');
     expect(row('Time')).toHaveTextContent('15:00–16:15 · 1 hr 15 min');
-    expect(row('Booking type')).toHaveTextContent('Private lesson');
+    expect(row('Booking type')).toHaveTextContent('Private');
     expect(row('Shared room')).toHaveTextContent('Yes');
     expect(row('Total')).toHaveTextContent('£25.00');
   });

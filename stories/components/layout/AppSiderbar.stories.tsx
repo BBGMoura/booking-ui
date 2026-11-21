@@ -67,7 +67,7 @@ export const Default: Story = {
   render: () => <SidebarWrapper />,
 };
 
-/** Admin user — Admin section with Users and Room rates visible */
+/** Admin user — Admin section with Users and Room Rates visible */
 export const Admin: Story = {
   render: () => <SidebarWrapper isAdmin />,
 };
