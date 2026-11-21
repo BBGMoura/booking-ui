@@ -37,7 +37,7 @@ export function UsersList() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search
             className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4"
@@ -54,7 +54,7 @@ export function UsersList() {
         </div>
         <Button variant="outline" onClick={() => setInviteOpen(true)}>
           <UserPlus aria-hidden />
-          Invite user
+          <span className="sr-only sm:not-sr-only">Invite user</span>
         </Button>
       </div>
 
@@ -174,16 +174,16 @@ function UserCard({ user }: { user: UserProfile }) {
   const invited = name === user.email;
 
   return (
-    <li className="bg-card flex flex-col overflow-hidden rounded-2xl border text-center shadow-xs">
-      <div className="flex flex-1 flex-col items-center gap-4 p-6">
-        <Avatar className="size-16">
-          <AvatarFallback className="text-foreground text-lg font-medium">
+    <li className="bg-card flex flex-col overflow-hidden rounded-2xl border shadow-xs">
+      <div className="flex flex-1 items-center gap-3 p-4 sm:flex-col sm:gap-4 sm:p-6 sm:text-center">
+        <Avatar className="size-11 sm:size-16">
+          <AvatarFallback className="text-foreground font-medium sm:text-lg">
             {getUserInitials(user)}
           </AvatarFallback>
         </Avatar>
 
         <div className="w-full min-w-0 space-y-0.5">
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center gap-2 sm:justify-center">
             <p className="truncate font-medium">{name}</p>
             {user.role === USER_ROLES.ADMIN && (
               <span className={cn(TAG, 'text-muted-foreground')}>Admin</span>
@@ -195,7 +195,7 @@ function UserCard({ user }: { user: UserProfile }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-dashed px-5 py-3">
+      <div className="flex items-center justify-between border-t border-dashed px-4 py-2 sm:px-5 sm:py-3">
         <span className={cn('text-sm', STATUS_TEXT[status])}>{status}</span>
         <Button asChild variant="outline" size="sm">
           <Link href={`/admin/users/${user.uid}`} aria-label={`View ${name}`}>
