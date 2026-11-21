@@ -38,11 +38,12 @@ beforeEach(() => {
 describe('RoomRatesList', () => {
   it('shows a price and Admin only for rates, and Not set for the rest', async () => {
     render(<RoomRatesList />);
-    const row = (await screen.findByRole('rowheader', { name: 'Practice' })).closest('tr')!;
-    expect(row).toHaveTextContent('£8.00');
-    expect(row).toHaveTextContent('Yes');
-    const closed = screen.getByRole('rowheader', { name: 'Closed' }).closest('tr')!;
-    expect(closed).toHaveTextContent("Not set: can't be booked");
+    const card = await screen.findByRole('listitem', { name: 'Practice' });
+    expect(card).toHaveTextContent('£8.00');
+    expect(card).toHaveTextContent('Admin only');
+    const closed = screen.getByRole('listitem', { name: 'Closed' });
+    expect(closed).toHaveTextContent('Not set');
+    expect(closed).toHaveTextContent("Can't be booked");
     expect(screen.getByRole('button', { name: 'Edit Practice' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Set rate for Closed' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^Turn off/ })).toHaveLength(1);
@@ -52,7 +53,7 @@ describe('RoomRatesList', () => {
     mockGet.mockRejectedValueOnce(new Error('boom'));
     render(<RoomRatesList />);
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
-    expect(await screen.findByRole('rowheader', { name: 'Practice' })).toBeInTheDocument();
+    expect(await screen.findByRole('listitem', { name: 'Practice' })).toBeInTheDocument();
   });
 
   describe('set rate dialog', () => {

@@ -8,6 +8,7 @@ import { SetRateDialog } from '@/components/admin/SetRateDialog';
 import { TurnOffRateDialog } from '@/components/admin/TurnOffRateDialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 type Action = { kind: 'set' | 'turnOff'; row: RoomRateRow; id: number };
 
@@ -37,79 +38,27 @@ export function RoomRatesList() {
   if (!rows) {
     return (
       <div
-        className="mx-auto w-full max-w-5xl space-y-2"
+        className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-4 pt-7 sm:grid-cols-2 lg:grid-cols-3"
         aria-busy="true"
         aria-label="Loading room rates"
       >
         {[0, 1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-14 rounded-lg" />
+          <Skeleton key={i} className="h-40 rounded-2xl" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
-      <table className="w-full text-left text-sm">
-        <caption className="sr-only">Room rates</caption>
-        <thead className="text-muted-foreground border-b text-xs">
-          <tr>
-            <th scope="col" className="py-2 pr-3 font-medium">
-              Booking type
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Price per hour
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Admin only
-            </th>
-            <th scope="col" className="py-2 pl-3 text-right font-medium">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.classType} className="border-b border-dashed">
-              <th scope="row" className="py-3 pr-3 font-medium">
-                {row.label}
-              </th>
-              <td className="px-3 py-3">
-                {row.rate ? (
-                  formatPrice(row.rate.pricePerHour)
-                ) : (
-                  <span className="text-muted-foreground">Not set: can&apos;t be booked</span>
-                )}
-              </td>
-              <td className="px-3 py-3">
-                {row.rate ? (row.rate.role === USER_ROLES.ADMIN ? 'Yes' : 'No') : '—'}
-              </td>
-              <td className="py-3 pl-3">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    aria-label={`${row.rate ? 'Edit' : 'Set rate for'} ${row.label}`}
-                    onClick={() => start('set', row)}
-                  >
-                    {row.rate ? 'Edit' : 'Set rate'}
-                  </Button>
-                  {row.rate && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      aria-label={`Turn off ${row.label}`}
-                      onClick={() => start('turnOff', row)}
-                    >
-                      Turn off
-                    </Button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="mx-auto w-full max-w-5xl space-y-2">
+      <h2 className="text-muted-foreground text-sm font-medium">
+        Price per hour to hire a room, by booking type
+      </h2>
+      <ul aria-label="Room rates" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {rows.map((row) => (
+          <RateCard key={row.classType} row={row} onAction={start} />
+        ))}
+      </ul>
 
       {action?.kind === 'set' && (
         <SetRateDialog
@@ -130,5 +79,76 @@ export function RoomRatesList() {
         />
       )}
     </div>
+  );
+}
+
+function RateCard({
+  row,
+  onAction,
+}: {
+  row: RoomRateRow;
+  onAction: (kind: Action['kind'], row: RoomRateRow) => void;
+}) {
+  const { rate, label } = row;
+  const who = !rate
+    ? "Can't be booked"
+    : rate.role === USER_ROLES.ADMIN
+      ? 'Admin only'
+      : 'Anyone can book';
+
+  return (
+    <li
+      aria-label={label}
+      className={cn(
+        'flex flex-col overflow-hidden rounded-2xl border',
+        // A booking type with no rate can't be booked, so it looks like an empty slot to fill.
+        rate ? 'bg-card shadow-xs' : 'border-dashed'
+      )}
+    >
+      <div className="flex-1 space-y-2 p-5">
+        <h3 className="font-medium">{label}</h3>
+        {rate ? (
+          <p>
+            <span className="text-3xl font-semibold tracking-tight tabular-nums">
+              {formatPrice(rate.pricePerHour)}
+            </span>
+            <span className="text-muted-foreground text-sm"> / hour</span>
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-3xl font-semibold tracking-tight">Not set</p>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-2 border-t border-dashed px-5 py-3">
+        <span
+          className={cn(
+            'text-sm whitespace-nowrap',
+            rate ? 'text-muted-foreground' : 'text-destructive'
+          )}
+        >
+          {who}
+        </span>
+        <div className="flex gap-2">
+          {rate && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={`Turn off ${label}`}
+              onClick={() => onAction('turnOff', row)}
+            >
+              Turn off
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label={`${rate ? 'Edit' : 'Set rate for'} ${label}`}
+            onClick={() => onAction('set', row)}
+          >
+            {rate ? 'Edit' : 'Set rate'}
+          </Button>
+        </div>
+      </div>
+    </li>
   );
 }
