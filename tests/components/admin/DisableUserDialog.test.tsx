@@ -58,9 +58,9 @@ describe('DisableUserDialog', () => {
     mockGetUserBookings.mockResolvedValue(upcoming(4));
     setup();
 
-    const text = await screen.findByText(/This also cancels all/);
+    const text = await screen.findByText(/and cancels their/);
     expect(text).toHaveTextContent(
-      "This also cancels all 4 of their upcoming bookings. They won't come back if you enable Jane again."
+      'Disabling this account removes their access to the Booking Portal and cancels their 4 upcoming bookings.'
     );
     expect(screen.getByText('4').tagName).toBe('STRONG');
   });
@@ -69,9 +69,11 @@ describe('DisableUserDialog', () => {
     mockGetUserBookings.mockResolvedValue(upcoming(1));
     setup();
 
-    expect(await screen.findByText(/This also cancels their/)).toHaveTextContent(
-      "This also cancels their 1 upcoming booking. They won't come back if you enable Jane again."
-    );
+    expect(
+      await screen.findByText(
+        'Disabling this account removes their access to the Booking Portal and cancels their upcoming booking.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('leaves the bookings out when there are none', async () => {
@@ -88,7 +90,11 @@ describe('DisableUserDialog', () => {
     mockGetUserBookings.mockRejectedValue(new Error('boom'));
     setup();
 
-    expect(await screen.findByText(/This also cancels upcoming bookings/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Disabling this account removes their access to the Booking Portal and cancels any upcoming bookings.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('disables the user, shows a toast and tells the page', async () => {

@@ -84,7 +84,7 @@ export function DisableUserDialog({
       <DialogContent className={DIALOG_FULL_WIDTH_ON_PHONE}>
         <DialogHeader className="gap-3">
           <DialogTitle>Disable {name}?</DialogTitle>
-          <DialogDescription>{disableMessage(upcoming, user.firstName || name)}</DialogDescription>
+          <DialogDescription>{disableMessage(upcoming)}</DialogDescription>
         </DialogHeader>
         {error && (
           <p role="alert" className="text-destructive text-sm">
@@ -116,28 +116,18 @@ export function DisableUserDialog({
 }
 
 /**
- * Disabling cancels the upcoming bookings, and enabling the user again doesn't
- * bring them back. With no bookings there's nothing to say about either.
+ * One sentence: they lose access, and their upcoming bookings are cancelled.
  * Without a count the bookings are still mentioned, since they're cancelled either way.
  */
-function disableMessage(upcoming: number | null | undefined, firstName: string): ReactNode {
+function disableMessage(upcoming: number | null | undefined): ReactNode {
   if (upcoming === undefined) return 'Checking their upcoming bookings…';
-  if (upcoming === 0) return 'Disabling this account removes their access to the Booking Portal.';
-  const bookings =
-    upcoming === null ? (
-      'upcoming bookings'
-    ) : upcoming === 1 ? (
-      <>
-        their <strong>1</strong> upcoming booking
-      </>
-    ) : (
-      <>
-        all <strong>{upcoming}</strong> of their upcoming bookings
-      </>
-    );
+  const access = 'Disabling this account removes their access to the Booking Portal';
+  if (upcoming === 0) return `${access}.`;
+  if (upcoming === 1) return `${access} and cancels their upcoming booking.`;
+  if (upcoming === null) return `${access} and cancels any upcoming bookings.`;
   return (
     <>
-      This also cancels {bookings}. They won&apos;t come back if you enable {firstName} again.
+      {access} and cancels their <strong>{upcoming}</strong> upcoming bookings.
     </>
   );
 }
