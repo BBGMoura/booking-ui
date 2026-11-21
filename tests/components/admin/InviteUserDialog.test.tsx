@@ -26,6 +26,12 @@ function badRequest(message: string) {
   return error;
 }
 
+beforeAll(() => {
+  // Radix Select uses pointer capture and scrollIntoView, which jsdom doesn't have.
+  Element.prototype.hasPointerCapture = () => false;
+  Element.prototype.scrollIntoView = () => {};
+});
+
 beforeEach(() => mockInvite.mockReset());
 
 describe('InviteUserDialog', () => {
@@ -62,7 +68,9 @@ describe('InviteUserDialog', () => {
     mockInvite.mockResolvedValue();
     const { user } = setup();
     await user.type(screen.getByLabelText('Email'), 'jane@example.com');
-    await user.click(screen.getByLabelText('Admin'));
+    await user.click(screen.getByRole('combobox', { name: 'Role' }));
+    await user.click(await screen.findByRole('option', { name: 'Admin' }));
+    expect(screen.getByText('Admins can also use everything under Manage.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Send invite' }));
 
     await waitFor(() =>

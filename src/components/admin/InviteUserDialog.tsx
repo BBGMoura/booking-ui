@@ -24,8 +24,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 
 // The same email rule as registration.
@@ -51,11 +58,13 @@ interface InviteUserDialogProps {
 export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDialogProps) {
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteSchema),
-    mode: 'onTouched',
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: { email: '', role: USER_ROLES.USER },
   });
   const [submitting, setSubmitting] = useState(false);
   const rootError = form.formState.errors.root?.message;
+  const role = form.watch('role');
 
   function handleOpenChange(next: boolean) {
     if (submitting) return;
@@ -108,41 +117,55 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor="invite-email">Email</FieldLabel>
-                <Input
-                  {...field}
-                  id="invite-email"
-                  type="email"
-                  placeholder="jane@example.com"
-                  autoComplete="off"
-                  disabled={submitting}
-                  aria-invalid={fieldState.invalid}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                <InputGroup>
+                  <InputGroupInput
+                    {...field}
+                    id="invite-email"
+                    type="email"
+                    placeholder="jane@example.com"
+                    autoComplete="off"
+                    disabled={submitting}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  <InputGroupAddon align="inline-end" className="pr-1">
+                    <Controller
+                      name="role"
+                      control={form.control}
+                      render={({ field: roleField }) => (
+                        <Select
+                          value={roleField.value}
+                          onValueChange={roleField.onChange}
+                          disabled={submitting}
+                        >
+                          <SelectTrigger
+                            size="sm"
+                            aria-label="Role"
+                            className="text-foreground h-7 border-0 shadow-none"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent position="popper" align="end">
+                            {ROLE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </InputGroupAddon>
+                </InputGroup>
+                {fieldState.invalid ? (
+                  <FieldError errors={[fieldState.error]} />
+                ) : (
+                  role === USER_ROLES.ADMIN && (
+                    <FieldDescription>
+                      Admins can also use everything under Manage.
+                    </FieldDescription>
+                  )
+                )}
               </Field>
-            )}
-          />
-
-          <Controller
-            name="role"
-            control={form.control}
-            render={({ field }) => (
-              <fieldset className="space-y-2" disabled={submitting}>
-                <legend className="text-sm font-medium">Role</legend>
-                <div className="flex gap-4">
-                  {ROLE_OPTIONS.map((option) => (
-                    <label key={option.value} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name={field.name}
-                        value={option.value}
-                        checked={field.value === option.value}
-                        onChange={() => field.onChange(option.value)}
-                      />
-                      {option.label}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
             )}
           />
 
