@@ -46,8 +46,6 @@ export function DisableUserDialog({
   useEffect(() => {
     if (!open) return;
     let ignore = false;
-    // Starting a fresh count each time the dialog opens is what this effect is for.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUpcoming(undefined);
     setError(null);
     getUserBookings(user.uid, {
