@@ -41,7 +41,7 @@ export function NavMain({ isAdmin }: NavMainProps) {
 
       {isAdmin && (
         <SidebarGroup>
-          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarGroupLabel>Admin</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {adminNavItems.map((item) => (

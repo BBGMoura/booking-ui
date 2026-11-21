@@ -55,10 +55,10 @@ describe('NavMain', () => {
       expect(screen.getByText('Classes')).toBeInTheDocument();
     });
 
-    it('renders the Manage group label when isAdmin is true', () => {
+    it('renders the Admin group label when isAdmin is true', () => {
       render(<NavMain isAdmin={true} />);
 
-      expect(screen.getByText('Manage')).toBeInTheDocument();
+      expect(screen.getByText('Admin')).toBeInTheDocument();
     });
 
     it('does not render admin items when isAdmin is false', () => {
@@ -69,10 +69,10 @@ describe('NavMain', () => {
       expect(screen.queryByText('Classes')).not.toBeInTheDocument();
     });
 
-    it('does not render the Manage group label when isAdmin is false', () => {
+    it('does not render Admin group label when isAdmin is false', () => {
       render(<NavMain isAdmin={false} />);
 
-      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
+      expect(screen.queryByText('Admin')).not.toBeInTheDocument();
     });
   });
 
