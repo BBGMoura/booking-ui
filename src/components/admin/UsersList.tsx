@@ -21,12 +21,11 @@ import { cn } from '@/lib/utils';
 
 const TAG = 'shrink-0 rounded-md border px-1.5 py-px text-[11px] font-medium';
 
+// Only Disabled is coloured: it's the one status an admin needs to notice.
 const STATUS_TAG: Record<UserStatus, string> = {
-  Active:
-    'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
-  Invited:
-    'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300',
-  Disabled: 'border-destructive/20 bg-destructive/5 text-destructive',
+  Active: 'text-foreground',
+  Invited: 'text-muted-foreground',
+  Disabled: 'border-destructive/30 text-destructive',
 };
 
 /** Admin › Users: search, status and invite. */
@@ -36,7 +35,7 @@ export function UsersList() {
   const [inviteOpen, setInviteOpen] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4">
+    <div className="mx-auto w-full max-w-5xl space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search
@@ -98,15 +97,13 @@ function UsersContent({
 
   if (!data) {
     return (
-      <div className="space-y-1" aria-busy="true" aria-label="Loading users">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex items-center gap-3 px-2 py-3">
-            <Skeleton className="size-10 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-3 w-56" />
-            </div>
-          </div>
+      <div
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        aria-busy="true"
+        aria-label="Loading users"
+      >
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-56 rounded-2xl" />
         ))}
       </div>
     );
@@ -130,10 +127,13 @@ function UsersContent({
       <ul
         aria-label="Users"
         aria-busy={loading}
-        className={cn('-mx-2 transition-opacity', loading && 'opacity-60')}
+        className={cn(
+          'grid grid-cols-1 gap-4 transition-opacity sm:grid-cols-2 lg:grid-cols-3',
+          loading && 'opacity-60'
+        )}
       >
         {data.content.map((user) => (
-          <UserRow key={user.uid} user={user} />
+          <UserCard key={user.uid} user={user} />
         ))}
       </ul>
       {totalPages > 1 && (
@@ -166,41 +166,39 @@ function UsersContent({
   );
 }
 
-function UserRow({ user }: { user: UserProfile }) {
+function UserCard({ user }: { user: UserProfile }) {
   const status = getUserStatus(user);
   const name = getUserDisplayName(user);
-  // An invited user's display name is their email, so it isn't repeated underneath.
-  const showEmail = name !== user.email;
+  // An invited user has no name yet, so their email stands in for it.
+  const invited = name === user.email;
 
   return (
-    <li className="hover:bg-muted/60 relative flex items-center gap-3 rounded-lg px-2 py-3 transition-colors">
-      <Avatar size="lg" className="ring-border ring-1">
-        <AvatarFallback className="bg-secondary text-secondary-foreground font-medium">
+    <li className="bg-card flex flex-col items-center gap-4 rounded-2xl border p-6 text-center shadow-xs">
+      <Avatar className="size-16">
+        <AvatarFallback className="text-foreground text-lg font-medium">
           {getUserInitials(user)}
         </AvatarFallback>
       </Avatar>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/admin/users/${user.uid}`}
-            className="focus-visible:after:ring-ring/50 truncate text-sm font-medium outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-2"
-          >
-            {name}
-          </Link>
+      <div className="w-full min-w-0 space-y-0.5">
+        <div className="flex items-center justify-center gap-2">
+          <p className="truncate font-medium">{name}</p>
           {user.role === USER_ROLES.ADMIN && (
-            <span className={cn(TAG, 'bg-primary/5 text-primary')}>Admin</span>
+            <span className={cn(TAG, 'text-muted-foreground')}>Admin</span>
           )}
         </div>
-        {showEmail && <p className="text-muted-foreground truncate text-sm">{user.email}</p>}
+        <p className="text-muted-foreground truncate text-sm">
+          {invited ? 'Invite sent' : user.email}
+        </p>
       </div>
 
-      <span className="text-muted-foreground hidden w-28 text-sm tabular-nums sm:block">
-        {user.phoneNumber || '—'}
-      </span>
-
-      <div className="flex shrink-0 sm:w-20">
-        <span className={cn(TAG, STATUS_TAG[status])}>{status}</span>
+      <div className="flex items-center gap-2">
+        <span className={cn(TAG, 'px-2 py-1 text-xs', STATUS_TAG[status])}>{status}</span>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/admin/users/${user.uid}`} aria-label={`View ${name}`}>
+            View
+          </Link>
+        </Button>
       </div>
     </li>
   );

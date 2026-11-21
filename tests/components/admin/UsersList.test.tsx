@@ -52,13 +52,15 @@ describe('UsersList', () => {
     const rows = await screen.findAllByRole('listitem');
     expect(within(rows[0]).getByText('Admin')).toBeInTheDocument();
     expect(within(rows[0]).getByText('Active')).toBeInTheDocument();
-    expect(within(rows[0]).getByRole('link', { name: 'Jane Cooper' })).toHaveAttribute(
+    expect(within(rows[0]).getByRole('link', { name: 'View Jane Cooper' })).toHaveAttribute(
       'href',
       '/admin/users/u1'
     );
     expect(within(rows[1]).queryByText('Admin')).not.toBeInTheDocument();
     expect(within(rows[1]).getByText('Disabled')).toBeInTheDocument();
     expect(within(rows[2]).getByText('Invited')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('new@example.com')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('Invite sent')).toBeInTheDocument();
   });
 
   it('shows a message when a search has no results', async () => {
