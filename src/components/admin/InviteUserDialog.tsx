@@ -88,7 +88,7 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
         <DialogHeader>
           <DialogTitle>Invite user</DialogTitle>
           <DialogDescription>
-            They&apos;ll get an email asking them to register for the Booking Portal.
+            We&apos;ll send them an email with a link to set up their account.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
