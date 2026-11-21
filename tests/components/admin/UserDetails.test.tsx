@@ -38,6 +38,7 @@ describe('UserDetails', () => {
     expect(await screen.findByRole('heading', { name: 'Jane Smith' })).toBeInTheDocument();
     expect(screen.getByText('jane@example.com')).toBeInTheDocument();
     expect(screen.getByText('07000000001')).toBeInTheDocument();
+    expect(screen.getByText('User')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(mockGetUser).toHaveBeenCalledWith('u2');
   });
@@ -53,6 +54,7 @@ describe('UserDetails', () => {
     render(<UserDetails userUid="me" />);
 
     await screen.findByRole('heading', { name: 'Jane Smith' });
+    expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument();
   });
 

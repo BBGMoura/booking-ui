@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Phone } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAdminUser } from '@/hooks/use-admin-user';
 import { setUserEnabled } from '@/lib/api/user';
@@ -97,11 +97,6 @@ function UserCard({ user, onChanged }: { user: UserProfile; onChanged: () => voi
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2">
             <h3 className="font-medium break-words sm:text-lg">{name}</h3>
-            {user.role === USER_ROLES.ADMIN && (
-              <span className="text-muted-foreground shrink-0 rounded-md border px-1.5 py-px text-[11px] font-medium">
-                Admin
-              </span>
-            )}
           </div>
           <p className={cn('text-sm', STATUS_TEXT[status])}>{invited ? 'Invite sent' : status}</p>
         </div>
@@ -132,6 +127,11 @@ function UserCard({ user, onChanged }: { user: UserProfile; onChanged: () => voi
       <dl className="space-y-4">
         <DetailRow icon={<Mail />} label="Email address" value={user.email} />
         <DetailRow icon={<Phone />} label="Phone number" value={user.phoneNumber || '—'} />
+        <DetailRow
+          icon={<ShieldCheck />}
+          label="Role"
+          value={user.role === USER_ROLES.ADMIN ? 'Admin' : 'User'}
+        />
       </dl>
 
       <DisableUserDialog
