@@ -42,6 +42,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npx playwright test`  | Run Playwright e2e tests                |
 | `npm run storybook`    | Start Storybook on port 6006            |
 
+## Asking Claude to act on review comments
+
+Comment `@claude` followed by what you want on a pull request, a review comment or a review. Claude (via `.github/workflows/claude.yml`) pushes changes to that PR's branch and replies. Only comments from BBGMoura are acted on, and it needs the `CLAUDE_CODE_OAUTH_TOKEN`, `WONDERBOT_APP_ID` and `WONDERBOT_APP_PRIVATE_KEY` repo secrets.
+
 ## Environment Variables
 
 Copy `.env.dev` to `.env.local` and adjust the values if needed:
