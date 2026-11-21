@@ -1,3 +1,5 @@
+import { RoomRatesList } from '@/components/admin/RoomRatesList';
+
 export default function RoomRatesPage() {
-  return <div>Room rates</div>;
+  return <RoomRatesList />;
 }
