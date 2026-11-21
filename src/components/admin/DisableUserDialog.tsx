@@ -81,7 +81,7 @@ export function DisableUserDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
-        <DialogHeader>
+        <DialogHeader className="gap-3">
           <DialogTitle>Disable {name}?</DialogTitle>
           <DialogDescription>{disableMessage(upcoming)}</DialogDescription>
         </DialogHeader>
