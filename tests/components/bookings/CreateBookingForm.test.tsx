@@ -138,14 +138,14 @@ describe('CreateBookingForm', () => {
     renderForm();
     await userEvent.click(await screen.findByRole('combobox', { name: 'Booking type' }));
 
-    expect(await screen.findByRole('option', { name: 'Private lesson' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Private' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Group class' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Practice' })).not.toBeInTheDocument();
   });
 
   it('previews the price as the hourly price times the duration', async () => {
     renderForm();
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
 
     expect(await screen.findByText('£30.00')).toBeInTheDocument();
     expect(screen.getByText('1 hr 30 min at £20.00/hr')).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe('CreateBookingForm', () => {
     jest.mocked(createBooking).mockResolvedValue(saved);
     const { onBooked } = renderForm();
     await choose('Room', 'Fosse');
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await userEvent.click(screen.getByRole('switch', { name: 'Shared room' }));
     await submit();
 
@@ -229,7 +229,7 @@ describe('CreateBookingForm', () => {
   ])('shows a 400 %s by the button and asks for the room to be reloaded', async (code, message) => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, code));
     const { onConflict, onBooked } = renderForm();
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
@@ -241,7 +241,7 @@ describe('CreateBookingForm', () => {
   it('says what is in the way once the reloaded schedule shows the clash', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, 'BOOKING_CONFLICT'));
     const { rerender } = renderForm();
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
     expect(await screen.findByRole('alert')).toHaveTextContent(NOT_FREE_MESSAGE);
 
@@ -257,7 +257,7 @@ describe('CreateBookingForm', () => {
       /Overlaps a booking \(11:00–12:00\)/
     );
 
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -296,7 +296,7 @@ describe('CreateBookingForm', () => {
   it('shows other errors in the form like the rest of the app', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(400, 'SOMETHING_ELSE'));
     const { onConflict } = renderForm();
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
 
     expect(await screen.findByText('backend message')).toBeInTheDocument();
@@ -306,7 +306,7 @@ describe('CreateBookingForm', () => {
   it('only treats BOOKING_LOCK_TIMEOUT as a lock timeout on a 503', async () => {
     jest.mocked(createBooking).mockRejectedValue(backendError(500, 'BOOKING_LOCK_TIMEOUT'));
     renderForm();
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
 
     expect(await screen.findByText(/Something went wrong on our end/)).toBeInTheDocument();
@@ -318,7 +318,7 @@ describe('CreateBookingForm', () => {
       start: new Date(2026, 10, 18, 10, 0),
       end: new Date(2026, 10, 18, 10, 10),
     });
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
 
     expect(await screen.findByText(/at least 15 minutes/)).toBeInTheDocument();
@@ -348,7 +348,7 @@ describe('CreateBookingForm', () => {
       /Overlaps a booking \(11:00–12:00\)\. Choose another time\./
     );
 
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
     await waitFor(() => expect(onBooked).toHaveBeenCalled());
   });
@@ -448,7 +448,7 @@ describe('CreateBookingForm', () => {
       start: new Date(2026, 10, 18, 7, 0),
       end: new Date(2026, 10, 18, 8, 0),
     });
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
 
     expect(await screen.findByText('Choose a time that hasn’t passed')).toBeInTheDocument();
@@ -467,7 +467,7 @@ describe('CreateBookingForm', () => {
       })
       .mockReturnValueOnce(new Promise((resolve) => (resolveGroup = resolve)));
     renderForm();
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     expect(await screen.findByText('£30.00')).toBeInTheDocument();
 
     await choose('Booking type', 'Group class');
@@ -493,7 +493,7 @@ describe('CreateBookingForm', () => {
   ])('clears a %s %s error once the room changes', async (status, code) => {
     jest.mocked(createBooking).mockRejectedValue(backendError(status, code));
     renderForm();
-    await choose('Booking type', 'Private lesson');
+    await choose('Booking type', 'Private');
     await submit();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
 

@@ -9,7 +9,7 @@ export const ROOM_LABELS: Record<Room, string> = {
 };
 
 export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
-  PRIVATE: 'Private lesson',
+  PRIVATE: 'Private',
   PRACTICE: 'Practice',
   GROUP: 'Group class',
   UNAVAILABLE: 'Closed',

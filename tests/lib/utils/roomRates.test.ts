@@ -18,7 +18,7 @@ describe('mergeRoomRates', () => {
   it('lists every booking type with its label, in order, when there are no rates', () => {
     const rows = mergeRoomRates([]);
     expect(rows.map((r) => r.label)).toEqual([
-      'Private lesson',
+      'Private',
       'Practice',
       'Group class',
       'Closed',

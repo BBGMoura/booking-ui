@@ -50,7 +50,7 @@ beforeEach(() => {
 describe('BookingDetailsPopover', () => {
   it('shows class type and room as the title, then the time', () => {
     setup(details({ room: 'FOSSE' }));
-    expect(screen.getByText('Private lesson · Fosse')).toBeInTheDocument();
+    expect(screen.getByText('Private · Fosse')).toBeInTheDocument();
     expect(screen.getByText(/\d{2}:\d{2}–\d{2}:\d{2}/)).toBeInTheDocument();
   });
 

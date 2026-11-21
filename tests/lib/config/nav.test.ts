@@ -26,7 +26,7 @@ describe('nav config', () => {
   });
 
   describe('adminNavItems', () => {
-    it('includes Users and Room rates', () => {
+    it('includes Users and Room Rates', () => {
       const urls = adminNavItems.map((item) => item.url);
 
       expect(urls).toContain('/admin/users');

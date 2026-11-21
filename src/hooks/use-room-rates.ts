@@ -3,7 +3,7 @@ import { getActiveDanceClasses } from '@/lib/api/danceClass';
 import { mergeRoomRates, type RoomRateRow } from '@/lib/utils/roomRates';
 import { parseApiError } from '@/lib/utils/errorUtils';
 
-/** The admin Room rates table: every booking type, with its active rate if it has one. */
+/** The admin Room Rates list: every booking type, with its active rate if it has one. */
 export function useRoomRates() {
   const [rows, setRows] = useState<RoomRateRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);

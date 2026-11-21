@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 type Action = { kind: 'set' | 'turnOff'; row: RoomRateRow; id: number };
 
-/** Admin › Room rates: the price and Admin only setting for every booking type. */
+/** Admin › Room Rates: the price and Admin only setting for every booking type. */
 export function RoomRatesList() {
   const { rows, error, reload } = useRoomRates();
   // Kept after the dialog closes so it doesn't vanish mid-animation; `id` gives each open fresh form state.
@@ -54,7 +54,10 @@ export function RoomRatesList() {
       <h2 className="text-muted-foreground text-sm font-medium">
         Price per hour to hire a room, by booking type
       </h2>
-      <ul aria-label="Room rates" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul
+        aria-label="Room Rates"
+        className="bg-card divide-y overflow-hidden rounded-2xl border shadow-xs"
+      >
         {rows.map((row) => (
           <RateCard key={row.classType} row={row} onAction={start} />
         ))}
@@ -100,54 +103,47 @@ function RateCard({
     <li
       aria-label={label}
       className={cn(
-        'flex flex-col overflow-hidden rounded-2xl border',
-        // A booking type with no rate can't be booked, so it looks like an empty slot to fill.
-        rate ? 'bg-card shadow-xs' : 'border-dashed'
+        'flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4',
+        !rate && 'bg-muted/40'
       )}
     >
-      <div className="flex-1 space-y-2 p-5">
-        <h3 className="font-medium">{label}</h3>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{label}</p>
+        <p className={cn('text-sm', rate ? 'text-muted-foreground' : 'text-destructive')}>{who}</p>
+      </div>
+      <p className="text-right sm:w-36">
         {rate ? (
-          <p>
-            <span className="text-3xl font-semibold tracking-tight tabular-nums">
+          <>
+            <span className="text-xl font-semibold tracking-tight tabular-nums">
               {formatPrice(rate.pricePerHour)}
             </span>
             <span className="text-muted-foreground text-sm"> / hour</span>
-          </p>
+          </>
         ) : (
-          <p className="text-muted-foreground text-3xl font-semibold tracking-tight">Not set</p>
+          <span className="text-muted-foreground text-xl font-semibold tracking-tight">
+            Not set
+          </span>
         )}
-      </div>
-
-      <div className="flex items-center justify-between gap-2 border-t border-dashed px-5 py-3">
-        <span
-          className={cn(
-            'text-sm whitespace-nowrap',
-            rate ? 'text-muted-foreground' : 'text-destructive'
-          )}
-        >
-          {who}
-        </span>
-        <div className="flex gap-2">
-          {rate && (
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={`Turn off ${label}`}
-              onClick={() => onAction('turnOff', row)}
-            >
-              Turn off
-            </Button>
-          )}
+      </p>
+      <div className="flex w-full justify-end gap-2 sm:w-44">
+        {rate && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            aria-label={`${rate ? 'Edit' : 'Set rate for'} ${label}`}
-            onClick={() => onAction('set', row)}
+            aria-label={`Turn off ${label}`}
+            onClick={() => onAction('turnOff', row)}
           >
-            {rate ? 'Edit' : 'Set rate'}
+            Turn off
           </Button>
-        </div>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label={`${rate ? 'Edit' : 'Set rate for'} ${label}`}
+          onClick={() => onAction('set', row)}
+        >
+          {rate ? 'Edit' : 'Set rate'}
+        </Button>
       </div>
     </li>
   );
