@@ -21,11 +21,13 @@ import { cn } from '@/lib/utils';
 
 const TAG = 'shrink-0 rounded-md border px-1.5 py-px text-[11px] font-medium';
 
+// Filled with no border so a status never looks like the View button beside it.
 // Only Disabled is coloured: it's the one status an admin needs to notice.
+const STATUS_PILL = 'rounded-full px-2.5 py-0.5 text-xs font-medium';
 const STATUS_TAG: Record<UserStatus, string> = {
-  Active: 'text-foreground',
-  Invited: 'text-muted-foreground',
-  Disabled: 'border-destructive/30 text-destructive',
+  Active: 'bg-muted text-foreground',
+  Invited: 'bg-muted text-muted-foreground',
+  Disabled: 'bg-destructive/10 text-destructive',
 };
 
 /** Admin › Users: search, status and invite. */
@@ -193,7 +195,7 @@ function UserCard({ user }: { user: UserProfile }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <span className={cn(TAG, 'px-2 py-1 text-xs', STATUS_TAG[status])}>{status}</span>
+        <span className={cn(STATUS_PILL, STATUS_TAG[status])}>{status}</span>
         <Button asChild variant="outline" size="sm">
           <Link href={`/admin/users/${user.uid}`} aria-label={`View ${name}`}>
             View
