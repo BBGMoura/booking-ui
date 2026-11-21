@@ -24,14 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-  FieldTitle,
-} from '@/components/ui/field';
+import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
@@ -131,23 +124,23 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
             control={form.control}
             render={({ field }) => (
               <FieldLabel htmlFor="invite-admin" className="border-dashed">
-                <Field orientation="horizontal">
-                  <FieldContent className="gap-1">
+                <Field className="gap-1">
+                  <div className="flex items-center justify-between gap-3">
                     <FieldTitle id="invite-admin-label">Admin</FieldTitle>
-                    <FieldDescription id="invite-admin-hint">
-                      Can manage users, room rates and everyone&apos;s bookings.
-                    </FieldDescription>
-                  </FieldContent>
-                  <Switch
-                    id="invite-admin"
-                    aria-labelledby="invite-admin-label"
-                    aria-describedby="invite-admin-hint"
-                    checked={field.value === USER_ROLES.ADMIN}
-                    onCheckedChange={(checked) =>
-                      field.onChange(checked ? USER_ROLES.ADMIN : USER_ROLES.USER)
-                    }
-                    disabled={submitting}
-                  />
+                    <Switch
+                      id="invite-admin"
+                      aria-labelledby="invite-admin-label"
+                      aria-describedby="invite-admin-hint"
+                      checked={field.value === USER_ROLES.ADMIN}
+                      onCheckedChange={(checked) =>
+                        field.onChange(checked ? USER_ROLES.ADMIN : USER_ROLES.USER)
+                      }
+                      disabled={submitting}
+                    />
+                  </div>
+                  <FieldDescription id="invite-admin-hint">
+                    Can manage users, room rates and everyone&apos;s bookings.
+                  </FieldDescription>
                 </Field>
               </FieldLabel>
             )}
