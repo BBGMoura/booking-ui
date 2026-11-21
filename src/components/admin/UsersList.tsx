@@ -197,7 +197,7 @@ function UserCard({ user, listQuery }: { user: UserProfile; listQuery: string })
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-dashed px-4 py-2 sm:px-5 sm:py-3">
+      <div className="flex items-center justify-between border-t border-dashed px-4 py-3 sm:px-5">
         <span className={cn('text-sm', STATUS_TEXT[status])}>{status}</span>
         <Button asChild variant="outline" size="sm">
           <Link
