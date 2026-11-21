@@ -130,7 +130,7 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
             name="role"
             control={form.control}
             render={({ field }) => (
-              <FieldLabel htmlFor="invite-admin">
+              <FieldLabel htmlFor="invite-admin" className="border-dashed">
                 <Field orientation="horizontal">
                   <FieldContent className="gap-1">
                     <FieldTitle>Admin</FieldTitle>
