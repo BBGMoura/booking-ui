@@ -71,7 +71,7 @@ describe('InviteUserDialog', () => {
     mockInvite.mockResolvedValue();
     const { user } = setup();
     await user.type(screen.getByLabelText('Email'), 'jane@example.com');
-    await user.click(screen.getByRole('switch', { name: 'Admin' }));
+    await user.click(screen.getByRole('switch', { name: /^Admin/ }));
     await user.click(screen.getByRole('button', { name: 'Send invite' }));
 
     await waitFor(() =>

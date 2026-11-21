@@ -30,6 +30,7 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
+  FieldTitle,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -129,20 +130,22 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
             name="role"
             control={form.control}
             render={({ field }) => (
-              <Field orientation="horizontal">
-                <Switch
-                  id="invite-admin"
-                  checked={field.value === USER_ROLES.ADMIN}
-                  onCheckedChange={(checked) =>
-                    field.onChange(checked ? USER_ROLES.ADMIN : USER_ROLES.USER)
-                  }
-                  disabled={submitting}
-                />
-                <FieldContent>
-                  <FieldLabel htmlFor="invite-admin">Admin</FieldLabel>
-                  <FieldDescription>Can also use everything under Manage.</FieldDescription>
-                </FieldContent>
-              </Field>
+              <FieldLabel htmlFor="invite-admin">
+                <Field orientation="horizontal">
+                  <FieldContent className="gap-1">
+                    <FieldTitle>Admin</FieldTitle>
+                    <FieldDescription>Can also use everything under Manage.</FieldDescription>
+                  </FieldContent>
+                  <Switch
+                    id="invite-admin"
+                    checked={field.value === USER_ROLES.ADMIN}
+                    onCheckedChange={(checked) =>
+                      field.onChange(checked ? USER_ROLES.ADMIN : USER_ROLES.USER)
+                    }
+                    disabled={submitting}
+                  />
+                </Field>
+              </FieldLabel>
             )}
           />
 
