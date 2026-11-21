@@ -87,9 +87,7 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Invite user</DialogTitle>
-          <DialogDescription>
-            We&apos;ll send them an email with a link to set up their account.
-          </DialogDescription>
+          <DialogDescription>An invitation will be sent to this email address.</DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
           {rootError && (

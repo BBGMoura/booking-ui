@@ -27,8 +27,7 @@ interface DisableUserDialogProps {
 
 /**
  * Confirms disabling a user. The backend cancels all of their bookings when
- * they're disabled, and enabling them again doesn't bring the bookings back,
- * so the admin is told how many upcoming bookings will go.
+ * they're disabled, so the admin is told how many upcoming bookings will go.
  */
 export function DisableUserDialog({
   user,
@@ -41,7 +40,6 @@ export function DisableUserDialog({
   const [disabling, setDisabling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = getUserDisplayName(user);
-  const firstName = user.firstName || name;
 
   useEffect(() => {
     if (!open) return;
@@ -85,12 +83,7 @@ export function DisableUserDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Disable {name}?</DialogTitle>
-          <DialogDescription asChild>
-            <div className="space-y-2">
-              <p>They won&apos;t be able to sign in until you enable them again.</p>
-              <BookingsWarning upcoming={upcoming} firstName={firstName} />
-            </div>
-          </DialogDescription>
+          <DialogDescription>{disableMessage(upcoming)}</DialogDescription>
         </DialogHeader>
         {error && (
           <p role="alert" className="text-destructive text-sm">
@@ -121,39 +114,15 @@ export function DisableUserDialog({
   );
 }
 
-function BookingsWarning({
-  upcoming,
-  firstName,
-}: {
-  upcoming: number | null | undefined;
-  firstName: string;
-}) {
-  if (upcoming === undefined) return <p>Checking their upcoming bookings…</p>;
-  // Without a count, still warn: the bookings are cancelled either way.
-  if (upcoming === null) {
-    return (
-      <p>
-        This also cancels all of their upcoming bookings. They won&apos;t come back if you enable{' '}
-        {firstName} again.
-      </p>
-    );
-  }
-  if (upcoming === 0) return null;
-  const comeBack = `come back if you enable ${firstName} again.`;
-  if (upcoming === 1) {
-    return (
-      <p>
-        {'This also cancels their '}
-        <strong className="text-foreground">1</strong>
-        {` upcoming booking. It won't ${comeBack}`}
-      </p>
-    );
-  }
-  return (
-    <p>
-      {'This also cancels all '}
-      <strong className="text-foreground">{upcoming}</strong>
-      {` of their upcoming bookings. They won't ${comeBack}`}
-    </p>
-  );
+/**
+ * One sentence: they lose access, and their upcoming bookings are cancelled.
+ * Without a count the bookings are still mentioned, since they're cancelled either way.
+ */
+function disableMessage(upcoming: number | null | undefined): string {
+  if (upcoming === undefined) return 'Checking their upcoming bookings…';
+  const access = 'Disabling this account removes their access to the Booking Portal';
+  if (upcoming === 0) return `${access}.`;
+  if (upcoming === 1) return `${access} and cancels their upcoming booking.`;
+  const bookings = upcoming === null ? 'upcoming bookings' : `${upcoming} upcoming bookings`;
+  return `${access} and cancels their ${bookings}.`;
 }

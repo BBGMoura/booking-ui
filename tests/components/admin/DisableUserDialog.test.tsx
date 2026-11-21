@@ -54,32 +54,46 @@ describe('DisableUserDialog', () => {
     );
   });
 
-  it('says how many upcoming bookings will be cancelled and that they will not come back', async () => {
+  it('says how many upcoming bookings will be cancelled', async () => {
     mockGetUserBookings.mockResolvedValue(upcoming(4));
     setup();
 
-    expect(await screen.findByText(/This also cancels all/)).toHaveTextContent(
-      "This also cancels all 4 of their upcoming bookings. They won't come back if you enable Jane again."
-    );
+    expect(
+      await screen.findByText(
+        'Disabling this account removes their access to the Booking Portal and cancels their 4 upcoming bookings.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('uses the singular for one upcoming booking', async () => {
     mockGetUserBookings.mockResolvedValue(upcoming(1));
     setup();
 
-    const p = await screen.findByText(/This also cancels their/);
-    expect(p).toHaveTextContent(
-      "This also cancels their 1 upcoming booking. It won't come back if you enable Jane again."
-    );
+    expect(
+      await screen.findByText(
+        'Disabling this account removes their access to the Booking Portal and cancels their upcoming booking.'
+      )
+    ).toBeInTheDocument();
   });
 
-  it('leaves the bookings sentence out when there are none', async () => {
+  it('leaves the bookings out when there are none', async () => {
     mockGetUserBookings.mockResolvedValue(upcoming(0));
     setup();
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Disable' })).toBeEnabled());
-    expect(screen.queryByText(/This also cancels/)).not.toBeInTheDocument();
-    expect(screen.getByText(/won't be able to sign in/)).toBeInTheDocument();
+    expect(
+      await screen.findByText('Disabling this account removes their access to the Booking Portal.')
+    ).toBeInTheDocument();
+  });
+
+  it('still mentions the bookings when they could not be counted', async () => {
+    mockGetUserBookings.mockRejectedValue(new Error('boom'));
+    setup();
+
+    expect(
+      await screen.findByText(
+        'Disabling this account removes their access to the Booking Portal and cancels their upcoming bookings.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('disables the user, shows a toast and tells the page', async () => {
