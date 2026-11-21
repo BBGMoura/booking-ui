@@ -41,11 +41,11 @@ describe('RoomRatesList', () => {
     const card = await screen.findByRole('listitem', { name: 'Practice' });
     expect(card).toHaveTextContent('£8.00');
     expect(card).toHaveTextContent('Admin only');
-    const closed = screen.getByRole('listitem', { name: 'Closed' });
+    const closed = screen.getByRole('listitem', { name: 'Unavailable' });
     expect(closed).toHaveTextContent('Not set');
     expect(closed).toHaveTextContent("Can't be booked");
     expect(screen.getByRole('button', { name: 'Edit Practice' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Set rate for Closed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set rate for Unavailable' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^Turn off/ })).toHaveLength(1);
   });
 
@@ -59,7 +59,9 @@ describe('RoomRatesList', () => {
   describe('set rate dialog', () => {
     it('rejects an invalid price without calling the API', async () => {
       render(<RoomRatesList />);
-      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Closed' }));
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
+      );
       await userEvent.type(screen.getByLabelText('Price per hour'), '12.');
       await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
       expect(await screen.findByText(/from £0.00 to £999.99/)).toBeInTheDocument();
@@ -68,7 +70,9 @@ describe('RoomRatesList', () => {
 
     it('ignores letters and digits past a valid price', async () => {
       render(<RoomRatesList />);
-      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Closed' }));
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
+      );
       const input = screen.getByLabelText('Price per hour');
       await userEvent.type(input, 'ab1c2.5x67');
       expect(input).toHaveValue('12.56');
@@ -79,14 +83,18 @@ describe('RoomRatesList', () => {
 
     it('requires a price', async () => {
       render(<RoomRatesList />);
-      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Closed' }));
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
+      );
       await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
       expect(await screen.findByText('Price per hour is required')).toBeInTheDocument();
     });
 
     it('explains what happens to existing bookings', async () => {
       render(<RoomRatesList />);
-      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Closed' }));
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
+      );
       expect(
         screen.getByText(
           'New bookings use the new rate. Existing bookings keep the price they were booked at.'
@@ -137,7 +145,9 @@ describe('RoomRatesList', () => {
     it('shows the API error and keeps the dialog open', async () => {
       mockSet.mockRejectedValue(new Error('nope'));
       render(<RoomRatesList />);
-      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Closed' }));
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
+      );
       await userEvent.type(screen.getByLabelText('Price per hour'), '5');
       await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
       expect(await screen.findByRole('alert')).toBeInTheDocument();

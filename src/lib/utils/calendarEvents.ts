@@ -12,7 +12,7 @@ export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
   PRIVATE: 'Private',
   PRACTICE: 'Practice',
   GROUP: 'Group',
-  UNAVAILABLE: 'Closed',
+  UNAVAILABLE: 'Unavailable',
   OTHER: 'Other',
 };
 
