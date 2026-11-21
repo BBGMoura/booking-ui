@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { mainNavItems, adminNavItems } from '@/lib/config/nav';
+import { mainNavItems, adminNavItems, isNavItemActive } from '@/lib/config/nav';
 
 interface NavMainProps {
   isAdmin: boolean;
@@ -27,7 +27,7 @@ export function NavMain({ isAdmin }: NavMainProps) {
           <SidebarMenu>
             {mainNavItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={pathname === item.url}>
+                <SidebarMenuButton asChild isActive={isNavItemActive(pathname, item.url)}>
                   <Link href={item.url}>
                     <item.icon />
                     <span>{item.title}</span>
@@ -41,12 +41,12 @@ export function NavMain({ isAdmin }: NavMainProps) {
 
       {isAdmin && (
         <SidebarGroup>
-          <SidebarGroupLabel>Admin</SidebarGroupLabel>
+          <SidebarGroupLabel>Manage</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {adminNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={isNavItemActive(pathname, item.url)}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>

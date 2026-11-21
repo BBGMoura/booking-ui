@@ -1,4 +1,10 @@
-import { mainNavItems, adminNavItems, pageTitles } from '@/lib/config/nav';
+import {
+  mainNavItems,
+  adminNavItems,
+  pageTitles,
+  getPageTitle,
+  isNavItemActive,
+} from '@/lib/config/nav';
 
 describe('nav config', () => {
   describe('mainNavItems', () => {
@@ -20,12 +26,12 @@ describe('nav config', () => {
   });
 
   describe('adminNavItems', () => {
-    it('includes Users and Classes', () => {
+    it('includes Users and Room rates', () => {
       const urls = adminNavItems.map((item) => item.url);
 
       expect(urls).toContain('/admin/users');
       expect(urls).not.toContain('/admin/rooms');
-      expect(urls).toContain('/admin/classes');
+      expect(urls).toContain('/admin/rates');
     });
 
     it('every item has a title, url and icon', () => {
@@ -57,6 +63,27 @@ describe('nav config', () => {
     it('does not contain entries for auth routes', () => {
       expect(pageTitles['/login']).toBeUndefined();
       expect(pageTitles['/register']).toBeUndefined();
+    });
+  });
+
+  describe('getPageTitle', () => {
+    it("uses the section's title for a page under it", () => {
+      expect(getPageTitle('/admin/users/abc')).toBe('Users');
+    });
+
+    it('falls back to Booking Portal for unknown pages', () => {
+      expect(getPageTitle('/nowhere')).toBe('Booking Portal');
+    });
+  });
+
+  describe('isNavItemActive', () => {
+    it('is active on the page and on pages under it', () => {
+      expect(isNavItemActive('/admin/users', '/admin/users')).toBe(true);
+      expect(isNavItemActive('/admin/users/abc', '/admin/users')).toBe(true);
+    });
+
+    it('is not active on a page that only shares a prefix', () => {
+      expect(isNavItemActive('/admin/users-old', '/admin/users')).toBe(false);
     });
   });
 });

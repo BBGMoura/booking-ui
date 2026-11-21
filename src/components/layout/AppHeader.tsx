@@ -4,11 +4,11 @@ import { usePathname } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { pageTitles } from '@/lib/config/nav';
+import { getPageTitle } from '@/lib/config/nav';
 
 export function AppHeader() {
   const pathname = usePathname();
-  const title = pageTitles[pathname] ?? 'Booking Portal';
+  const title = getPageTitle(pathname);
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">

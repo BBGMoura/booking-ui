@@ -4,6 +4,7 @@ import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { DIALOG_FULL_WIDTH_ON_PHONE } from '@/lib/utils/dialog';
 import {
   Dialog,
   DialogContent,
@@ -57,8 +58,9 @@ export function BookingSurface({
   }
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      {/* As wide as the screen on phones, centred like any other dialog. */}
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col max-sm:max-w-none max-sm:border-x-0">
+      <DialogContent
+        className={cn('flex max-h-[calc(100dvh-2rem)] flex-col', DIALOG_FULL_WIDTH_ON_PHONE)}
+      >
         <DialogHeader className={cn(headerHidden && 'sr-only')}>
           <DialogTitle>{title}</DialogTitle>
           {/* Phones need the room for the form itself. */}

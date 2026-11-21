@@ -48,17 +48,17 @@ describe('NavMain', () => {
   });
 
   describe('admin nav items', () => {
-    it('renders Users and Classes when isAdmin is true', () => {
+    it('renders Users and Room rates when isAdmin is true', () => {
       render(<NavMain isAdmin={true} />);
 
       expect(screen.getByText('Users')).toBeInTheDocument();
-      expect(screen.getByText('Classes')).toBeInTheDocument();
+      expect(screen.getByText('Room rates')).toBeInTheDocument();
     });
 
-    it('renders the Admin group label when isAdmin is true', () => {
+    it('renders the Manage group label when isAdmin is true', () => {
       render(<NavMain isAdmin={true} />);
 
-      expect(screen.getByText('Admin')).toBeInTheDocument();
+      expect(screen.getByText('Manage')).toBeInTheDocument();
     });
 
     it('does not render admin items when isAdmin is false', () => {
@@ -66,13 +66,13 @@ describe('NavMain', () => {
 
       expect(screen.queryByText('Users')).not.toBeInTheDocument();
       expect(screen.queryByText('Rooms')).not.toBeInTheDocument();
-      expect(screen.queryByText('Classes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Room rates')).not.toBeInTheDocument();
     });
 
-    it('does not render Admin group label when isAdmin is false', () => {
+    it('does not render the Manage group label when isAdmin is false', () => {
       render(<NavMain isAdmin={false} />);
 
-      expect(screen.queryByText('Admin')).not.toBeInTheDocument();
+      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
     });
   });
 

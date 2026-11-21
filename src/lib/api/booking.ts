@@ -36,6 +36,17 @@ export async function getBookings(params: GetBookingsParams = {}): Promise<Page<
   return data;
 }
 
+/** Another user's bookings, for admins. Takes the same filters as getBookings. */
+export async function getUserBookings(
+  userUid: string,
+  params: GetBookingsParams = {}
+): Promise<Page<BookingView>> {
+  const { data } = await api.get<Page<BookingView>>(`/admin/bookings/user/${userUid}`, {
+    params,
+  });
+  return data;
+}
+
 export async function getBookingByUid(bookingUid: string): Promise<BookingView> {
   const { data } = await api.get<BookingView>(`/bookings/${bookingUid}`);
   return data;
