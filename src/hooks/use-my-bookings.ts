@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getBookings } from '@/lib/api/booking';
-import type { BookingView, Page } from '@/lib/types/booking';
+import { getBookings, getUserBookings } from '@/lib/api/booking';
+import type { BookingView, GetBookingsParams, Page } from '@/lib/types/booking';
 import { parseApiError } from '@/lib/utils/errorUtils';
 
 export type BookingsTab = 'upcoming' | 'past';
@@ -8,7 +8,8 @@ export type BookingsTab = 'upcoming' | 'past';
 export const MY_BOOKINGS_PAGE_SIZE = 10;
 
 /**
- * One page of the user's own bookings for a tab.
+ * One page of the user's own bookings for a tab, or of another user's when an
+ * admin passes `userUid`.
  *
  * "Now" is worked out here and held while the user pages through, so items
  * don't shift between pages as the clock moves. It moves on, and the page is
@@ -19,7 +20,7 @@ export const MY_BOOKINGS_PAGE_SIZE = 10;
  * Unlike the Room calendar there's no timed poll: only the user (and rarely an
  * admin) changes these bookings, so a refresh on return is enough.
  */
-export function useMyBookings(tab: BookingsTab) {
+export function useMyBookings(tab: BookingsTab, userUid?: string) {
   const [now, setNow] = useState(() => new Date().toISOString());
   const [pageIndex, setPageIndex] = useState(0);
   const [data, setData] = useState<Page<BookingView> | null>(null);
@@ -41,11 +42,12 @@ export function useMyBookings(tab: BookingsTab) {
       setLoading(true);
       setError(null);
     }
-    getBookings({
+    const params: GetBookingsParams = {
       ...(tab === 'upcoming' ? { dateFrom: now, order: 'ASC' } : { dateTo: now, order: 'DESC' }),
       page: pageIndex,
       size: MY_BOOKINGS_PAGE_SIZE,
-    })
+    };
+    (userUid ? getUserBookings(userUid, params) : getBookings(params))
       .then((result) => {
         if (id !== requestId.current) return;
         // Bookings moving to Past can leave the user on a page that no longer
@@ -62,7 +64,7 @@ export function useMyBookings(tab: BookingsTab) {
         setError(parseApiError(e));
         setLoading(false);
       });
-  }, [tab, now, pageIndex, attempt]);
+  }, [tab, userUid, now, pageIndex, attempt]);
 
   useEffect(() => {
     const refreshIfVisible = () => {

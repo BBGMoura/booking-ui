@@ -3,17 +3,39 @@ import userEvent from '@testing-library/user-event';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { UserDetails } from '@/components/admin/UserDetails';
+import { cancelBookingAsAdmin, getUserBookings } from '@/lib/api/booking';
 import { getUser, setUserEnabled } from '@/lib/api/user';
 import type { UserProfile } from '@/lib/types/user';
 
 jest.mock('@/lib/api/user', () => ({ getUser: jest.fn(), setUserEnabled: jest.fn() }));
-jest.mock('@/lib/api/booking', () => ({ getUserBookings: jest.fn() }));
+jest.mock('@/lib/api/booking', () => ({
+  getUserBookings: jest.fn(),
+  cancelBookingAsAdmin: jest.fn(),
+}));
 let mockMe: { uid: string } | null = { uid: 'me' };
 jest.mock('@/lib/context/AuthContext', () => ({ useAuth: () => ({ user: mockMe }) }));
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
 const mockGetUser = jest.mocked(getUser);
 const mockSetEnabled = jest.mocked(setUserEnabled);
+const mockUserBookings = jest.mocked(getUserBookings);
+const mockCancel = jest.mocked(cancelBookingAsAdmin);
+
+const upcomingBooking = {
+  uid: 'b1',
+  userUid: 'u2',
+  room: 'BUSSELL' as const,
+  status: 'BOOKED' as const,
+  shareable: false,
+  classType: 'PRACTICE' as const,
+  dateFrom: '2099-11-01T10:00:00Z',
+  dateTo: '2099-11-01T11:00:00Z',
+  totalPrice: 10,
+};
+const bookingsPage = (content: (typeof upcomingBooking)[]) => ({
+  content,
+  page: { size: 10, number: 0, totalElements: content.length, totalPages: 1 },
+});
 
 const profile = (over: Partial<UserProfile> = {}): UserProfile => ({
   uid: 'u2',
@@ -30,6 +52,9 @@ beforeEach(() => {
   mockMe = { uid: 'me' };
   mockGetUser.mockReset();
   mockSetEnabled.mockReset();
+  mockUserBookings.mockReset();
+  mockCancel.mockReset();
+  mockUserBookings.mockResolvedValue(bookingsPage([]));
 });
 
 describe('UserDetails', () => {
@@ -40,7 +65,7 @@ describe('UserDetails', () => {
     expect(await screen.findByRole('heading', { name: 'Jane Smith' })).toBeInTheDocument();
     expect(screen.getByText('jane@example.com')).toBeInTheDocument();
     expect(screen.getByText('07000000001')).toBeInTheDocument();
-    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.queryByText('Admin')).not.toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(mockGetUser).toHaveBeenCalledWith('u2');
   });
@@ -91,6 +116,56 @@ describe('UserDetails', () => {
 
     expect(await screen.findByText('Invite sent')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /able/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Not registered yet: no bookings')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Upcoming' })).not.toBeInTheDocument();
+    expect(mockUserBookings).not.toHaveBeenCalled();
+  });
+
+  it('lists upcoming bookings for the user, 10 to a page, soonest first', async () => {
+    mockUserBookings.mockResolvedValue(bookingsPage([upcomingBooking]));
+    mockGetUser.mockResolvedValue(profile());
+    render(<UserDetails userUid="u2" />);
+
+    expect(await screen.findByText('Bussell')).toBeInTheDocument();
+    expect(mockUserBookings).toHaveBeenCalledWith('u2', {
+      dateFrom: expect.any(String),
+      order: 'ASC',
+      page: 0,
+      size: 10,
+    });
+  });
+
+  it('loads past bookings, latest first, from the Past tab', async () => {
+    mockGetUser.mockResolvedValue(profile());
+    const user = userEvent.setup();
+    render(<UserDetails userUid="u2" />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Past' }));
+
+    await waitFor(() =>
+      expect(mockUserBookings).toHaveBeenCalledWith('u2', {
+        dateTo: expect.any(String),
+        order: 'DESC',
+        page: 0,
+        size: 10,
+      })
+    );
+  });
+
+  it('cancels an upcoming booking as an admin', async () => {
+    mockUserBookings.mockResolvedValue(bookingsPage([upcomingBooking]));
+    mockGetUser.mockResolvedValue(profile());
+    mockCancel.mockResolvedValue();
+    const user = userEvent.setup();
+    render(<UserDetails userUid="u2" />);
+
+    await user.click(await screen.findByRole('button', { name: 'Cancel booking' }));
+    expect(mockCancel).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Yes, cancel' }));
+
+    await waitFor(() => expect(mockCancel).toHaveBeenCalledWith('b1'));
+    expect(toast.success).toHaveBeenCalledWith('Booking cancelled');
+    expect(await screen.findByText('Cancelled')).toBeInTheDocument();
   });
 
   it('says when the user does not exist', async () => {
