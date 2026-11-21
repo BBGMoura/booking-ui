@@ -17,13 +17,7 @@ const rate = (over: Partial<DanceClass>): DanceClass => ({
 describe('mergeRoomRates', () => {
   it('lists every booking type with its label, in order, when there are no rates', () => {
     const rows = mergeRoomRates([]);
-    expect(rows.map((r) => r.label)).toEqual([
-      'Private',
-      'Practice',
-      'Group class',
-      'Closed',
-      'Other',
-    ]);
+    expect(rows.map((r) => r.label)).toEqual(['Private', 'Practice', 'Group', 'Closed', 'Other']);
     expect(rows.every((r) => r.rate === null)).toBe(true);
   });
 

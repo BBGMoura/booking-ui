@@ -11,7 +11,7 @@ export const ROOM_LABELS: Record<Room, string> = {
 export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
   PRIVATE: 'Private',
   PRACTICE: 'Practice',
-  GROUP: 'Group class',
+  GROUP: 'Group',
   UNAVAILABLE: 'Closed',
   OTHER: 'Other',
 };

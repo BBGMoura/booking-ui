@@ -86,9 +86,7 @@ describe('RoomRatesList', () => {
     it('sends ROLE_USER with the price, then toasts and reloads', async () => {
       mockSet.mockResolvedValue({ ...practice, classType: 'GROUP', role: 'ROLE_USER' });
       render(<RoomRatesList />);
-      await userEvent.click(
-        await screen.findByRole('button', { name: 'Set rate for Group class' })
-      );
+      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Group' }));
       await userEvent.type(screen.getByLabelText('Price per hour'), '15.5');
       await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
       await waitFor(() =>

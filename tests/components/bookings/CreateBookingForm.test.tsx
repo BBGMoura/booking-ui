@@ -139,7 +139,7 @@ describe('CreateBookingForm', () => {
     await userEvent.click(await screen.findByRole('combobox', { name: 'Booking type' }));
 
     expect(await screen.findByRole('option', { name: 'Private' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Group class' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Group' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Practice' })).not.toBeInTheDocument();
   });
 
@@ -276,7 +276,7 @@ describe('CreateBookingForm', () => {
       .mockRejectedValueOnce(backendError(503, 'BOOKING_LOCK_TIMEOUT'))
       .mockResolvedValueOnce({} as never);
     const { onBooked, onConflict } = renderForm();
-    await choose('Booking type', 'Group class');
+    await choose('Booking type', 'Group');
     await userEvent.click(screen.getByRole('switch', { name: 'Shared room' }));
     await submit();
 
@@ -364,7 +364,7 @@ describe('CreateBookingForm', () => {
 
   it('moves the room and time to a new draft and keeps the other choices', async () => {
     const { rerender } = renderForm();
-    await choose('Booking type', 'Group class');
+    await choose('Booking type', 'Group');
 
     rerender({
       room: 'FOSSE',
@@ -376,7 +376,7 @@ describe('CreateBookingForm', () => {
     expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent('Fri 20 Nov');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('14:00');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('15:15');
-    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group class');
+    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group');
   });
 
   it('reports the booking as it changes, for the calendar to preview', async () => {
@@ -421,23 +421,21 @@ describe('CreateBookingForm', () => {
 
   it('changes only the room for a room-only draft', async () => {
     const { rerender } = renderForm();
-    await choose('Booking type', 'Group class');
+    await choose('Booking type', 'Group');
 
     rerender({ room: 'BUSSELL' });
 
     expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Bussell');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('10:00');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('11:30');
-    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group class');
+    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group');
   });
 
   it('opens with the booking type and shareable choice a draft carries', async () => {
     renderForm({ ...dragged, classType: 'GROUP', isShareable: true });
 
     await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent(
-        'Group class'
-      )
+      expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group')
     );
     expect(screen.getByRole('switch', { name: 'Shared room' })).toBeChecked();
   });
@@ -470,7 +468,7 @@ describe('CreateBookingForm', () => {
     await choose('Booking type', 'Private');
     expect(await screen.findByText('£30.00')).toBeInTheDocument();
 
-    await choose('Booking type', 'Group class');
+    await choose('Booking type', 'Group');
     expect(screen.queryByText('£30.00')).not.toBeInTheDocument();
 
     resolveGroup({ classType: 'GROUP', active: true, pricePerHour: 10, role: 'ROLE_USER' });

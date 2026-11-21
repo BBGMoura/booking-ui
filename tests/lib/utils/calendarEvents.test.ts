@@ -27,7 +27,7 @@ describe('buildCalendarEvents', () => {
     expect(events.map((e) => e.id)).toEqual(['a', 'b']);
     expect(events.map((e) => [props(e).heading, props(e).detail])).toEqual([
       ['Astaire', 'Private'],
-      ['Alex Moore', 'Group class'],
+      ['Alex Moore', 'Group'],
     ]);
   });
 
@@ -96,7 +96,7 @@ describe('buildCalendarEvents', () => {
     const [event] = buildCalendarEvents('ASTAIRE', false, [summary], [], teacher);
     expect(event.start).toBe('2026-11-18T12:00:00Z');
     expect(event.end).toBe('2026-11-18T13:00:00Z');
-    expect(props(event).heading).toBe('Group class');
+    expect(props(event).heading).toBe('Group');
   });
 
   it('adds my bookings in other rooms as busy elsewhere when the overlay is on', () => {
