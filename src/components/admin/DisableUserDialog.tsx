@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { DIALOG_FULL_WIDTH_ON_PHONE } from '@/lib/utils/dialog';
 
 interface DisableUserDialogProps {
   user: UserProfile;
@@ -80,7 +81,7 @@ export function DisableUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent className={DIALOG_FULL_WIDTH_ON_PHONE}>
         <DialogHeader className="gap-3">
           <DialogTitle>Disable {name}?</DialogTitle>
           <DialogDescription>{disableMessage(upcoming)}</DialogDescription>

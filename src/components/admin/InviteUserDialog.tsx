@@ -27,6 +27,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { DIALOG_FULL_WIDTH_ON_PHONE } from '@/lib/utils/dialog';
 import { Switch } from '@/components/ui/switch';
 
 // The same email rule as registration.
@@ -84,7 +85,7 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent className={DIALOG_FULL_WIDTH_ON_PHONE}>
         <DialogHeader>
           <DialogTitle>Invite user</DialogTitle>
           <DialogDescription>An invitation will be sent to this email address.</DialogDescription>
