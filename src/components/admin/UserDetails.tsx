@@ -85,50 +85,54 @@ function UserCard({ user, onChanged }: { user: UserProfile; onChanged: () => voi
   }
 
   return (
-    <section className="bg-card overflow-hidden rounded-2xl border shadow-xs">
-      <div className="flex items-center gap-4 p-6">
-        <Avatar className="size-16">
-          <AvatarFallback className="text-foreground text-lg font-medium">
+    <section className="bg-card space-y-5 rounded-2xl border p-5 shadow-xs sm:p-6">
+      <h2 className="font-medium">Contact information</h2>
+
+      <div className="flex items-center gap-3 rounded-2xl border border-dashed p-3 sm:gap-4 sm:p-5">
+        <Avatar className="size-12 sm:size-16">
+          <AvatarFallback className="text-foreground font-medium sm:text-lg">
             {getUserInitials(user)}
           </AvatarFallback>
         </Avatar>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="truncate text-lg font-medium">{name}</h2>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2">
+            <h3 className="font-medium break-words sm:text-lg">{name}</h3>
             {user.role === USER_ROLES.ADMIN && (
               <span className="text-muted-foreground shrink-0 rounded-md border px-1.5 py-px text-[11px] font-medium">
                 Admin
               </span>
             )}
           </div>
-          {invited && <p className="text-muted-foreground text-sm">Invite sent</p>}
+          <p className={cn('text-sm', STATUS_TEXT[status])}>{invited ? 'Invite sent' : status}</p>
         </div>
-      </div>
-
-      <dl className="space-y-4 border-t border-dashed px-6 py-5">
-        <DetailRow icon={<Mail />} label="Email" value={user.email} />
-        <DetailRow icon={<Phone />} label="Phone" value={user.phoneNumber || '—'} />
-      </dl>
-
-      <div className="flex items-center justify-between border-t border-dashed px-6 py-3">
-        <span className={cn('text-sm', STATUS_TEXT[status])}>{status}</span>
         {status === 'Active' && !isMe && (
           <Button
             variant="outline"
             size="sm"
-            className="text-destructive hover:text-destructive"
+            className="text-destructive hover:text-destructive shrink-0"
             onClick={() => setDisableOpen(true)}
           >
             Disable
           </Button>
         )}
         {status === 'Disabled' && (
-          <Button variant="outline" size="sm" onClick={enable} disabled={enabling}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={enable}
+            disabled={enabling}
+          >
             {enabling && <Spinner />}
             Enable
           </Button>
         )}
       </div>
+
+      <dl className="space-y-4">
+        <DetailRow icon={<Mail />} label="Email address" value={user.email} />
+        <DetailRow icon={<Phone />} label="Phone number" value={user.phoneNumber || '—'} />
+      </dl>
 
       <DisableUserDialog
         user={user}
@@ -144,7 +148,7 @@ function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; val
   return (
     <div className="flex items-center gap-4">
       <span
-        className="text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full border [&_svg]:size-4"
+        className="bg-background text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-full border shadow-xs [&_svg]:size-[18px]"
         aria-hidden
       >
         {icon}

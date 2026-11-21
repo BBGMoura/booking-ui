@@ -77,7 +77,6 @@ describe('UserDetails', () => {
     render(<UserDetails userUid="u2" />);
 
     expect(await screen.findByText('Invite sent')).toBeInTheDocument();
-    expect(screen.getByText('Invited')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /able/ })).not.toBeInTheDocument();
   });
 
