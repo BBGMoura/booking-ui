@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Mail, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAdminUser } from '@/hooks/use-admin-user';
 import { setUserEnabled } from '@/lib/api/user';
@@ -18,7 +18,10 @@ import {
 } from '@/lib/utils/userStatus';
 import { DisableUserDialog } from '@/components/admin/DisableUserDialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { MyBookingsList } from '@/components/bookings/MyBookingsList';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
@@ -61,9 +64,41 @@ export function UserDetails({
       ) : !user ? (
         <Skeleton className="h-72 rounded-2xl" aria-busy="true" aria-label="Loading user" />
       ) : (
-        <UserCard user={user} onChanged={reload} />
+        <UserBookings user={user} onChanged={reload} />
       )}
     </div>
+  );
+}
+
+/** The details card, then the bookings: Upcoming and Past, or a note for someone not registered yet. */
+function UserBookings({ user, onChanged }: { user: UserProfile; onChanged: () => void }) {
+  // Remounts the lists, so they load again, after Disable or Enable changes the bookings.
+  const [refresh, setRefresh] = useState(0);
+  const changed = () => {
+    setRefresh((n) => n + 1);
+    onChanged();
+  };
+
+  return (
+    <>
+      <UserCard user={user} onChanged={changed} />
+      {getUserStatus(user) === 'Invited' ? (
+        <p className="text-muted-foreground py-6 text-center">Not registered yet: no bookings</p>
+      ) : (
+        <Tabs defaultValue="upcoming">
+          <TabsList>
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="past">Past</TabsTrigger>
+          </TabsList>
+          <TabsContent value="upcoming">
+            <MyBookingsList key={`upcoming-${refresh}`} tab="upcoming" userUid={user.uid} />
+          </TabsContent>
+          <TabsContent value="past">
+            <MyBookingsList key={`past-${refresh}`} tab="past" userUid={user.uid} />
+          </TabsContent>
+        </Tabs>
+      )}
+    </>
   );
 }
 
@@ -105,6 +140,7 @@ function UserCard({ user, onChanged }: { user: UserProfile; onChanged: () => voi
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2">
             <h3 className="font-medium break-words sm:text-lg">{name}</h3>
+            {user.role === USER_ROLES.ADMIN && <Badge variant="secondary">Admin</Badge>}
           </div>
           <p className={cn('text-sm', STATUS_TEXT[status])}>{invited ? 'Invite sent' : status}</p>
         </div>
@@ -135,11 +171,6 @@ function UserCard({ user, onChanged }: { user: UserProfile; onChanged: () => voi
       <dl className="space-y-4">
         <DetailRow icon={<Mail />} label="Email address" value={user.email} />
         <DetailRow icon={<Phone />} label="Phone number" value={user.phoneNumber || '—'} />
-        <DetailRow
-          icon={<ShieldCheck />}
-          label="Role"
-          value={user.role === USER_ROLES.ADMIN ? 'Admin' : 'User'}
-        />
       </dl>
 
       <DisableUserDialog

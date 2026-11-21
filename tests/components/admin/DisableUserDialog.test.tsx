@@ -58,11 +58,11 @@ describe('DisableUserDialog', () => {
     mockGetUserBookings.mockResolvedValue(upcoming(4));
     setup();
 
-    expect(
-      await screen.findByText(
-        'Disabling this account removes their access to the Booking Portal and cancels their 4 upcoming bookings.'
-      )
-    ).toBeInTheDocument();
+    const text = await screen.findByText(/and cancels their/);
+    expect(text).toHaveTextContent(
+      'Disabling this account removes their access to the Booking Portal and cancels their 4 upcoming bookings.'
+    );
+    expect(screen.getByText('4').tagName).toBe('STRONG');
   });
 
   it('uses the singular for one upcoming booking', async () => {
@@ -83,6 +83,7 @@ describe('DisableUserDialog', () => {
     expect(
       await screen.findByText('Disabling this account removes their access to the Booking Portal.')
     ).toBeInTheDocument();
+    expect(screen.queryByText(/cancels/)).not.toBeInTheDocument();
   });
 
   it('still mentions the bookings when they could not be counted', async () => {
@@ -91,7 +92,7 @@ describe('DisableUserDialog', () => {
 
     expect(
       await screen.findByText(
-        'Disabling this account removes their access to the Booking Portal and cancels their upcoming bookings.'
+        'Disabling this account removes their access to the Booking Portal and cancels any upcoming bookings.'
       )
     ).toBeInTheDocument();
   });

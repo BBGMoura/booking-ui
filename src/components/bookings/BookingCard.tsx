@@ -24,6 +24,8 @@ interface BookingCardProps {
    * cancelled; the card only hides the button once a booking is cancelled.
    */
   onCancelled?: (uid: string) => void;
+  /** The call that cancels the booking. Admins cancelling for someone else pass the admin one. */
+  cancel?: (uid: string) => Promise<void>;
 }
 
 /**
@@ -32,7 +34,7 @@ interface BookingCardProps {
  * The date sits in its own block so a list of cards can be scanned by date.
  * Only cancelled bookings get a status label.
  */
-export function BookingCard({ booking, onCancelled }: BookingCardProps) {
+export function BookingCard({ booking, onCancelled, cancel = cancelBooking }: BookingCardProps) {
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
     setCancelling(true);
     setError(null);
     try {
-      await cancelBooking(booking.uid);
+      await cancel(booking.uid);
       toast.success('Booking cancelled');
       setConfirming(false);
       onCancelled?.(booking.uid);

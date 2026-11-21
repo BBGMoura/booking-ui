@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { cancelBookingAsAdmin } from '@/lib/api/booking';
 import { BookingCard } from '@/components/bookings/BookingCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,10 +12,15 @@ const EMPTY_TEXT: Record<BookingsTab, string> = {
   past: 'No past bookings',
 };
 
-/** One tab of My Bookings: the user's own bookings, 10 to a page. */
-export function MyBookingsList({ tab }: { tab: BookingsTab }) {
-  const { data, error, loading, pageIndex, setPageIndex, retry, markCancelled } =
-    useMyBookings(tab);
+/**
+ * One tab of My Bookings: the user's own bookings, 10 to a page. With `userUid`
+ * it shows that user's bookings instead, for admins, who cancel through the admin endpoint.
+ */
+export function MyBookingsList({ tab, userUid }: { tab: BookingsTab; userUid?: string }) {
+  const { data, error, loading, pageIndex, setPageIndex, retry, markCancelled } = useMyBookings(
+    tab,
+    userUid
+  );
 
   if (error) {
     return (
@@ -41,7 +47,7 @@ export function MyBookingsList({ tab }: { tab: BookingsTab }) {
     return (
       <div className="flex flex-col items-center gap-4 py-12 text-center">
         <p className="text-muted-foreground">{EMPTY_TEXT[tab]}</p>
-        {tab === 'upcoming' && (
+        {tab === 'upcoming' && !userUid && (
           <Button asChild>
             <Link href="/calendar">Book a room</Link>
           </Button>
@@ -59,6 +65,7 @@ export function MyBookingsList({ tab }: { tab: BookingsTab }) {
           <li key={booking.uid}>
             <BookingCard
               booking={booking}
+              cancel={userUid ? cancelBookingAsAdmin : undefined}
               // Past bookings have already started, and those can't be cancelled.
               onCancelled={tab === 'upcoming' ? markCancelled : undefined}
             />
