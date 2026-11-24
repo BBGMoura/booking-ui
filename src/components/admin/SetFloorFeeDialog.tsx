@@ -6,11 +6,11 @@ import { setDanceClass } from '@/lib/api/danceClass';
 import { USER_ROLES } from '@/lib/types/auth';
 import { parseApiError } from '@/lib/utils/errorUtils';
 import {
-  buildRateRequest,
+  buildDanceClassRequest,
   nextPriceInput,
   validatePrice,
-  type RoomRateRow,
-} from '@/lib/utils/roomRates';
+  type FloorFeeRow,
+} from '@/lib/utils/floorFees';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,17 +26,17 @@ import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { DIALOG_FULL_WIDTH_ON_PHONE } from '@/lib/utils/dialog';
 
-interface SetRateDialogProps {
-  row: RoomRateRow;
+interface SetFloorFeeDialogProps {
+  row: FloorFeeRow;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }
 
-/** Sets the room rate for one booking type. The parent mounts it fresh for each row. */
-export function SetRateDialog({ row, open, onOpenChange, onSaved }: SetRateDialogProps) {
-  const [price, setPrice] = useState(row.rate ? row.rate.pricePerHour.toFixed(2) : '');
-  const [adminOnly, setAdminOnly] = useState(row.rate?.role === USER_ROLES.ADMIN);
+/** Sets the floor fee for one booking type. The parent mounts it fresh for each row. */
+export function SetFloorFeeDialog({ row, open, onOpenChange, onSaved }: SetFloorFeeDialogProps) {
+  const [price, setPrice] = useState(row.fee ? row.fee.pricePerHour.toFixed(2) : '');
+  const [adminOnly, setAdminOnly] = useState(row.fee?.role === USER_ROLES.ADMIN);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -54,8 +54,8 @@ export function SetRateDialog({ row, open, onOpenChange, onSaved }: SetRateDialo
     setSubmitting(true);
     setError(null);
     try {
-      await setDanceClass(buildRateRequest(row.classType, price, adminOnly));
-      toast.success(`${row.label} rate saved`);
+      await setDanceClass(buildDanceClassRequest(row.classType, price, adminOnly));
+      toast.success(`${row.label} floor fee saved`);
       onOpenChange(false);
       onSaved();
     } catch (e) {
@@ -70,10 +70,11 @@ export function SetRateDialog({ row, open, onOpenChange, onSaved }: SetRateDialo
       <DialogContent className={DIALOG_FULL_WIDTH_ON_PHONE}>
         <DialogHeader>
           <DialogTitle>
-            {row.rate ? 'Edit' : 'Set'} {row.label} rate
+            {row.fee ? 'Edit' : 'Set'} {row.label} floor fee
           </DialogTitle>
           <DialogDescription>
-            New bookings use the new rate. Existing bookings keep the price they were booked at.
+            New bookings use the new floor fee. Existing bookings keep the price they were booked
+            at.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -129,7 +130,7 @@ export function SetRateDialog({ row, open, onOpenChange, onSaved }: SetRateDialo
                   Saving...
                 </>
               ) : (
-                'Save rate'
+                'Save floor fee'
               )}
             </Button>
           </DialogFooter>

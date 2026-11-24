@@ -15,20 +15,20 @@ export async function getDanceClass(classType: ClassType): Promise<DanceClass> {
   return data;
 }
 
-export interface RoomRateRequest {
+export interface DanceClassRequest {
   classType: ClassType;
   pricePerHour: number;
   role: UserRole;
 }
 
-/** The active rates, at most one per booking type. */
+/** The active floor fees, at most one per booking type. */
 export async function getActiveDanceClasses(): Promise<DanceClass[]> {
   const { data } = await api.get<DanceClass[]>('/admin/dance-classes');
   return data;
 }
 
-/** Makes this the active rate for its booking type, turning off the previous one. */
-export async function setDanceClass(request: RoomRateRequest): Promise<DanceClass> {
+/** Makes this the active floor fee for its booking type, turning off the previous one. */
+export async function setDanceClass(request: DanceClassRequest): Promise<DanceClass> {
   const { data } = await api.post<DanceClass>('/admin/dance-classes', request);
   return data;
 }

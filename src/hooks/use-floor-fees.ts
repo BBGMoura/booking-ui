@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getActiveDanceClasses } from '@/lib/api/danceClass';
-import { mergeRoomRates, type RoomRateRow } from '@/lib/utils/roomRates';
+import { mergeFloorFees, type FloorFeeRow } from '@/lib/utils/floorFees';
 import { parseApiError } from '@/lib/utils/errorUtils';
 
-/** The admin Room Rates list: every booking type, with its active rate if it has one. */
-export function useRoomRates() {
-  const [rows, setRows] = useState<RoomRateRow[] | null>(null);
+/** The admin Floor Fees list: every room-hire booking type, with its active floor fee if it has one. */
+export function useFloorFees() {
+  const [rows, setRows] = useState<FloorFeeRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const requestId = useRef(0);
@@ -16,8 +16,8 @@ export function useRoomRates() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     getActiveDanceClasses()
-      .then((rates) => {
-        if (id === requestId.current) setRows(mergeRoomRates(rates));
+      .then((fees) => {
+        if (id === requestId.current) setRows(mergeFloorFees(fees));
       })
       .catch((e) => {
         if (id === requestId.current) setError(parseApiError(e));

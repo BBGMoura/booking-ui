@@ -81,8 +81,8 @@ describe('getRedirectPath', () => {
       expect(getRedirectPath('/admin/users', USER_TOKEN)).toBe('/dashboard');
     });
 
-    it('redirects /admin/rates to /dashboard', () => {
-      expect(getRedirectPath('/admin/rates', USER_TOKEN)).toBe('/dashboard');
+    it('redirects /admin/floor-fees to /dashboard', () => {
+      expect(getRedirectPath('/admin/floor-fees', USER_TOKEN)).toBe('/dashboard');
     });
   });
 

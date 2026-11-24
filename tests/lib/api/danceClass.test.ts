@@ -65,20 +65,20 @@ describe('danceClass API', () => {
   });
 });
 
-describe('room rate admin API', () => {
-  it('lists active rates', async () => {
+describe('floor fee admin API', () => {
+  it('lists active floor fees', async () => {
     mock.onGet('/admin/dance-classes').reply(200, [mockDanceClass]);
     expect(await getActiveDanceClasses()).toEqual([mockDanceClass]);
   });
 
-  it('posts a new rate', async () => {
+  it('posts a new floor fee', async () => {
     const body = { classType: 'PRIVATE', pricePerHour: 20, role: 'ROLE_USER' } as const;
     mock.onPost('/admin/dance-classes').reply(201, mockDanceClass);
     await setDanceClass(body);
     expect(JSON.parse(mock.history.post[0].data)).toEqual(body);
   });
 
-  it('deletes a rate by booking type', async () => {
+  it('deletes a floor fee by booking type', async () => {
     mock.onDelete('/admin/dance-classes/PRACTICE').reply(204);
     await deactivateDanceClass('PRACTICE');
     expect(mock.history.delete[0].url).toBe('/admin/dance-classes/PRACTICE');

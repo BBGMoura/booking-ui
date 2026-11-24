@@ -13,7 +13,7 @@ const danceClass = (classType: ClassType, pricePerHour: number) => ({
 });
 
 beforeEach(() => {
-  jest.mocked(getClassTypes).mockReset().mockResolvedValue(['PRIVATE', 'GROUP']);
+  jest.mocked(getClassTypes).mockReset().mockResolvedValue(['PRIVATE', 'PRACTICE']);
   jest.mocked(getDanceClass).mockReset().mockResolvedValue(danceClass('PRIVATE', 20));
 });
 
@@ -24,12 +24,19 @@ describe('useBookingFormData', () => {
     });
     expect(result.current.classTypes).toBeNull();
 
-    await waitFor(() => expect(result.current.classTypes).toEqual(['PRIVATE', 'GROUP']));
+    await waitFor(() => expect(result.current.classTypes).toEqual(['PRIVATE', 'PRACTICE']));
     rerender({ c: 'PRIVATE' });
     await waitFor(() => expect(result.current.pricePerHour).toBe(20));
 
     expect(getClassTypes).toHaveBeenCalledTimes(1);
     expect(result.current.classTypesFailed).toBe(false);
+  });
+
+  it('never offers Group class, even if the backend sends it', async () => {
+    jest.mocked(getClassTypes).mockResolvedValue(['PRIVATE', 'GROUP', 'UNAVAILABLE']);
+    const { result } = renderHook(() => useBookingFormData(undefined));
+
+    await waitFor(() => expect(result.current.classTypes).toEqual(['PRIVATE', 'UNAVAILABLE']));
   });
 
   it('says when the class types could not be loaded', async () => {

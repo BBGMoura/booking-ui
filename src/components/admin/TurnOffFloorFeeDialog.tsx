@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { deactivateDanceClass } from '@/lib/api/danceClass';
 import { parseApiError } from '@/lib/utils/errorUtils';
-import type { RoomRateRow } from '@/lib/utils/roomRates';
+import type { FloorFeeRow } from '@/lib/utils/floorFees';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,20 +17,20 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { DIALOG_FULL_WIDTH_ON_PHONE } from '@/lib/utils/dialog';
 
-interface TurnOffRateDialogProps {
-  row: RoomRateRow;
+interface TurnOffFloorFeeDialogProps {
+  row: FloorFeeRow;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTurnedOff: () => void;
 }
 
-/** Confirms turning off a room rate, which stops the booking type being booked. */
-export function TurnOffRateDialog({
+/** Confirms turning off a floor fee, which stops the booking type being booked. */
+export function TurnOffFloorFeeDialog({
   row,
   open,
   onOpenChange,
   onTurnedOff,
-}: TurnOffRateDialogProps) {
+}: TurnOffFloorFeeDialogProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +45,7 @@ export function TurnOffRateDialog({
     setError(null);
     try {
       await deactivateDanceClass(row.classType);
-      toast.success(`${row.label} rate turned off`);
+      toast.success(`${row.label} floor fee turned off`);
       onOpenChange(false);
       onTurnedOff();
     } catch (e) {
@@ -59,9 +59,9 @@ export function TurnOffRateDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className={DIALOG_FULL_WIDTH_ON_PHONE}>
         <DialogHeader className="gap-3">
-          <DialogTitle>Turn off the {row.label} rate?</DialogTitle>
+          <DialogTitle>Turn off the {row.label} floor fee?</DialogTitle>
           <DialogDescription>
-            {`No one will be able to book ${row.label} until you set a new rate. Existing bookings aren't affected.`}
+            {`No one will be able to book ${row.label} until you set a new floor fee. Existing bookings aren't affected.`}
           </DialogDescription>
         </DialogHeader>
         {error && (

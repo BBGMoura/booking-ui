@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getClassTypes, getDanceClass } from '@/lib/api/danceClass';
-import type { ClassType } from '@/lib/types/booking';
+import { CLASS_TYPES, type ClassType } from '@/lib/types/booking';
 
 /**
  * What the booking form loads from the backend: the class types the user may
@@ -20,7 +20,9 @@ export function useBookingFormData(classType: ClassType | undefined) {
     let current = true;
     getClassTypes()
       .then((types) => {
-        if (current) setClassTypes(types);
+        // Group classes are only booked by publishing a timetable. The backend leaves them out
+        // already; this keeps the form right if the UI is deployed before the backend.
+        if (current) setClassTypes(types.filter((type) => type !== CLASS_TYPES.GROUP));
       })
       .catch(() => {
         if (current) setClassTypesFailed(true);

@@ -1,23 +1,35 @@
 import { CLASS_TYPES, type ClassType } from '@/lib/types/booking';
 import { USER_ROLES } from '@/lib/types/auth';
 import type { DanceClass } from '@/lib/types/danceClass';
-import type { RoomRateRequest } from '@/lib/api/danceClass';
+import type { DanceClassRequest } from '@/lib/api/danceClass';
 import { CLASS_TYPE_LABELS } from '@/lib/utils/calendarEvents';
 
-export interface RoomRateRow {
+export interface FloorFeeRow {
   classType: ClassType;
   label: string;
-  /** The active rate, or null when the booking type can't be booked. */
-  rate: DanceClass | null;
+  /** The active floor fee, or null when the booking type can't be booked. */
+  fee: DanceClass | null;
 }
 
-/** One row per booking type, in the calendar's order, with its active rate if it has one. */
-export function mergeRoomRates(rates: DanceClass[]): RoomRateRow[] {
-  return (Object.values(CLASS_TYPES) as ClassType[]).map((classType) => ({
-    classType,
-    label: CLASS_TYPE_LABELS[classType],
-    rate: rates.find((r) => r.classType === classType && r.active) ?? null,
-  }));
+/**
+ * Group classes and Closed blocks are the studio's own use of its rooms, so they're never charged
+ * and have no floor fee. Only these booking types are room hire.
+ */
+const ROOM_HIRE_CLASS_TYPES: ReadonlySet<ClassType> = new Set([
+  CLASS_TYPES.PRIVATE,
+  CLASS_TYPES.PRACTICE,
+  CLASS_TYPES.OTHER,
+]);
+
+/** One row per room-hire booking type, in the calendar's order, with its active floor fee if it has one. */
+export function mergeFloorFees(fees: DanceClass[]): FloorFeeRow[] {
+  return (Object.values(CLASS_TYPES) as ClassType[])
+    .filter((classType) => ROOM_HIRE_CLASS_TYPES.has(classType))
+    .map((classType) => ({
+      classType,
+      label: CLASS_TYPE_LABELS[classType],
+      fee: fees.find((f) => f.classType === classType && f.active) ?? null,
+    }));
 }
 
 /** Whole pounds up to 999 with at most 2 decimals, as the backend's DanceClassRequest allows. */
@@ -46,11 +58,11 @@ export function validatePrice(value: string): string | null {
   return null;
 }
 
-export function buildRateRequest(
+export function buildDanceClassRequest(
   classType: ClassType,
   price: string,
   adminOnly: boolean
-): RoomRateRequest {
+): DanceClassRequest {
   return {
     classType,
     pricePerHour: Number(price.trim()),

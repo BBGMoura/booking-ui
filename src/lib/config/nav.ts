@@ -15,7 +15,7 @@ export const mainNavItems: NavItem[] = [
 
 export const adminNavItems: NavItem[] = [
   { title: 'Users', url: '/admin/users', icon: Users },
-  { title: 'Room Rates', url: '/admin/rates', icon: Tags },
+  { title: 'Floor Fees', url: '/admin/floor-fees', icon: Tags },
 ];
 
 // Derived from nav items — AppHeader uses this instead of a separate hardcoded map.

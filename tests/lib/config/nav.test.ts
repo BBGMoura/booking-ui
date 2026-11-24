@@ -26,12 +26,19 @@ describe('nav config', () => {
   });
 
   describe('adminNavItems', () => {
-    it('includes Users and Room Rates', () => {
+    it('includes Users and Floor Fees', () => {
       const urls = adminNavItems.map((item) => item.url);
 
       expect(urls).toContain('/admin/users');
       expect(urls).not.toContain('/admin/rooms');
-      expect(urls).toContain('/admin/rates');
+      expect(urls).toContain('/admin/floor-fees');
+      expect(urls).not.toContain('/admin/rates');
+    });
+
+    it('titles the Floor Fees page in Title Case', () => {
+      expect(adminNavItems.find((item) => item.url === '/admin/floor-fees')?.title).toBe(
+        'Floor Fees'
+      );
     });
 
     it('every item has a title, url and icon', () => {

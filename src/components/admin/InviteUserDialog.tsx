@@ -138,7 +138,7 @@ export function InviteUserDialog({ open, onOpenChange, onInvited }: InviteUserDi
                     />
                   </div>
                   <FieldDescription id="invite-admin-hint">
-                    Can manage users, room rates and everyone&apos;s bookings.
+                    Can manage users, floor fees and everyone&apos;s bookings.
                   </FieldDescription>
                 </Field>
               </FieldLabel>

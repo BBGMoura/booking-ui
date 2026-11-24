@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
-import { RoomRatesList } from '@/components/admin/RoomRatesList';
+import { FloorFeesList } from '@/components/admin/FloorFeesList';
 import { deactivateDanceClass, getActiveDanceClasses, setDanceClass } from '@/lib/api/danceClass';
 import type { DanceClass } from '@/lib/types/danceClass';
 
@@ -35,44 +35,60 @@ beforeEach(() => {
   mockGet.mockResolvedValue([practice]);
 });
 
-describe('RoomRatesList', () => {
-  it('shows a price and Admin only for rates, and Not set for the rest', async () => {
-    render(<RoomRatesList />);
+describe('FloorFeesList', () => {
+  it('shows a price and Admin only for floor fees, and Not set for the rest', async () => {
+    render(<FloorFeesList />);
     const card = await screen.findByRole('listitem', { name: 'Practice' });
     expect(card).toHaveTextContent('£8.00');
     expect(card).toHaveTextContent('Admin only');
-    const closed = screen.getByRole('listitem', { name: 'Unavailable' });
-    expect(closed).toHaveTextContent('Not set');
-    expect(closed).toHaveTextContent("Can't be booked");
+    const other = screen.getByRole('listitem', { name: 'Other' });
+    expect(other).toHaveTextContent('Not set');
+    expect(other).toHaveTextContent("Can't be booked");
     expect(screen.getByRole('button', { name: 'Edit Practice' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Set rate for Unavailable' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set floor fee for Other' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^Turn off/ })).toHaveLength(1);
+  });
+
+  it('lists only room-hire booking types, and says why Group class and Closed are missing', async () => {
+    mockGet.mockResolvedValue([
+      practice,
+      { classType: 'GROUP', active: true, pricePerHour: 0, role: 'ROLE_ADMIN' },
+      { classType: 'UNAVAILABLE', active: true, pricePerHour: 0, role: 'ROLE_ADMIN' },
+    ]);
+    render(<FloorFeesList />);
+    const list = await screen.findByRole('list', { name: 'Floor Fees' });
+    expect(
+      Array.from(list.querySelectorAll('li')).map((li) => li.getAttribute('aria-label'))
+    ).toEqual(['Private', 'Practice', 'Other']);
+    expect(screen.queryByRole('listitem', { name: 'Group' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('listitem', { name: 'Unavailable' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Group classes and Closed blocks aren't room hire, so they don't have a floor fee."
+      )
+    ).toBeInTheDocument();
   });
 
   it('shows an error with retry', async () => {
     mockGet.mockRejectedValueOnce(new Error('boom'));
-    render(<RoomRatesList />);
+    render(<FloorFeesList />);
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     expect(await screen.findByRole('listitem', { name: 'Practice' })).toBeInTheDocument();
   });
 
-  describe('set rate dialog', () => {
+  describe('set floor fee dialog', () => {
     it('rejects an invalid price without calling the API', async () => {
-      render(<RoomRatesList />);
-      await userEvent.click(
-        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
-      );
+      render(<FloorFeesList />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Set floor fee for Other' }));
       await userEvent.type(screen.getByLabelText('Price per hour'), '12.');
-      await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save floor fee' }));
       expect(await screen.findByText(/from £0.00 to £999.99/)).toBeInTheDocument();
       expect(mockSet).not.toHaveBeenCalled();
     });
 
     it('ignores letters and digits past a valid price', async () => {
-      render(<RoomRatesList />);
-      await userEvent.click(
-        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
-      );
+      render(<FloorFeesList />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Set floor fee for Other' }));
       const input = screen.getByLabelText('Price per hour');
       await userEvent.type(input, 'ab1c2.5x67');
       expect(input).toHaveValue('12.56');
@@ -82,50 +98,48 @@ describe('RoomRatesList', () => {
     });
 
     it('requires a price', async () => {
-      render(<RoomRatesList />);
-      await userEvent.click(
-        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
-      );
-      await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
+      render(<FloorFeesList />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Set floor fee for Other' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save floor fee' }));
       expect(await screen.findByText('Price per hour is required')).toBeInTheDocument();
     });
 
     it('explains what happens to existing bookings', async () => {
-      render(<RoomRatesList />);
-      await userEvent.click(
-        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
-      );
+      render(<FloorFeesList />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Set floor fee for Other' }));
       expect(
         screen.getByText(
-          'New bookings use the new rate. Existing bookings keep the price they were booked at.'
+          'New bookings use the new floor fee. Existing bookings keep the price they were booked at.'
         )
       ).toBeInTheDocument();
     });
 
     it('sends ROLE_USER with the price, then toasts and reloads', async () => {
-      mockSet.mockResolvedValue({ ...practice, classType: 'GROUP', role: 'ROLE_USER' });
-      render(<RoomRatesList />);
-      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Group' }));
+      mockSet.mockResolvedValue({ ...practice, classType: 'PRIVATE', role: 'ROLE_USER' });
+      render(<FloorFeesList />);
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Set floor fee for Private' })
+      );
       await userEvent.type(screen.getByLabelText('Price per hour'), '15.5');
-      await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save floor fee' }));
       await waitFor(() =>
         expect(mockSet).toHaveBeenCalledWith({
-          classType: 'GROUP',
+          classType: 'PRIVATE',
           pricePerHour: 15.5,
           role: 'ROLE_USER',
         })
       );
-      expect(toast.success).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith('Private floor fee saved');
       await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
     });
 
     it('sends ROLE_ADMIN when Admin only is on', async () => {
       mockSet.mockResolvedValue(practice);
-      render(<RoomRatesList />);
-      await userEvent.click(await screen.findByRole('button', { name: 'Set rate for Other' }));
+      render(<FloorFeesList />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Set floor fee for Other' }));
       await userEvent.type(screen.getByLabelText('Price per hour'), '30');
       await userEvent.click(screen.getByRole('switch', { name: 'Admin only' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save floor fee' }));
       await waitFor(() =>
         expect(mockSet).toHaveBeenCalledWith({
           classType: 'OTHER',
@@ -135,8 +149,8 @@ describe('RoomRatesList', () => {
       );
     });
 
-    it('starts from the current rate when editing', async () => {
-      render(<RoomRatesList />);
+    it('starts from the current floor fee when editing', async () => {
+      render(<FloorFeesList />);
       await userEvent.click(await screen.findByRole('button', { name: 'Edit Practice' }));
       expect(screen.getByLabelText('Price per hour')).toHaveValue('8.00');
       expect(screen.getByRole('switch', { name: 'Admin only' })).toBeChecked();
@@ -144,12 +158,10 @@ describe('RoomRatesList', () => {
 
     it('shows the API error and keeps the dialog open', async () => {
       mockSet.mockRejectedValue(new Error('nope'));
-      render(<RoomRatesList />);
-      await userEvent.click(
-        await screen.findByRole('button', { name: 'Set rate for Unavailable' })
-      );
+      render(<FloorFeesList />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Set floor fee for Other' }));
       await userEvent.type(screen.getByLabelText('Price per hour'), '5');
-      await userEvent.click(screen.getByRole('button', { name: 'Save rate' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save floor fee' }));
       expect(await screen.findByRole('alert')).toBeInTheDocument();
       expect(toast.success).not.toHaveBeenCalled();
     });
@@ -157,29 +169,29 @@ describe('RoomRatesList', () => {
 
   describe('turn off', () => {
     it('asks first, and does nothing on Cancel', async () => {
-      render(<RoomRatesList />);
+      render(<FloorFeesList />);
       await userEvent.click(await screen.findByRole('button', { name: 'Turn off Practice' }));
-      expect(screen.getByText('Turn off the Practice rate?')).toBeInTheDocument();
+      expect(screen.getByText('Turn off the Practice floor fee?')).toBeInTheDocument();
       expect(screen.getByRole('dialog')).toHaveTextContent(
-        "No one will be able to book Practice until you set a new rate. Existing bookings aren't affected."
+        "No one will be able to book Practice until you set a new floor fee. Existing bookings aren't affected."
       );
       await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(mockOff).not.toHaveBeenCalled();
     });
 
-    it('turns the rate off on confirm, then toasts and reloads', async () => {
+    it('turns the floor fee off on confirm, then toasts and reloads', async () => {
       mockOff.mockResolvedValue(undefined);
-      render(<RoomRatesList />);
+      render(<FloorFeesList />);
       await userEvent.click(await screen.findByRole('button', { name: 'Turn off Practice' }));
       await userEvent.click(screen.getByRole('button', { name: 'Turn off' }));
       await waitFor(() => expect(mockOff).toHaveBeenCalledWith('PRACTICE'));
-      expect(toast.success).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith('Practice floor fee turned off');
       await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
     });
 
     it('shows the error when turning off fails', async () => {
       mockOff.mockRejectedValue(new Error('nope'));
-      render(<RoomRatesList />);
+      render(<FloorFeesList />);
       await userEvent.click(await screen.findByRole('button', { name: 'Turn off Practice' }));
       await userEvent.click(screen.getByRole('button', { name: 'Turn off' }));
       expect(await screen.findByRole('alert')).toBeInTheDocument();
