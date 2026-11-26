@@ -48,9 +48,13 @@ describe('NavMain', () => {
   });
 
   describe('admin nav items', () => {
-    it('renders Users and Room Rates when isAdmin is true', () => {
+    it('renders Users, Room Rates and Settings when isAdmin is true', () => {
       render(<NavMain isAdmin={true} />);
 
+      expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+        'href',
+        '/admin/settings'
+      );
       expect(screen.getByText('Users')).toBeInTheDocument();
       expect(screen.getByText('Room Rates')).toBeInTheDocument();
     });
@@ -67,6 +71,7 @@ describe('NavMain', () => {
       expect(screen.queryByText('Users')).not.toBeInTheDocument();
       expect(screen.queryByText('Rooms')).not.toBeInTheDocument();
       expect(screen.queryByText('Room Rates')).not.toBeInTheDocument();
+      expect(screen.queryByText('Settings')).not.toBeInTheDocument();
     });
 
     it('does not render the Manage group label when isAdmin is false', () => {

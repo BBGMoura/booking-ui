@@ -1,0 +1,155 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { AxiosError } from 'axios';
+import { toast } from 'sonner';
+import { SettingsForm } from '@/components/admin/SettingsForm';
+import * as settingsApi from '@/lib/api/settings';
+import type { StudioSettings } from '@/lib/types/settings';
+
+jest.mock('@/lib/api/settings');
+jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
+
+const mockGet = settingsApi.getStudioSettings as jest.MockedFunction<
+  typeof settingsApi.getStudioSettings
+>;
+const mockUpdate = settingsApi.updateStudioSettings as jest.MockedFunction<
+  typeof settingsApi.updateStudioSettings
+>;
+
+const settings: StudioSettings = {
+  studioName: 'ACS Dance Studio',
+  recurringMaxDates: 12,
+  recurringMaxActive: 3,
+  sharedRoomMax: 3,
+  sharedDiscountPerHour: 1.5,
+  cancellationWindowHours: 24,
+  paymentDueDays: 14,
+  billingDay: 1,
+  invoicePrefix: 'ACS',
+  businessName: 'ACS Ltd',
+  businessAddress: '1 High Street',
+  bankAccountName: 'ACS Ltd',
+  bankSortCode: '123456',
+  bankAccountNumber: '12345678',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
+
+function apiError(status: number, message: string) {
+  return new AxiosError('failed', 'ERR', undefined, undefined, {
+    status,
+    data: { message },
+  } as never);
+}
+
+async function renderLoaded() {
+  render(<SettingsForm />);
+  await screen.findByLabelText('Studio name');
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockGet.mockResolvedValue(settings);
+});
+
+describe('SettingsForm', () => {
+  it('shows every saved setting', async () => {
+    await renderLoaded();
+
+    expect(screen.getByLabelText('Studio name')).toHaveValue('ACS Dance Studio');
+    expect(screen.getByLabelText('Most dates in a recurring booking')).toHaveValue('12');
+    expect(screen.getByLabelText('Shared room discount per hour (£)')).toHaveValue('1.50');
+    expect(screen.getByLabelText('Billing day')).toHaveValue('1');
+    expect(screen.getByLabelText('Invoice number prefix')).toHaveValue('ACS');
+    expect(screen.getByLabelText('Sort code')).toHaveValue('12-34-56');
+    expect(screen.getByLabelText('Account number')).toHaveValue('12345678');
+    expect(screen.getByText(/Invoices cover everything since the last one/)).toBeInTheDocument();
+  });
+
+  it('shows the error and retries when settings cannot be loaded', async () => {
+    mockGet.mockRejectedValueOnce(apiError(500, 'boom'));
+    render(<SettingsForm />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/something went wrong/i);
+    await userEvent.click(screen.getByRole('button', { name: /try again/i }));
+
+    expect(await screen.findByLabelText('Studio name')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['Studio name', '', 'Studio name is required'],
+    ['Most dates in a recurring booking', '53', 'Most dates must be 1 to 52'],
+    ['Most people sharing a room', '1', 'Most people sharing a room must be 2 to 10'],
+    ['Shared room discount per hour (£)', '1.555', 'Enter an amount in pounds, like 1.50'],
+    ['Cancellation window (hours)', '169', 'Cancellation window must be 0 to 168'],
+    ['Payment due (days)', '0', 'Payment due must be 1 to 90'],
+    ['Billing day', '29', 'Billing day must be 1 to 28'],
+    ['Invoice number prefix', 'AC5', 'Letters only'],
+    ['Sort code', '1234', 'Must be 6 digits, for example 12-34-56'],
+    ['Account number', '123', 'Must be 8 digits'],
+  ])('rejects %s = "%s"', async (label, value, message) => {
+    await renderLoaded();
+
+    const input = screen.getByLabelText(label);
+    await userEvent.clear(input);
+    if (value) await userEvent.type(input, value);
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it('saves the changes and shows a success toast', async () => {
+    mockUpdate.mockResolvedValue({ ...settings, billingDay: 15 });
+    await renderLoaded();
+
+    const billingDay = screen.getByLabelText('Billing day');
+    await userEvent.clear(billingDay);
+    await userEvent.type(billingDay, '15');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith({
+        studioName: 'ACS Dance Studio',
+        recurringMaxDates: 12,
+        recurringMaxActive: 3,
+        sharedRoomMax: 3,
+        sharedDiscountPerHour: 1.5,
+        cancellationWindowHours: 24,
+        paymentDueDays: 14,
+        billingDay: 15,
+        invoicePrefix: 'ACS',
+        businessName: 'ACS Ltd',
+        businessAddress: '1 High Street',
+        bankAccountName: 'ACS Ltd',
+        bankSortCode: '12-34-56',
+        bankAccountNumber: '12345678',
+      })
+    );
+    expect(toast.success).toHaveBeenCalledWith('Settings saved');
+  });
+
+  it('sends empty invoice details as null', async () => {
+    mockUpdate.mockResolvedValue(settings);
+    await renderLoaded();
+
+    await userEvent.clear(screen.getByLabelText('Business address'));
+    await userEvent.clear(screen.getByLabelText('Sort code'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ businessAddress: null, bankSortCode: null })
+      )
+    );
+  });
+
+  it("shows the backend's message when saving fails", async () => {
+    mockUpdate.mockRejectedValue(apiError(400, 'billingDay: must be at most 28'));
+    await renderLoaded();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('billingDay: must be at most 28');
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+});
