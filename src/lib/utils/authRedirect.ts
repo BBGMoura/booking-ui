@@ -19,3 +19,13 @@ export function buildLoginPath(currentPath: string): string {
   const next = getSafeNextPath(currentPath);
   return next ? `${LOGIN_PATH}?next=${encodeURIComponent(next)}` : LOGIN_PATH;
 }
+
+/**
+ * Leaves the app for the login page with a full page load rather than a client-side navigation.
+ * A fresh document drops everything the previous user had loaded, and it can't inherit a
+ * `pointer-events: none` left on the body by an overlay (the mobile sidebar sheet, the user menu)
+ * that was still open while the login page loaded, which left the login form unclickable.
+ */
+export function leaveForLogin(): void {
+  window.location.replace(LOGIN_PATH);
+}
