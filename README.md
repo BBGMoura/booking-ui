@@ -44,6 +44,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Environment Variables
 
+`.env.example` lists every variable and marks which are `NEXT_PUBLIC_` (build-time and visible to anyone, so never secret) and which are server-only. The full table for both apps is in [CONFIG.md](https://github.com/BBGMoura/booking-system/blob/master/CONFIG.md).
+
 Copy `.env.dev` to `.env.local` and adjust the values if needed:
 
 ```bash
