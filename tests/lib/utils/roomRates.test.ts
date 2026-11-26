@@ -21,8 +21,8 @@ describe('mergeRoomRates', () => {
     expect(rows.map((r) => r.label)).toEqual([
       'Private',
       'Practice',
-      'Group',
-      'Unavailable',
+      'Group class',
+      'Closed',
       'Other',
     ]);
     expect(rows.every((r) => r.rate === null)).toBe(true);

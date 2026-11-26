@@ -13,7 +13,12 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cancelBooking, cancelBookingAsAdmin } from '@/lib/api/booking';
 import { parseApiError } from '@/lib/utils/errorUtils';
 import type { BookingStatus } from '@/lib/types/booking';
-import { CLASS_TYPE_LABELS, ROOM_LABELS, type BookingDetails } from '@/lib/utils/calendarEvents';
+import {
+  CLASS_TYPE_LABELS,
+  ROOM_LABELS,
+  STUDIO_NAME,
+  type BookingDetails,
+} from '@/lib/utils/calendarEvents';
 
 interface BookingDetailsPopoverProps {
   details: BookingDetails;
@@ -74,7 +79,9 @@ export function BookingDetailsPopover({
   const status = details.status && STATUS_META[details.status];
   // `spoken` replaces `text` for screen readers where the icon carries meaning.
   const facts: { key: string; icon: LucideIcon; text: string; spoken?: string }[] = [];
-  if (details.bookerName)
+  if (details.forStudio)
+    facts.push({ key: 'name', icon: User, text: STUDIO_NAME, spoken: 'Booked for the studio' });
+  else if (details.bookerName)
     facts.push({
       key: 'name',
       icon: User,

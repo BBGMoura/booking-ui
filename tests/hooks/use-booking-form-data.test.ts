@@ -13,18 +13,32 @@ const danceClass = (classType: ClassType, pricePerHour: number) => ({
 });
 
 beforeEach(() => {
-  jest.mocked(getClassTypes).mockReset().mockResolvedValue(['PRIVATE', 'GROUP']);
+  jest.mocked(getClassTypes).mockReset().mockResolvedValue(['PRIVATE', 'PRACTICE']);
   jest.mocked(getDanceClass).mockReset().mockResolvedValue(danceClass('PRIVATE', 20));
 });
 
 describe('useBookingFormData', () => {
+  it('drops Group class from the booking types', async () => {
+    jest.mocked(getClassTypes).mockResolvedValue(['PRIVATE', 'GROUP', 'UNAVAILABLE']);
+    const { result } = renderHook(() => useBookingFormData(undefined));
+    await waitFor(() => expect(result.current.classTypes).toEqual(['PRIVATE', 'UNAVAILABLE']));
+  });
+
+  it('reports no charge for Closed without fetching a price', async () => {
+    const { result } = renderHook(() => useBookingFormData('UNAVAILABLE'));
+    await waitFor(() => expect(result.current.classTypes).not.toBeNull());
+    expect(result.current.noCharge).toBe(true);
+    expect(result.current.pricePerHour).toBeNull();
+    expect(getDanceClass).not.toHaveBeenCalled();
+  });
+
   it('loads the class types once', async () => {
     const { result, rerender } = renderHook(({ c }) => useBookingFormData(c), {
       initialProps: { c: undefined as ClassType | undefined },
     });
     expect(result.current.classTypes).toBeNull();
 
-    await waitFor(() => expect(result.current.classTypes).toEqual(['PRIVATE', 'GROUP']));
+    await waitFor(() => expect(result.current.classTypes).toEqual(['PRIVATE', 'PRACTICE']));
     rerender({ c: 'PRIVATE' });
     await waitFor(() => expect(result.current.pricePerHour).toBe(20));
 
@@ -49,20 +63,20 @@ describe('useBookingFormData', () => {
   });
 
   it('never gives the previous class type’s price while the new one loads', async () => {
-    let resolveGroup: (value: ReturnType<typeof danceClass>) => void = () => {};
+    let resolvePractice: (value: ReturnType<typeof danceClass>) => void = () => {};
     jest
       .mocked(getDanceClass)
       .mockResolvedValueOnce(danceClass('PRIVATE', 20))
-      .mockReturnValueOnce(new Promise((resolve) => (resolveGroup = resolve)));
+      .mockReturnValueOnce(new Promise((resolve) => (resolvePractice = resolve)));
     const { result, rerender } = renderHook(({ c }) => useBookingFormData(c), {
       initialProps: { c: 'PRIVATE' as ClassType },
     });
     await waitFor(() => expect(result.current.pricePerHour).toBe(20));
 
-    rerender({ c: 'GROUP' });
+    rerender({ c: 'PRACTICE' });
     expect(result.current.pricePerHour).toBeNull();
 
-    resolveGroup(danceClass('GROUP', 10));
+    resolvePractice(danceClass('PRACTICE', 10));
     await waitFor(() => expect(result.current.pricePerHour).toBe(10));
   });
 

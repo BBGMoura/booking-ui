@@ -18,6 +18,7 @@ const booking = (uid: string, over: Partial<BookingView> = {}): BookingView => (
   dateFrom: '2026-11-01T10:00:00Z',
   dateTo: '2026-11-01T11:00:00Z',
   totalPrice: 10,
+  forStudio: false,
   ...over,
 });
 

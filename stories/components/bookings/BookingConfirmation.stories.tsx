@@ -13,6 +13,7 @@ const saved: BookingView = {
   dateFrom: '2026-11-19T15:00:00Z',
   dateTo: '2026-11-19T16:15:00Z',
   totalPrice: 25,
+  forStudio: false,
 };
 
 const meta: Meta<typeof BookingConfirmation> = {

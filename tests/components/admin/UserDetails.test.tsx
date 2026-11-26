@@ -31,6 +31,7 @@ const upcomingBooking = {
   dateFrom: '2099-11-01T10:00:00Z',
   dateTo: '2099-11-01T11:00:00Z',
   totalPrice: 10,
+  forStudio: false,
 };
 const bookingsPage = (content: (typeof upcomingBooking)[]) => ({
   content,

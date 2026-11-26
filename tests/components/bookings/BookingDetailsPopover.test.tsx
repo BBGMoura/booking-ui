@@ -54,6 +54,13 @@ describe('BookingDetailsPopover', () => {
     expect(screen.getByText(/\d{2}:\d{2}–\d{2}:\d{2}/)).toBeInTheDocument();
   });
 
+  it('shows Studio where the name would go for a studio booking', () => {
+    setup(details({ classType: 'UNAVAILABLE', forStudio: true, shareable: false }), true);
+    expect(screen.getByText('Closed')).toBeInTheDocument();
+    expect(screen.getByText('Studio')).toBeInTheDocument();
+    expect(screen.getByText('Booked for the studio')).toBeInTheDocument();
+  });
+
   it('shows the name, shareable, price and a non-default status when given', () => {
     setup(details({ bookerName: 'Jane Smith', price: 12.5, status: 'COMPLETED' }), true);
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();

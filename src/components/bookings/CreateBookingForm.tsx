@@ -107,7 +107,12 @@ export function CreateBookingForm({
     'classType',
     'isShareable',
   ]);
-  const { classTypes, classTypesFailed, pricePerHour } = useBookingFormData(classType);
+  const { classTypes, classTypesFailed, pricePerHour, noCharge } = useBookingFormData(classType);
+
+  // Closed takes the whole room, so it can't be shared.
+  useEffect(() => {
+    if (noCharge && isShareable) form.setValue('isShareable', false);
+  }, [noCharge, isShareable, form]);
 
   // A new draft after mount moves the room and time; the rest stays as chosen.
   const appliedDraft = useRef(draft);
@@ -249,14 +254,16 @@ export function CreateBookingForm({
                 <FieldContent>
                   <FieldLabel htmlFor="booking-shareable">Shared room</FieldLabel>
                   <FieldDescription>
-                    Other users can book the room at the same time (up to 3).
+                    {noCharge
+                      ? 'Closed takes the whole room.'
+                      : 'Other users can book the room at the same time (up to 3).'}
                   </FieldDescription>
                 </FieldContent>
                 <Switch
                   id="booking-shareable"
-                  checked={field.value}
+                  checked={noCharge ? false : field.value}
                   onCheckedChange={field.onChange}
-                  disabled={isLoading}
+                  disabled={isLoading || noCharge}
                 />
               </Field>
             )}
@@ -270,15 +277,17 @@ export function CreateBookingForm({
           <div className="min-w-0">
             <p className="font-medium">Estimated price</p>
             <p className="text-muted-foreground">
-              {minutes === null
-                ? 'Choose a time to see the price.'
-                : pricePerHour === null
-                  ? `${formatDuration(minutes)} · choose a booking type`
-                  : `${formatDuration(minutes)} at ${formatPrice(pricePerHour)}/hr`}
+              {noCharge
+                ? 'Closed is never charged.'
+                : minutes === null
+                  ? 'Choose a time to see the price.'
+                  : pricePerHour === null
+                    ? `${formatDuration(minutes)} · choose a booking type`
+                    : `${formatDuration(minutes)} at ${formatPrice(pricePerHour)}/hr`}
             </p>
           </div>
           <p className="text-base font-semibold tabular-nums">
-            {total === null ? '—' : formatPrice(total)}
+            {noCharge ? 'No charge' : total === null ? '—' : formatPrice(total)}
           </p>
         </div>
       </div>

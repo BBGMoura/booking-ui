@@ -28,6 +28,7 @@ const b = (uid: string, room: Room): BookingView => ({
   dateFrom: '2026-11-18T10:00:00Z',
   dateTo: '2026-11-18T11:00:00Z',
   totalPrice: 1,
+  forStudio: false,
 });
 
 const teacher = { showBooker: false };

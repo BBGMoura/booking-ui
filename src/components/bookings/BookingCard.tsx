@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cancelBooking } from '@/lib/api/booking';
 import type { BookingView } from '@/lib/types/booking';
-import { CLASS_TYPE_LABELS, ROOM_LABELS } from '@/lib/utils/calendarEvents';
+import { CLASS_TYPE_LABELS, ROOM_LABELS, STUDIO_NAME } from '@/lib/utils/calendarEvents';
 import { parseApiError } from '@/lib/utils/errorUtils';
 import { cn } from '@/lib/utils';
 
@@ -118,6 +118,7 @@ export function BookingCard({ booking, onCancelled, cancel = cancelBooking }: Bo
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span>{ROOM_LABELS[booking.room]}</span>
             <Badge variant="secondary">{CLASS_TYPE_LABELS[booking.classType]}</Badge>
+            {booking.forStudio && <Badge variant="secondary">{STUDIO_NAME}</Badge>}
             {booking.shareable && (
               <Badge variant="secondary">
                 <Users aria-hidden />
