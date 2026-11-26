@@ -253,38 +253,44 @@ function SettingsFields({ initial }: { initial: StudioSettings }) {
         ))}
       </div>
 
-      {/* Only follows the scroll while there's something to save, so it doesn't cover the form otherwise. */}
+      {/* Lined up under the cards. Only follows the scroll while there's something to save, so it doesn't cover
+          the form otherwise. It reaches past the page area's bottom padding so the form doesn't show beneath it. */}
       <div
         className={cn(
-          'bg-card mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-3',
-          isDirty && 'sticky bottom-0 shadow-lg'
+          'bg-background grid gap-x-10 @4xl/settings:grid-cols-[16rem_1fr]',
+          isDirty && 'sticky -bottom-10 border-t pb-10'
         )}
       >
-        <div className="min-h-5 text-sm" aria-live="polite">
-          {error ? (
-            <p role="alert" className="text-destructive">
-              {error}
-            </p>
-          ) : (
-            <p className="text-muted-foreground">
-              {isDirty ? 'You have unsaved changes.' : 'No unsaved changes.'}
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button type="button" variant="ghost" onClick={discard} disabled={!isDirty || submitting}>
-            Discard
-          </Button>
-          <Button type="submit" disabled={!isDirty || submitting}>
-            {submitting ? (
-              <>
-                <Spinner />
-                Saving...
-              </>
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 py-4 @4xl/settings:col-start-2">
+          <div className="mr-auto text-sm" aria-live="polite">
+            {error ? (
+              <p role="alert" className="text-destructive">
+                {error}
+              </p>
             ) : (
-              'Save changes'
+              isDirty && <p className="text-muted-foreground">You have unsaved changes.</p>
             )}
-          </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={discard}
+              disabled={!isDirty || submitting}
+            >
+              Discard
+            </Button>
+            <Button type="submit" disabled={!isDirty || submitting}>
+              {submitting ? (
+                <>
+                  <Spinner />
+                  Saving...
+                </>
+              ) : (
+                'Save changes'
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </form>
