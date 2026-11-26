@@ -267,7 +267,7 @@ function SettingsFields({ initial }: { initial: StudioSettings }) {
             </p>
           ) : (
             <p className="text-muted-foreground">
-              {isDirty ? 'You have unsaved changes.' : 'All changes saved.'}
+              {isDirty ? 'You have unsaved changes.' : 'No unsaved changes.'}
             </p>
           )}
         </div>

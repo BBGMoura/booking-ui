@@ -161,7 +161,7 @@ describe('SettingsForm', () => {
     const discard = screen.getByRole('button', { name: 'Discard' });
     expect(save).toBeDisabled();
     expect(discard).toBeDisabled();
-    expect(screen.getByText('All changes saved.')).toBeInTheDocument();
+    expect(screen.getByText('No unsaved changes.')).toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Studio name'), ' Two');
 
