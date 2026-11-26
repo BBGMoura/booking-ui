@@ -57,7 +57,7 @@ describe('SettingsForm', () => {
 
     expect(screen.getByLabelText('Studio name')).toHaveValue('ACS Dance Studio');
     expect(screen.getByLabelText('Most dates in a recurring booking')).toHaveValue('12');
-    expect(screen.getByLabelText('Shared room discount per hour (£)')).toHaveValue('1.50');
+    expect(screen.getByLabelText('Shared room discount')).toHaveValue('1.50');
     expect(screen.getByLabelText('Billing day')).toHaveValue('1');
     expect(screen.getByLabelText('Invoice number prefix')).toHaveValue('ACS');
     expect(screen.getByLabelText('Sort code')).toHaveValue('12-34-56');
@@ -79,9 +79,9 @@ describe('SettingsForm', () => {
     ['Studio name', '', 'Studio name is required'],
     ['Most dates in a recurring booking', '53', 'Most dates must be 1 to 52'],
     ['Most people sharing a room', '1', 'Most people sharing a room must be 2 to 10'],
-    ['Shared room discount per hour (£)', '1.555', 'Enter an amount in pounds, like 1.50'],
-    ['Cancellation window (hours)', '169', 'Cancellation window must be 0 to 168'],
-    ['Payment due (days)', '0', 'Payment due must be 1 to 90'],
+    ['Shared room discount', '1.555', 'Enter an amount in pounds, like 1.50'],
+    ['Cancellation window', '169', 'Cancellation window must be 0 to 168'],
+    ['Payment due', '0', 'Payment due must be 1 to 90'],
     ['Billing day', '29', 'Billing day must be 1 to 28'],
     ['Invoice number prefix', 'AC5', 'Letters only'],
     ['Sort code', '1234', 'Must be 6 digits, for example 12-34-56'],
@@ -92,7 +92,7 @@ describe('SettingsForm', () => {
     const input = screen.getByLabelText(label);
     await userEvent.clear(input);
     if (value) await userEvent.type(input, value);
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText(message)).toBeInTheDocument();
     expect(mockUpdate).not.toHaveBeenCalled();
@@ -105,7 +105,7 @@ describe('SettingsForm', () => {
     const billingDay = screen.getByLabelText('Billing day');
     await userEvent.clear(billingDay);
     await userEvent.type(billingDay, '15');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(mockUpdate).toHaveBeenCalledWith({
@@ -134,7 +134,7 @@ describe('SettingsForm', () => {
 
     await userEvent.clear(screen.getByLabelText('Business address'));
     await userEvent.clear(screen.getByLabelText('Sort code'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -147,9 +147,43 @@ describe('SettingsForm', () => {
     mockUpdate.mockRejectedValue(apiError(400, 'billingDay: must be at most 28'));
     await renderLoaded();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.type(screen.getByLabelText('Studio name'), '!');
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('billingDay: must be at most 28');
     expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('only lets you save or discard once something has changed', async () => {
+    await renderLoaded();
+
+    const save = screen.getByRole('button', { name: 'Save changes' });
+    const discard = screen.getByRole('button', { name: 'Discard' });
+    expect(save).toBeDisabled();
+    expect(discard).toBeDisabled();
+    expect(screen.getByText('All changes saved.')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Studio name'), ' Two');
+
+    expect(save).toBeEnabled();
+    expect(screen.getByText('You have unsaved changes.')).toBeInTheDocument();
+  });
+
+  it('puts the saved values back when you discard', async () => {
+    await renderLoaded();
+
+    const studioName = screen.getByLabelText('Studio name');
+    await userEvent.type(studioName, ' Two');
+    await userEvent.click(screen.getByRole('button', { name: 'Discard' }));
+
+    expect(studioName).toHaveValue('ACS Dance Studio');
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  });
+
+  it('shows the unit next to number settings', async () => {
+    await renderLoaded();
+
+    expect(screen.getByText('hours')).toBeInTheDocument();
+    expect(screen.getByText('£')).toBeInTheDocument();
   });
 });
