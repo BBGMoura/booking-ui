@@ -1,4 +1,4 @@
-import { CalendarDays, LayoutDashboard, CalendarCheck, Users, Tags } from 'lucide-react';
+import { CalendarDays, LayoutDashboard, CalendarCheck, Users, Tags, Settings } from 'lucide-react';
 import { type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -16,6 +16,7 @@ export const mainNavItems: NavItem[] = [
 export const adminNavItems: NavItem[] = [
   { title: 'Users', url: '/admin/users', icon: Users },
   { title: 'Room Rates', url: '/admin/rates', icon: Tags },
+  { title: 'Settings', url: '/admin/settings', icon: Settings },
 ];
 
 // Derived from nav items — AppHeader uses this instead of a separate hardcoded map.
