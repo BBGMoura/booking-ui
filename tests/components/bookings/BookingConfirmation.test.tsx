@@ -14,6 +14,7 @@ const saved: BookingView = {
   dateFrom: new Date(2026, 10, 19, 15, 0).toISOString(),
   dateTo: new Date(2026, 10, 19, 16, 15).toISOString(),
   totalPrice: 25,
+  forStudio: false,
 };
 
 const row = (label: string) => screen.getByText(label).closest('div');

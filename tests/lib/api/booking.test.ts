@@ -21,6 +21,7 @@ const mockBooking: BookingView = {
   dateFrom: '2026-11-01T10:00:00Z',
   dateTo: '2026-11-01T11:00:00Z',
   totalPrice: 20,
+  forStudio: false,
 };
 
 let mock: MockAdapter;

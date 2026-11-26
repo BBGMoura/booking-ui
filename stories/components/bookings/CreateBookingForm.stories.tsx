@@ -30,6 +30,7 @@ function existing(from: Date, to: Date, shareable = false): BookingView {
     dateFrom: from.toISOString(),
     dateTo: to.toISOString(),
     totalPrice: 15,
+    forStudio: false,
   };
 }
 

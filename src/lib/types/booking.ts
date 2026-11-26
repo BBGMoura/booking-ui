@@ -36,7 +36,8 @@ export type ClassType = (typeof CLASS_TYPES)[keyof typeof CLASS_TYPES];
  */
 export interface BookingView {
   uid: string;
-  userUid: string;
+  /** Null when the booking is for the studio. */
+  userUid: string | null;
   room: Room;
   status: BookingStatus;
   shareable: boolean;
@@ -44,7 +45,9 @@ export interface BookingView {
   dateFrom: string;
   dateTo: string;
   totalPrice: number;
-  /** Who made the booking. Not set for every user, so either can be null. */
+  /** Whether the booking is for the studio (Closed, Group class) rather than a person. */
+  forStudio: boolean;
+  /** Who the booking is for. Null for studio bookings, and not set for every user. */
   firstName?: string | null;
   lastName?: string | null;
 }

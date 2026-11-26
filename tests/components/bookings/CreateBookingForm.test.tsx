@@ -32,7 +32,7 @@ function booked(from: Date, to: Date, shareable = false): BookingView {
   return {
     uid: `${from.toISOString()}-${shareable}`,
     room: 'ASTAIRE',
-    classType: 'GROUP',
+    classType: 'OTHER',
     status: 'BOOKED',
     shareable,
     bookedFrom: from.toISOString(),
@@ -99,7 +99,7 @@ beforeEach(() => {
       'hrtime',
     ],
   });
-  jest.mocked(getClassTypes).mockResolvedValue(['PRIVATE', 'GROUP']);
+  jest.mocked(getClassTypes).mockResolvedValue(['PRIVATE', 'OTHER']);
   jest.mocked(getDanceClass).mockResolvedValue({
     classType: 'PRIVATE',
     active: true,
@@ -139,8 +139,63 @@ describe('CreateBookingForm', () => {
     await userEvent.click(await screen.findByRole('combobox', { name: 'Booking type' }));
 
     expect(await screen.findByRole('option', { name: 'Private' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Group' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Practice' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Other' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Closed' })).not.toBeInTheDocument();
+  });
+
+  it('never offers Group class, even if the backend sends it', async () => {
+    jest.mocked(getClassTypes).mockResolvedValue(['PRIVATE', 'GROUP', 'UNAVAILABLE']);
+    renderForm();
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Booking type' }));
+
+    expect(await screen.findByRole('option', { name: 'Closed' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Group class' })).not.toBeInTheDocument();
+  });
+
+  describe('when an admin picks Closed', () => {
+    beforeEach(() => {
+      jest.mocked(getClassTypes).mockResolvedValue(['PRIVATE', 'UNAVAILABLE']);
+    });
+
+    it('says No charge instead of fetching a floor fee', async () => {
+      renderForm();
+      await choose('Booking type', 'Closed');
+
+      expect(await screen.findByText('No charge')).toBeInTheDocument();
+      expect(getDanceClass).not.toHaveBeenCalledWith('UNAVAILABLE');
+      expect(screen.queryByText(/\/hr/)).not.toBeInTheDocument();
+    });
+
+    it('switches Shared room off and disables it with a reason', async () => {
+      renderForm({ ...dragged, classType: 'PRIVATE', isShareable: true });
+      await choose('Booking type', 'Closed');
+
+      const shared = screen.getByRole('switch', { name: 'Shared room' });
+      await waitFor(() => expect(shared).not.toBeChecked());
+      expect(shared).toBeDisabled();
+      expect(screen.getByText('Closed takes the whole room.')).toBeInTheDocument();
+    });
+
+    it('books it as not shared', async () => {
+      renderForm({ ...dragged, classType: 'PRIVATE', isShareable: true });
+      await choose('Booking type', 'Closed');
+      await submit();
+
+      await waitFor(() =>
+        expect(createBooking).toHaveBeenCalledWith(
+          expect.objectContaining({ classType: 'UNAVAILABLE', isShareable: false })
+        )
+      );
+    });
+
+    it('charges again once another booking type is chosen', async () => {
+      renderForm();
+      await choose('Booking type', 'Closed');
+      await choose('Booking type', 'Private');
+
+      expect(await screen.findByText('£30.00')).toBeInTheDocument();
+      expect(screen.getByRole('switch', { name: 'Shared room' })).toBeEnabled();
+    });
   });
 
   it('previews the price as the hourly price times the duration', async () => {
@@ -276,7 +331,7 @@ describe('CreateBookingForm', () => {
       .mockRejectedValueOnce(backendError(503, 'BOOKING_LOCK_TIMEOUT'))
       .mockResolvedValueOnce({} as never);
     const { onBooked, onConflict } = renderForm();
-    await choose('Booking type', 'Group');
+    await choose('Booking type', 'Other');
     await userEvent.click(screen.getByRole('switch', { name: 'Shared room' }));
     await submit();
 
@@ -289,7 +344,7 @@ describe('CreateBookingForm', () => {
     await waitFor(() => expect(onBooked).toHaveBeenCalled());
     expect(createBooking).toHaveBeenCalledTimes(2);
     expect(createBooking).toHaveBeenLastCalledWith(
-      expect.objectContaining({ classType: 'GROUP', isShareable: true })
+      expect.objectContaining({ classType: 'OTHER', isShareable: true })
     );
   });
 
@@ -364,7 +419,7 @@ describe('CreateBookingForm', () => {
 
   it('moves the room and time to a new draft and keeps the other choices', async () => {
     const { rerender } = renderForm();
-    await choose('Booking type', 'Group');
+    await choose('Booking type', 'Other');
 
     rerender({
       room: 'FOSSE',
@@ -376,7 +431,7 @@ describe('CreateBookingForm', () => {
     expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent('Fri 20 Nov');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('14:00');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('15:15');
-    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group');
+    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Other');
   });
 
   it('reports the booking as it changes, for the calendar to preview', async () => {
@@ -421,21 +476,21 @@ describe('CreateBookingForm', () => {
 
   it('changes only the room for a room-only draft', async () => {
     const { rerender } = renderForm();
-    await choose('Booking type', 'Group');
+    await choose('Booking type', 'Other');
 
     rerender({ room: 'BUSSELL' });
 
     expect(screen.getByRole('combobox', { name: 'Room' })).toHaveTextContent('Bussell');
     expect(screen.getByRole('combobox', { name: 'Start' })).toHaveTextContent('10:00');
     expect(screen.getByRole('combobox', { name: 'End' })).toHaveTextContent('11:30');
-    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group');
+    expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Other');
   });
 
   it('opens with the booking type and shareable choice a draft carries', async () => {
-    renderForm({ ...dragged, classType: 'GROUP', isShareable: true });
+    renderForm({ ...dragged, classType: 'OTHER', isShareable: true });
 
     await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Group')
+      expect(screen.getByRole('combobox', { name: 'Booking type' })).toHaveTextContent('Other')
     );
     expect(screen.getByRole('switch', { name: 'Shared room' })).toBeChecked();
   });
@@ -454,7 +509,7 @@ describe('CreateBookingForm', () => {
   });
 
   it('never shows the previous booking type’s price while the new one loads', async () => {
-    let resolveGroup: (value: Awaited<ReturnType<typeof getDanceClass>>) => void = () => {};
+    let resolveOther: (value: Awaited<ReturnType<typeof getDanceClass>>) => void = () => {};
     jest
       .mocked(getDanceClass)
       .mockResolvedValueOnce({
@@ -463,15 +518,15 @@ describe('CreateBookingForm', () => {
         pricePerHour: 20,
         role: 'ROLE_USER',
       })
-      .mockReturnValueOnce(new Promise((resolve) => (resolveGroup = resolve)));
+      .mockReturnValueOnce(new Promise((resolve) => (resolveOther = resolve)));
     renderForm();
     await choose('Booking type', 'Private');
     expect(await screen.findByText('£30.00')).toBeInTheDocument();
 
-    await choose('Booking type', 'Group');
+    await choose('Booking type', 'Other');
     expect(screen.queryByText('£30.00')).not.toBeInTheDocument();
 
-    resolveGroup({ classType: 'GROUP', active: true, pricePerHour: 10, role: 'ROLE_USER' });
+    resolveOther({ classType: 'OTHER', active: true, pricePerHour: 10, role: 'ROLE_USER' });
     expect(await screen.findByText('£15.00')).toBeInTheDocument();
   });
 

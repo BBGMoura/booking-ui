@@ -11,8 +11,8 @@ export const ROOM_LABELS: Record<Room, string> = {
 export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
   PRIVATE: 'Private',
   PRACTICE: 'Practice',
-  GROUP: 'Group',
-  UNAVAILABLE: 'Unavailable',
+  GROUP: 'Group class',
+  UNAVAILABLE: 'Closed',
   OTHER: 'Other',
 };
 
@@ -21,6 +21,7 @@ export const MINE_COLOR = 'var(--chart-1)';
 const BUSY_ELSEWHERE_COLOR = 'var(--muted-foreground)';
 
 const NO_NAME = 'No name';
+export const STUDIO_NAME = 'Studio';
 
 /**
  * What the details popover shows for a booking. Fields the viewer isn't
@@ -37,6 +38,8 @@ export interface BookingDetails {
   status?: BookingStatus;
   price?: number;
   bookerName?: string;
+  /** The booking is for the studio, not a person; shown as "Studio" where a name would go. */
+  forStudio?: boolean;
   /** Whether the viewer may cancel it: admins any booking, teachers their own. */
   cancellable: boolean;
 }
@@ -69,6 +72,7 @@ export const endOf = (b: BookingWithEitherDates) => b.dateTo ?? b.bookedTo;
 const isActive = (b: BookingView) => b.status !== 'CANCELLED';
 
 function fullName(b: BookingView): string | undefined {
+  if (b.forStudio) return STUDIO_NAME;
   return [b.firstName, b.lastName].filter(Boolean).join(' ') || undefined;
 }
 
@@ -91,6 +95,7 @@ function detailsOf(b: BookingView, own: BookingView | undefined, admin: boolean)
     classType: b.classType,
     shareable: b.shareable,
     cancellable: admin || !!own,
+    ...(b.forStudio && { forStudio: true }),
   };
   if (admin) {
     return {
@@ -181,7 +186,13 @@ export function buildCalendarEvents(
     const isMine = myUids.has(b.uid);
     // Every tile reads class type, then who booked it, as far as the viewer
     // is allowed to know: admins see everyone, teachers only themselves.
-    const who = isMine ? viewerName || NO_NAME : showBooker ? bookerName(b) : undefined;
+    const who = b.forStudio
+      ? STUDIO_NAME
+      : isMine
+        ? viewerName || NO_NAME
+        : showBooker
+          ? bookerName(b)
+          : undefined;
     const props: BookingEventProps = {
       heading: classType,
       details: detailsOf(b, myByUid.get(b.uid), showBooker),

@@ -12,6 +12,7 @@ const booking = (uid: string, room: BookingView['room'], over: Partial<BookingVi
   dateFrom: '2026-11-18T10:00:00Z',
   dateTo: '2026-11-18T11:00:00Z',
   totalPrice: 20,
+  forStudio: false,
   ...over,
 });
 
@@ -27,8 +28,25 @@ describe('buildCalendarEvents', () => {
     expect(events.map((e) => e.id)).toEqual(['a', 'b']);
     expect(events.map((e) => [props(e).heading, props(e).detail])).toEqual([
       ['Astaire', 'Private'],
-      ['Alex Moore', 'Group'],
+      ['Alex Moore', 'Group class'],
     ]);
+  });
+
+  it('shows Studio on studio bookings and marks their details', () => {
+    const closed = booking('c', 'ASTAIRE', {
+      forStudio: true,
+      userUid: null,
+      firstName: null,
+      lastName: null,
+      classType: 'UNAVAILABLE',
+    });
+    for (const options of [admin, teacher]) {
+      const [event] = buildCalendarEvents('ASTAIRE', false, [closed], [], options);
+      expect([props(event).heading, props(event).detail]).toEqual(['Closed', 'Studio']);
+      expect(props(event).details?.forStudio).toBe(true);
+    }
+    const [adminEvent] = buildCalendarEvents('ASTAIRE', false, [closed], [], admin);
+    expect(props(adminEvent).details?.bookerName).toBe('Studio');
   });
 
   it('with a room shows class type, then my name on my own bookings only', () => {
@@ -96,7 +114,7 @@ describe('buildCalendarEvents', () => {
     const [event] = buildCalendarEvents('ASTAIRE', false, [summary], [], teacher);
     expect(event.start).toBe('2026-11-18T12:00:00Z');
     expect(event.end).toBe('2026-11-18T13:00:00Z');
-    expect(props(event).heading).toBe('Group');
+    expect(props(event).heading).toBe('Group class');
   });
 
   it('adds my bookings in other rooms as busy elsewhere when the overlay is on', () => {

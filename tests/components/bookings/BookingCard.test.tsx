@@ -34,6 +34,7 @@ const booking = (over: Partial<BookingView> = {}): BookingView => ({
   dateFrom: '2026-11-01T10:00:00Z',
   dateTo: '2026-11-01T11:00:00Z',
   totalPrice: 20,
+  forStudio: false,
   ...over,
 });
 
@@ -58,6 +59,29 @@ describe('BookingCard', () => {
 
     rerender(<BookingCard booking={booking({ shareable: false })} />);
     expect(screen.queryByText('Shared room')).not.toBeInTheDocument();
+  });
+
+  it('shows a studio booking as Studio, with no name and no error', () => {
+    render(
+      <BookingCard
+        booking={booking({
+          forStudio: true,
+          userUid: null,
+          firstName: null,
+          lastName: null,
+          classType: 'UNAVAILABLE',
+          shareable: false,
+          totalPrice: 0,
+        })}
+      />
+    );
+    expect(screen.getByText('Studio')).toBeInTheDocument();
+    expect(screen.getByText('Closed')).toBeInTheDocument();
+  });
+
+  it('shows no Studio badge on a booking for a person', () => {
+    render(<BookingCard booking={booking()} />);
+    expect(screen.queryByText('Studio')).not.toBeInTheDocument();
   });
 
   it('labels only cancelled bookings', () => {

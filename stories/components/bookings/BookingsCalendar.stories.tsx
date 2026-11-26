@@ -68,6 +68,7 @@ function booking(
     dateFrom: from.toISOString(),
     dateTo: to.toISOString(),
     totalPrice: 20,
+    forStudio: false,
   };
 }
 
