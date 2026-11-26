@@ -6,6 +6,8 @@ import { SettingsForm } from '@/components/admin/SettingsForm';
 import * as settingsApi from '@/lib/api/settings';
 import type { StudioSettings } from '@/lib/types/settings';
 
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('@/lib/api/settings');
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
@@ -161,7 +163,7 @@ describe('SettingsForm', () => {
     const discard = screen.getByRole('button', { name: 'Discard' });
     expect(save).toBeDisabled();
     expect(discard).toBeDisabled();
-    expect(screen.queryByText('You have unsaved changes.')).not.toBeInTheDocument();
+    expect(screen.getByText('No unsaved changes.')).toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Studio name'), ' Two');
 
@@ -185,5 +187,63 @@ describe('SettingsForm', () => {
 
     expect(screen.getByText('hours')).toBeInTheDocument();
     expect(screen.getByText('£')).toBeInTheDocument();
+  });
+
+  describe('leaving with unsaved changes', () => {
+    async function renderWithLink() {
+      render(
+        <>
+          <a href="/admin/users">Users</a>
+          <SettingsForm />
+        </>
+      );
+      await screen.findByLabelText('Studio name');
+    }
+
+    it('lets you follow a link straight away when nothing has changed', async () => {
+      await renderWithLink();
+
+      await userEvent.click(screen.getByRole('link', { name: 'Users' }));
+
+      expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
+    });
+
+    it('asks first, and stays when you choose to', async () => {
+      await renderWithLink();
+      await userEvent.type(screen.getByLabelText('Studio name'), ' Two');
+
+      await userEvent.click(screen.getByRole('link', { name: 'Users' }));
+      expect(await screen.findByText('Leave without saving?')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Stay on this page' }));
+
+      await waitFor(() =>
+        expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument()
+      );
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Studio name')).toHaveValue('ACS Dance Studio Two');
+    });
+
+    it('goes to the link when you choose to leave', async () => {
+      await renderWithLink();
+      await userEvent.type(screen.getByLabelText('Studio name'), ' Two');
+
+      await userEvent.click(screen.getByRole('link', { name: 'Users' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Leave without saving' }));
+
+      expect(mockPush).toHaveBeenCalledWith('/admin/users');
+    });
+
+    it("asks the browser to warn before closing the tab, only while there's something to save", async () => {
+      await renderLoaded();
+      const unload = () => {
+        const event = new Event('beforeunload', { cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      };
+
+      expect(unload()).toBe(false);
+      await userEvent.type(screen.getByLabelText('Studio name'), ' Two');
+      expect(unload()).toBe(true);
+    });
   });
 });

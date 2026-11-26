@@ -5,6 +5,7 @@ import { Controller, useForm, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useStudioSettings } from '@/hooks/use-studio-settings';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { updateStudioSettings } from '@/lib/api/settings';
 import type { StudioSettings } from '@/lib/types/settings';
 import { parseApiError } from '@/lib/utils/errorUtils';
@@ -15,6 +16,7 @@ import {
   type StudioSettingsFormValues,
 } from '@/lib/utils/studioSettings';
 import { cn } from '@/lib/utils';
+import { UnsavedChangesDialog } from '@/components/admin/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -215,6 +217,7 @@ function SettingsFields({ initial }: { initial: StudioSettings }) {
     defaultValues: toFormValues(initial),
   });
   const { isDirty } = form.formState;
+  const guard = useUnsavedChangesGuard(isDirty);
 
   async function onSubmit(values: StudioSettingsFormValues) {
     setSubmitting(true);
@@ -268,7 +271,9 @@ function SettingsFields({ initial }: { initial: StudioSettings }) {
                 {error}
               </p>
             ) : (
-              isDirty && <p className="text-muted-foreground">You have unsaved changes.</p>
+              <p className="text-muted-foreground">
+                {isDirty ? 'You have unsaved changes.' : 'No unsaved changes.'}
+              </p>
             )}
           </div>
           <div className="flex gap-2">
@@ -293,6 +298,12 @@ function SettingsFields({ initial }: { initial: StudioSettings }) {
           </div>
         </div>
       </div>
+
+      <UnsavedChangesDialog
+        open={guard.pendingHref !== null}
+        onStay={guard.stay}
+        onLeave={guard.leave}
+      />
     </form>
   );
 }
