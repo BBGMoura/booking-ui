@@ -185,12 +185,12 @@ export function SettingsForm() {
   if (!settings) {
     return (
       <div
-        className="mx-auto w-full max-w-5xl space-y-10"
+        className="@container/settings mx-auto w-full max-w-5xl space-y-10"
         aria-busy="true"
         aria-label="Loading settings"
       >
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="grid gap-6 md:grid-cols-[16rem_1fr]">
+          <div key={i} className="grid gap-6 @4xl/settings:grid-cols-[16rem_1fr]">
             <div className="space-y-2">
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-4 w-48" />
@@ -238,7 +238,7 @@ function SettingsFields({ initial }: { initial: StudioSettings }) {
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
-      className="mx-auto w-full max-w-5xl"
+      className="@container/settings mx-auto w-full max-w-5xl"
       aria-label="Settings"
       noValidate
     >
@@ -271,7 +271,7 @@ function SettingsFields({ initial }: { initial: StudioSettings }) {
             </p>
           )}
         </div>
-        <div className="flex gap-2 sm:shrink-0">
+        <div className="flex shrink-0 gap-2">
           <Button type="button" variant="ghost" onClick={discard} disabled={!isDirty || submitting}>
             Discard
           </Button>
@@ -313,7 +313,7 @@ function SettingsSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="grid gap-x-10 gap-y-4 py-8 first:pt-0 md:grid-cols-[16rem_1fr]"
+      className="grid gap-x-10 gap-y-4 py-8 first:pt-0 @4xl/settings:grid-cols-[16rem_1fr]"
     >
       <div className="space-y-1">
         <h2 id={headingId} className="text-base font-semibold">
@@ -322,11 +322,11 @@ function SettingsSection({
         <p className="text-muted-foreground text-sm text-balance">{section.description}</p>
       </div>
 
-      <div className="bg-card divide-y rounded-2xl border shadow-xs">
+      <div className="bg-card @container/card divide-y rounded-2xl border shadow-xs">
         {rows.map((row) => (
           <div
             key={row[0].name}
-            className={cn('p-5', row.length > 1 && 'grid gap-4 sm:grid-cols-2')}
+            className={cn('p-5', row.length > 1 && 'grid gap-4 @md/card:grid-cols-2')}
           >
             {row.map((config) => (
               <SettingField
@@ -412,9 +412,9 @@ function SettingField({
 
         return (
           <Field data-invalid={fieldState.invalid}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-              <div className="flex min-w-0 flex-col gap-1.5 sm:max-w-md">{label}</div>
-              <div className="flex flex-col gap-1.5 sm:w-44 sm:shrink-0">
+            <div className="flex flex-col gap-3 @lg/card:flex-row @lg/card:items-start @lg/card:justify-between @lg/card:gap-8">
+              <div className="flex min-w-0 flex-col gap-1.5 @lg/card:max-w-md">{label}</div>
+              <div className="flex flex-col gap-1.5 @lg/card:w-44 @lg/card:shrink-0">
                 {input}
                 {error}
               </div>
