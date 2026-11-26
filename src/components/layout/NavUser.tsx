@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronsUpDown, User, LogOut } from 'lucide-react';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
@@ -15,15 +14,15 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/lib/context/AuthContext';
 import { getInitials } from '@/lib/utils/userUtils';
+import { leaveForLogin } from '@/lib/utils/authRedirect';
 
 export function NavUser() {
-  const router = useRouter();
   const { user, logout } = useAuth();
   const initials = getInitials(user);
 
   function handleLogout() {
     logout();
-    router.push('/login');
+    leaveForLogin();
   }
 
   return (

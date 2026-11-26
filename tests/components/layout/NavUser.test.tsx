@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { useAuth } from '@/lib/context/AuthContext';
 import { NavUser } from '@/components/layout/NavUser';
 
-const mockPush = jest.fn();
+const mockLeaveForLogin = jest.fn();
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+jest.mock('@/lib/utils/authRedirect', () => ({
+  leaveForLogin: () => mockLeaveForLogin(),
 }));
 
 jest.mock('@/lib/context/AuthContext');
@@ -104,13 +104,17 @@ describe('NavUser', () => {
       expect(mockLogout).toHaveBeenCalledTimes(1);
     });
 
-    it('redirects to /login after logout', async () => {
+    it('leaves for the login page with a full page load after logging out', async () => {
+      const calls: string[] = [];
+      mockUseAuth({ logout: jest.fn(() => calls.push('logout')) });
+      mockLeaveForLogin.mockImplementation(() => calls.push('leave'));
+
       render(<NavUser />);
 
       await userEvent.click(screen.getByRole('button'));
       await userEvent.click(await screen.findByText('Log out'));
 
-      expect(mockPush).toHaveBeenCalledWith('/login');
+      expect(calls).toEqual(['logout', 'leave']);
     });
   });
 });
