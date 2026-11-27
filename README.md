@@ -42,6 +42,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npx playwright test`  | Run Playwright e2e tests                |
 | `npm run storybook`    | Start Storybook on port 6006            |
 
+## Asking Claude to act on review comments
+
+Comment `@claude` followed by what you want on a pull request, a review comment or a review. Claude (via `.github/workflows/claude.yml`) pushes changes to that PR's branch and replies. Only comments from BBGMoura are acted on, and it needs the `CLAUDE_CODE_OAUTH_TOKEN`, `WONDERBOT_APP_ID` and `WONDERBOT_APP_PRIVATE_KEY` repo secrets.
+
 ## Environment Variables
 
 `.env.example` lists every variable and marks which are `NEXT_PUBLIC_` (build-time and visible to anyone, so never secret) and which are server-only. The full table for both apps is in [CONFIG.md](https://github.com/BBGMoura/booking-system/blob/master/CONFIG.md).
